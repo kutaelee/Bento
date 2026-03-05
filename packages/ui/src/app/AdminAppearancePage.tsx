@@ -30,7 +30,12 @@ const THEME_OPTIONS: Array<{ value: ThemeMode; labelKey: I18nKey }> = [
 export default function AdminAppearancePage() {
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const api = useMemo(() => createMePreferencesApi(apiClient), [apiClient]);
-  const { theme, toggleTheme } = useTheme(); // Use the new useTheme hook
+  const { theme, toggleTheme } = useTheme();
+  const themeRef = React.useRef<ThemeMode>(theme);
+
+  React.useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,11 +43,11 @@ export default function AdminAppearancePage() {
   const [messageKey, setMessageKey] = useState<I18nKey | null>(null);
   const [current, setCurrent] = useState<AppearanceConfig>({
     locale: "ko-KR",
-    theme: "system", // Initial theme is system as per ThemeMode default
+    theme: "system",
   });
   const [draft, setDraft] = useState<AppearanceConfig>({
     locale: "ko-KR",
-    theme: "system", // Initial theme is system as per ThemeMode default
+    theme: "system",
   });
 
   const hasChanges = useMemo(
@@ -60,19 +65,16 @@ export default function AdminAppearancePage() {
 
       const profile: AppearanceConfig = {
         locale: me.locale,
-        theme: theme, // Use theme from useTheme hook
+        theme: themeRef.current,
       };
       setCurrent(profile);
       setDraft(profile);
-
     } catch {
       setErrorKey("admin.appearance.reload");
     } finally {
       setLoading(false);
     }
-  }, [api, theme]); // Added theme to dependencies
-
-
+  }, [api]);
 
   const onSave = useCallback(async () => {
     setSaving(true);
@@ -81,8 +83,6 @@ export default function AdminAppearancePage() {
 
     try {
       await api.setPreferences({ locale: draft.locale });
-
-
       setCurrent(draft);
       setMessageKey("admin.appearance.saved");
     } catch {
@@ -94,7 +94,6 @@ export default function AdminAppearancePage() {
 
   const onReset = useCallback(() => {
     setDraft(current);
-
     setMessageKey("admin.appearance.reset");
   }, [current]);
 
@@ -116,7 +115,6 @@ export default function AdminAppearancePage() {
         title={t("admin.appearance.title")}
         actions={
           <Toolbar>
-
             <Button disabled={!hasChanges || saving} onClick={onReset}>
               {t("admin.appearance.reset")}
             </Button>
