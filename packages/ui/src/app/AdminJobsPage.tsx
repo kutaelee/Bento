@@ -133,7 +133,7 @@ export default function AdminJobsPage() {
       />
 
       <section className="admin-jobs__section">
-        <h2 className="admin-jobs__section-title">실행중인 작업 목록</h2>
+        <h2 className="admin-jobs__section-title">{t("admin.jobs.runningSectionTitle")}</h2>
 
         {loading ? <LoadingSkeleton lines={6} /> : null}
 
@@ -156,7 +156,7 @@ export default function AdminJobsPage() {
       </section>
 
       <section className="admin-jobs__section">
-        <h2 className="admin-jobs__section-title">작업 상세</h2>
+        <h2 className="admin-jobs__section-title">{t("admin.jobs.detailSectionTitle")}</h2>
 
         {!selectedJob ? <EmptyState title={t("admin.jobs.title")}
                                  detail={t("msg.noJobs")} /> : null}

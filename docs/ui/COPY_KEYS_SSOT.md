@@ -84,6 +84,7 @@
 | field.username | 사용자명 | Username |
 | field.password | 비밀번호 | Password |
 | field.displayName | 표시 이름 | Display name |
+| field.email | 이메일 | Email |
 | field.expiry | 만료일 | Expiry |
 | field.path | 경로 | Path |
 | field.destination | 대상 폴더 | Destination folder |
@@ -216,8 +217,46 @@
 | admin.performance.title | 성능 / QoS | Performance / QoS |
 | admin.jobs.title | 백그라운드 작업 | Background jobs |
 | admin.audit.title | 활동 로그 | Activity log |
+| admin.audit.event.actorAdminA | 관리자 A | Admin A |
+| admin.audit.event.actorAdminB | 관리자 B | Admin B |
+| admin.audit.event.actorSystem | 시스템 | System |
+| admin.audit.event.actionLogin | 로그인 | Sign in |
+| admin.audit.event.actionInviteCreated | 초대 생성 | Invite created |
+| admin.audit.event.actionBackupDone | 백업 완료 | Backup completed |
+| admin.audit.event.detailLoginSuccess | 정상 로그인 성공 | Successful sign-in |
+| admin.audit.event.detailInviteIssued | 초대 링크 발급 | Issued invite link |
+| admin.audit.event.detailBackgroundJobSuccess | 백그라운드 작업 성공 | Background job completed |
+| admin.audit.event.time2m | 2분 전 | 2 minutes ago |
+| admin.audit.event.time18m | 18분 전 | 18 minutes ago |
+| admin.audit.event.time40m | 40분 전 | 40 minutes ago |
 | admin.security.title | 보안 및 공유 정책 | Security & sharing |
 | admin.appearance.title | 언어 및 외관 | Language & appearance |
+| admin.home.card.users | 사용자 권한과 초대를 관리합니다. | Manage users, roles, and invites. |
+| admin.home.card.storage | 볼륨과 저장소 상태를 관리합니다. | Manage volumes and storage health. |
+| admin.home.card.performance | 성능 및 QoS 정책을 조정합니다. | Tune performance and QoS profiles. |
+| admin.home.card.jobs | 백그라운드 작업 상태를 점검합니다. | Monitor background jobs and statuses. |
+| admin.home.card.security | 공유 및 보안 정책을 검토합니다. | Review sharing and security policies. |
+| admin.home.card.appearance | 언어와 테마 환경을 관리합니다. | Manage language and theme preferences. |
+| admin.users.inviteAction | 사용자 초대 | Invite user |
+| admin.users.clearAction | 초기화 | Clear |
+| admin.users.createAction | 생성 | Create |
+| admin.users.inviteDialogTitle | 사용자 초대 생성 | Create user invite |
+| admin.users.inviteExpiryDays | 초대 만료일수 | Invite expiry days |
+| admin.users.createdToken | 생성된 토큰 | Created token |
+| admin.users.inviteToken | 초대 토큰 | Invite token |
+| admin.users.invitedBy | 초대자 | Invited by |
+| admin.users.invitedAt | 초대일 | Invited at |
+| admin.users.tab.users | 사용자 목록 | Users |
+| admin.users.tab.invites | 초대 목록 | Invites |
+| admin.users.loadingDetail | 목록을 불러오는 중입니다. | Loading user list. |
+| admin.users.emptyTitle | 항목이 없습니다 | No items found |
+| admin.users.emptyDetail | 검색 조건을 바꿔보세요. | Try changing your search filters. |
+| admin.users.status.inactive | 비활성 | Inactive |
+| admin.users.status.pending | 대기 | Pending |
+| admin.users.status.expired | 만료 | Expired |
+| admin.jobs.runningSectionTitle | 실행중인 작업 목록 | Running jobs |
+| admin.jobs.detailSectionTitle | 작업 상세 | Job details |
+| admin.performance.saving | 저장 중 | Saving |
 
 ---
 

@@ -1,12 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, DataTable, TextField, SkeletonBlock, EmptyState, ErrorState, ForbiddenState, PageHeader, Toolbar, LoadingSkeleton } from "@nimbus/ui-kit";
+import { Button, DataTable, SkeletonBlock, EmptyState, ErrorState, ForbiddenState, PageHeader, Toolbar } from "@nimbus/ui-kit";
 import { createAdminMaintenanceApi } from "../api/adminMaintenance";
 import { ApiError } from "../api/errors";
 import { createJobsApi, type Job } from "../api/jobs";
 import { createVolumesApi, type Volume } from "../api/volumes";
 import { t, type I18nKey } from "../i18n/t";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
-import { JobDetailsCard } from "./JobDetailsCard";
+import {
+  ActivateVolumeSection,
+  ActiveVolumeSection,
+  CreateVolumeSection,
+  ScanCleanupSection,
+  ValidatePathSection,
+} from "./AdminStorageSections";
 import "./AdminStoragePage.css";
 
 const statusKeyMap: Record<Volume["status"], I18nKey> = {
@@ -245,20 +251,7 @@ export default function AdminStoragePage() {
         }
       />
 
-      <section className="admin-storage__section">
-        <h2 className="admin-storage__section-title">{t("admin.storage.activeTitle")}</h2>
-        {loading ? (
-          <LoadingSkeleton lines={2} />
-        ) : activeVolume ? (
-          <div className="admin-storage__stack">
-            <strong>{activeVolume.name}</strong>
-            <p className="admin-storage__muted">{activeVolume.base_path}</p>
-            <p className="admin-storage__muted">{t(statusKeyMap[activeVolume.status])}</p>
-          </div>
-        ) : (
-          <p className="admin-storage__muted">{t("msg.noActiveVolume")}</p>
-        )}
-      </section>
+      <ActiveVolumeSection loading={loading} activeVolume={activeVolume} statusKeyMap={statusKeyMap} />
 
       <div className="admin-storage__section">
         <div className="admin-storage__row">
@@ -293,147 +286,48 @@ export default function AdminStoragePage() {
         )}
       </div>
 
-      <section className="admin-storage__section">
-        <h2 className="admin-storage__section-title">{t("modal.storageValidate.title")}</h2>
-        <TextField
-          label={t("field.path")}
-          value={validatePath}
-          onChange={(event) => setValidatePath(event.currentTarget.value)}
-          placeholder="/mnt/storage"
-        />
-        <div className="admin-storage__actions">
-          <Button
-            variant="primary"
-            onClick={handleValidate}
-            disabled={!validatePath || validating}
-            loading={validating}
-          >
-            {t("action.validatePath")}
-          </Button>
-        </div>
-        {validateErrorKey ? <ErrorState title={t(validateErrorKey)} /> : null}
-        {validateResult ? (
-          <div className="admin-storage__stack">
-            <p className="admin-storage__muted">
-              {t("status.validation")}: {validateResult.ok ? t("status.ok") : t("status.fail")}
-            </p>
-            <p className="admin-storage__muted">
-              {t("status.writable")}: {validateResult.writable ? t("status.ok") : t("status.fail")}
-            </p>
-            <p className="admin-storage__muted">
-              {t("field.freeSpace")}: {formatBytes(validateResult.free_bytes)}
-            </p>
-            <p className="admin-storage__muted">
-              {t("field.totalSpace")}: {formatBytes(validateResult.total_bytes)}
-            </p>
-            {validateResult.fs_type ? (
-              <p className="admin-storage__muted">{t("field.fileSystem")}: {validateResult.fs_type}</p>
-            ) : null}
-            {validateResult.message ? <p className="admin-storage__muted">{validateResult.message}</p> : null}
-          </div>
-        ) : null}
-      </section>
+      <ValidatePathSection
+        validatePath={validatePath}
+        validating={validating}
+        validateErrorKey={validateErrorKey}
+        validateResult={validateResult}
+        setValidatePath={setValidatePath}
+        onValidate={handleValidate}
+        formatBytes={formatBytes}
+      />
 
-      <section className="admin-storage__section">
-        <h2 className="admin-storage__section-title">{t("admin.storage.createTitle")}</h2>
-        <TextField
-          label={t("field.name")}
-          value={createName}
-          onChange={(event) => setCreateName(event.currentTarget.value)}
-          placeholder="Main"
-        />
-        <TextField
-          label={t("field.path")}
-          value={createPath}
-          onChange={(event) => setCreatePath(event.currentTarget.value)}
-          placeholder="/mnt/storage"
-        />
-        {createErrorKey ? <ErrorState title={t(createErrorKey)} /> : null}
-        {created ? <p className="admin-storage__muted">{t("msg.volumeCreated")}</p> : null}
-        <div className="admin-storage__actions">
-          <Button
-            variant="primary"
-            onClick={handleCreate}
-            disabled={!createName || !createPath || creating}
-            loading={creating}
-          >
-            {t("action.createVolume")}
-          </Button>
-        </div>
-      </section>
+      <CreateVolumeSection
+        createName={createName}
+        createPath={createPath}
+        creating={creating}
+        createErrorKey={createErrorKey}
+        created={created}
+        setCreateName={setCreateName}
+        setCreatePath={setCreatePath}
+        onCreate={handleCreate}
+      />
 
-      <section className="admin-storage__section">
-        <h2 className="admin-storage__section-title">{t("admin.storage.activateTitle")}</h2>
-        <p className="admin-storage__muted">
-          {selectedVolume
-            ? `${t("msg.selectedVolume")}: ${selectedVolume.name}`
-            : t("msg.noVolumeSelected")}
-        </p>
-        {activateErrorKey ? <ErrorState title={t(activateErrorKey)} /> : null}
-        {activated ? <p className="admin-storage__muted">{t("msg.volumeActivated")}</p> : null}
-        <div className="admin-storage__actions">
-          <Button
-            variant="primary"
-            onClick={handleActivate}
-            disabled={!selectedVolume || selectedVolume.is_active}
-            loading={activating}
-          >
-            {t("action.activateVolume")}
-          </Button>
-        </div>
-      </section>
+      <ActivateVolumeSection
+        selectedVolume={selectedVolume}
+        activateErrorKey={activateErrorKey}
+        activated={activated}
+        activating={activating}
+        onActivate={handleActivate}
+      />
 
-      <section className="admin-storage__section">
-        <h2 className="admin-storage__section-title">{t("modal.cleanup.title")}</h2>
-        <div className="admin-storage__checkboxes">
-          <label className="admin-storage__checkbox">
-            <input
-              type="checkbox"
-              checked={scanDeleteFiles}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                setScanDeleteFiles(event.target.checked)
-              }
-            />
-            <span>{t("field.deleteOrphanFiles")}</span>
-          </label>
-          <label className="admin-storage__checkbox">
-            <input
-              type="checkbox"
-              checked={scanDeleteRows}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                setScanDeleteRows(event.target.checked)
-              }
-            />
-            <span>{t("field.deleteOrphanDbRows")}</span>
-          </label>
-        </div>
-
-        {scanErrorKey ? <ErrorState title={t(scanErrorKey)} /> : null}
-        <div className="admin-storage__actions">
-          <Button
-            variant="primary"
-            onClick={handleStartScan}
-            disabled={scanSubmitting}
-            loading={scanSubmitting}
-          >
-            {t("action.startScan")}
-          </Button>
-        </div>
-
-        {scanJobLoading ? <LoadingSkeleton lines={3} /> : null}
-        {scanJobErrorKey ? <ErrorState title={t(scanJobErrorKey)} /> : null}
-        {scanJob ? (
-          <JobDetailsCard
-            job={scanJob}
-            titleKey="admin.jobs.title"
-            onRefresh={() => void fetchScanJob(scanJob.id)}
-            loading={scanJobLoading}
-            errorKey={scanJobErrorKey}
-          />
-        ) : (
-          <p className="admin-storage__muted">{t("msg.noJobs")}</p>
-        )}
-      </section>
+      <ScanCleanupSection
+        scanDeleteFiles={scanDeleteFiles}
+        scanDeleteRows={scanDeleteRows}
+        scanSubmitting={scanSubmitting}
+        scanErrorKey={scanErrorKey}
+        scanJobLoading={scanJobLoading}
+        scanJobErrorKey={scanJobErrorKey}
+        scanJob={scanJob}
+        onToggleDeleteFiles={setScanDeleteFiles}
+        onToggleDeleteRows={setScanDeleteRows}
+        onStartScan={handleStartScan}
+        onRefreshJob={(jobId) => void fetchScanJob(jobId)}
+      />
     </section>
   );
 }

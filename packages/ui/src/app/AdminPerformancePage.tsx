@@ -328,13 +328,13 @@ export default function AdminPerformancePage() {
         />
 
         <div className="admin-performance__actions">
-          <Button
-            variant="primary"
-            onClick={() => void onSave()}
-            disabled={!selectedProfile || loading || saving}
-          >
-            {saving ? "저장 중" : t("action.save")}
-          </Button>
+            <Button
+              variant="primary"
+              onClick={() => void onSave()}
+              disabled={!selectedProfile || loading || saving}
+            >
+            {saving ? t("admin.performance.saving") : t("action.save")}
+            </Button>
         </div>
 
         {saved ? <p className="admin-performance__muted">{t("admin.performance.message.saveDone")}</p> : null}

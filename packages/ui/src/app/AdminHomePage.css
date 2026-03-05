@@ -1,80 +1,31 @@
 .admin-home {
-  padding: 24px;
+  padding: var(--nd-space-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--nd-space-4, 16px);
 }
 
 .admin-home__header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--nd-space-2, 8px);
 }
 
 .admin-home__title {
   margin: 0;
   font-size: 20px;
   line-height: 1.4;
+  color: var(--nd-color-text-primary);
 }
 
 .admin-home__subtitle {
   margin: 0;
-  color: #475569;
+  color: var(--nd-color-text-secondary);
   font-size: 14px;
 }
 
-.admin-home__card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.admin-home__card-title {
-  margin: 0;
-  font-size: 18px;
-}
-
-.admin-home__card-description {
-  margin: 0;
-  color: #475569;
-  font-size: 14px;
-}
-
-.admin-home__quick-links {
-  margin: 0;
-  padding: 0;
+.admin-home__cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
-  list-style: none;
-}
-
-.admin-home__quick-link-item {
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-}
-
-.admin-home__quick-link {
-  width: 100%;
-  min-height: 72px;
-  padding: 10px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: inherit;
-  text-decoration: none;
-}
-
-.admin-home__quick-link:hover,
-.admin-home__quick-link:focus-visible {
-  background: #f8fafc;
-}
-
-.admin-home__quick-link-label {
-  color: #1e293b;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--nd-space-4, 16px);
 }

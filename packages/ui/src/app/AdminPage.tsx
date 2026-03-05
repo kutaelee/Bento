@@ -57,7 +57,7 @@ export function AdminPage() {
     return (
         <div style={{ padding: "var(--nd-space-6, 24px)", maxWidth: "1200px", margin: "0 auto" }}>
             <header style={{ marginBottom: "var(--nd-space-6, 24px)" }}>
-                <h1 style={{ fontSize: "1.875rem", fontWeight: 600, color: "var(--nd-color-text-primary, #111827)" }}>
+                <h1 style={{ fontSize: "1.875rem", fontWeight: 600, color: "var(--nd-color-text-primary)" }}>
                     {t("nav.settings")}
                 </h1>
             </header>

@@ -1,12 +1,47 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@nimbus/ui-kit";
-import { adminSections } from "../nav";
+import { SectionCard } from "@nimbus/ui-kit";
 import { t } from "../i18n/t";
 import "./AdminHomePage.css";
 
 export function AdminHomePage() {
-  const navigate = useNavigate();
+  const sections = [
+    {
+      to: "/admin/users",
+      icon: "👥",
+      title: t("admin.users.title"),
+      description: t("admin.home.card.users"),
+    },
+    {
+      to: "/admin/storage",
+      icon: "💾",
+      title: t("admin.storage.title"),
+      description: t("admin.home.card.storage"),
+    },
+    {
+      to: "/admin/performance",
+      icon: "⚡",
+      title: t("admin.performance.title"),
+      description: t("admin.home.card.performance"),
+    },
+    {
+      to: "/admin/jobs",
+      icon: "⚙️",
+      title: t("admin.jobs.title"),
+      description: t("admin.home.card.jobs"),
+    },
+    {
+      to: "/admin/security",
+      icon: "🛡️",
+      title: t("admin.security.title"),
+      description: t("admin.home.card.security"),
+    },
+    {
+      to: "/admin/appearance",
+      icon: "🎨",
+      title: t("admin.appearance.title"),
+      description: t("admin.home.card.appearance"),
+    },
+  ];
 
   return (
     <section className="admin-home">
@@ -15,27 +50,16 @@ export function AdminHomePage() {
         <p className="admin-home__subtitle">{t("admin.home.subtitle")}</p>
       </header>
 
-      <section className="admin-home__card" aria-label="admin quick links">
-        <h2 className="admin-home__card-title">{t("admin.home.quickLinksTitle")}</h2>
-        <p className="admin-home__card-description">{t("admin.home.quickLinksDescription")}</p>
-        <ul className="admin-home__quick-links">
-          {adminSections.map((item) => (
-            <li key={item.id} className="admin-home__quick-link-item">
-              <div className="admin-home__quick-link">
-                <Link to={item.path} className="admin-home__quick-link-label">
-                  {t(item.labelKey)}
-                </Link>
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate(item.path)}
-                  aria-label={`${t("admin.home.openPage")} ${t(item.labelKey)}`}
-                >
-                  {t("admin.home.openPage")}
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
+      <section className="admin-home__cards" aria-label={t("admin.home.quickLinksTitle")}>
+        {sections.map((section) => (
+          <SectionCard
+            key={section.to}
+            to={section.to}
+            icon={section.icon}
+            title={section.title}
+            description={section.description}
+          />
+        ))}
       </section>
     </section>
   );
