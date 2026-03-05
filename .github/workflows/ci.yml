@@ -37,7 +37,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run Gate A - TypeScript Compile
-        run: pnpm -C packages/ui-kit tsc --noEmit && pnpm -C packages/ui tsc --noEmit
+        run: pnpm --filter @nimbus/ui-kit --filter @nimbus/ui run typecheck
 
       - name: Run Gate A - ESLint
         run: pnpm -C packages/ui lint
