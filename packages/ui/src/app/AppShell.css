@@ -14,3 +14,24 @@
    - #111827 back to #c7d2fe
    - #374151 back to #f3f4f6
 */
+
+.app-shell__brand {
+  font-size: var(--nd-font-size-lg);
+  font-weight: var(--nd-font-weight-bold);
+  color: var(--nd-color-text-primary);
+  margin-right: var(--nd-space-4);
+}
+
+.app-shell__search {
+  padding: var(--nd-space-2) var(--nd-space-3);
+  border: 1px solid var(--nd-color-border-default);
+  border-radius: var(--nd-radius-md);
+  background: var(--nd-color-surface-secondary);
+  color: var(--nd-color-text-primary);
+  flex-grow: 1;
+  max-width: 300px; /* Limit max width for better aesthetics */
+}
+
+.app-shell__search::placeholder {
+  color: var(--nd-color-text-secondary);
+}
