@@ -262,6 +262,7 @@ export function AppShell() {
         <div className="app-shell__content">
           <main className="app-shell__canvas">
             <UploadQueuePanel />
+            <Breadcrumbs />
             <Outlet />
           </main>
           <DetailInspector className="app-shell__inspector">

@@ -57,7 +57,7 @@
 
 ### T5.1 - T5.7: Admin Components
 - **PASS 조건**: 설정 홈 섹션 카드, 폼 레이아웃 규칙, 위험 액션(DangerZone), ConfirmDialog가 구현되어야 한다.
-- **결과**: `packages/ui-kit`에 `SectionCard`, `FormField`, `DangerZone`, `ConfirmDialog`, `StatusBadge`, `TabBar` 컴포넌트들을 각각 구현 및 export 완료. `packages/ui`에 `AdminPage.tsx`를 구현하고 `/admin` 라우트에 매핑 완료. 다국어 지원은 ko-KR/en-US에 `admin.dangerZone` 및 확인 다이얼로그 키 추가 완료.
+- **결과**: `packages/ui-kit`에 `SectionCard`, `FormField`, `DangerZone`, `ConfirmDialog`, `StatusBadge`, `TabBar` 컴포넌트들을 각각 구현 및 export 완료. `packages/ui`의 Admin 라우트 토큰화를 진행하면서 `AdminHomePage`를 6개 `SectionCard` 구조로 통일하고, `AdminUsersPage` 탭을 `TabBar` 기반으로 전환했다. `AdminStoragePage`는 하위 섹션 컴포넌트로 분리해 본문 파일 길이를 400줄 이하로 축소했다. 다국어 키는 ko-KR/en-US 및 COPY_KEYS SSOT에 역반영 완료.
 - **상태**: PASS
 
 ## Phase 6: Mobile 적응형 내비 / Density 튜닝

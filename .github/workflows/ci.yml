@@ -54,6 +54,12 @@ jobs:
       - name: Run Gate B - UI Kit Storybook Build
         run: pnpm -C packages/ui-kit storybook:build
 
+      - name: Install Playwright Chromium
+        run: pnpm -C packages/ui exec playwright install --with-deps chromium
+
+      - name: Run Gate C - Visual Regression
+        run: pnpm -C packages/ui test:visual
+
   ci-heavy:
     name: ci-heavy (manual/label only)
     runs-on: ubuntu-latest

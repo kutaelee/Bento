@@ -22,38 +22,47 @@ type AuditEvent = {
   detail: string;
 };
 
-const EVENTS: AuditEvent[] = [
+const EVENT_SEEDS = [
   {
     id: "evt-001",
-    actor: "관리자 A",
-    action: "로그인",
+    actorKey: "admin.audit.event.actorAdminA" as const,
+    actionKey: "admin.audit.event.actionLogin" as const,
     target: "admin:users",
-    time: "2분 전",
-    detail: "정상 로그인 성공",
+    timeKey: "admin.audit.event.time2m" as const,
+    detailKey: "admin.audit.event.detailLoginSuccess" as const,
   },
   {
     id: "evt-002",
-    actor: "관리자 B",
-    action: "초대 생성",
+    actorKey: "admin.audit.event.actorAdminB" as const,
+    actionKey: "admin.audit.event.actionInviteCreated" as const,
     target: "user:guest-123",
-    time: "18분 전",
-    detail: "초대 링크 발급",
+    timeKey: "admin.audit.event.time18m" as const,
+    detailKey: "admin.audit.event.detailInviteIssued" as const,
   },
   {
     id: "evt-003",
-    actor: "시스템",
-    action: "백업 완료",
+    actorKey: "admin.audit.event.actorSystem" as const,
+    actionKey: "admin.audit.event.actionBackupDone" as const,
     target: "jobs:scan-cleanup",
-    time: "40분 전",
-    detail: "백그라운드 작업 성공",
+    timeKey: "admin.audit.event.time40m" as const,
+    detailKey: "admin.audit.event.detailBackgroundJobSuccess" as const,
   },
-];
+] as const;
 
 export default function AdminAuditPage() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
-  const [events, setEvents] = useState<AuditEvent[]>(EVENTS);
+  const [events, setEvents] = useState<AuditEvent[]>(
+    EVENT_SEEDS.map((event) => ({
+      id: event.id,
+      actor: t(event.actorKey),
+      action: t(event.actionKey),
+      target: event.target,
+      time: t(event.timeKey),
+      detail: t(event.detailKey),
+    })),
+  );
 
   const filteredEvents = useMemo(() => {
     const normalized = query.trim().toLowerCase();

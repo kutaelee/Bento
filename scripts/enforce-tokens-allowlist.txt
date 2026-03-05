@@ -1,6 +1,2 @@
-packages/ui/src/app/AdminHomePage.css
-packages/ui/src/app/AdminPage.tsx
-packages/ui/src/app/AdminShell.css
-packages/ui/src/app/AdminUsersPage.css
 packages/ui/src/app/AppShell.css
 packages/ui/src/app/JobDetailsCard.css

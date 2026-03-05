@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, DataTable, Dialog, EmptyState, PageHeader, TextField, Toolbar } from "@nimbus/ui-kit";
+import { Button, DataTable, Dialog, EmptyState, PageHeader, TabBar, TextField, Toolbar } from "@nimbus/ui-kit";
 import { ApiError } from "../api/errors";
 import { createAdminUsersApi, type AdminUser, type Invite } from "../api/adminUsers";
 import { t, type I18nKey } from "../i18n/t";
@@ -31,12 +31,12 @@ function inviteStatus(invite: Invite): "pending" | "expired" {
   return "pending";
 }
 
-function statusText(status: "active" | "inactive" | "pending" | "expired") {
-  if (status === "active") return "활성";
-  if (status === "inactive") return "비활성";
-  if (status === "pending") return "대기";
-  return "만료";
-}
+const statusTextKey: Record<"active" | "inactive" | "pending" | "expired", I18nKey> = {
+  active: "status.active",
+  inactive: "admin.users.status.inactive",
+  pending: "admin.users.status.pending",
+  expired: "admin.users.status.expired",
+};
 
 type UserRow = {
   id: string;
@@ -138,7 +138,7 @@ export default function AdminUsersPage() {
       },
       {
         id: "email",
-        header: "이메일",
+        header: t("field.email"),
         renderCell: (item: UserRow) => item.email,
       },
       {
@@ -149,7 +149,7 @@ export default function AdminUsersPage() {
       {
         id: "status",
         header: t("field.status"),
-        renderCell: (item: UserRow) => statusText(item.status),
+        renderCell: (item: UserRow) => t(statusTextKey[item.status]),
       },
     ],
     [],
@@ -159,26 +159,34 @@ export default function AdminUsersPage() {
     () => [
       {
         id: "token",
-        header: "초대 토큰",
+        header: t("admin.users.inviteToken"),
         renderCell: (item: InviteRow) => item.token,
       },
       {
         id: "invitedBy",
-        header: "초대자",
+        header: t("admin.users.invitedBy"),
         renderCell: (item: InviteRow) => item.invitedBy,
       },
       {
         id: "invitedAt",
-        header: "초대일",
+        header: t("admin.users.invitedAt"),
         renderCell: (item: InviteRow) => item.invitedAt,
       },
       {
         id: "status",
         header: t("field.status"),
-        renderCell: (item: InviteRow) => statusText(item.status),
+        renderCell: (item: InviteRow) => t(statusTextKey[item.status]),
       },
     ],
     [],
+  );
+
+  const tabs = useMemo(
+    () => [
+      { id: "users", label: `${t("admin.users.tab.users")} (${users.length})` },
+      { id: "invites", label: `${t("admin.users.tab.invites")} (${invites.length})` },
+    ],
+    [invites.length, users.length],
   );
 
   const handleOpenInvite = () => {
@@ -232,10 +240,10 @@ export default function AdminUsersPage() {
         actions={
           <Toolbar>
             <Button variant="primary" onClick={handleOpenInvite} disabled={loading}>
-              사용자 초대
+              {t("admin.users.inviteAction")}
             </Button>
             <Button variant="ghost" onClick={() => setQuery("") }>
-              초기화
+              {t("admin.users.clearAction")}
             </Button>
           </Toolbar>
         }
@@ -248,32 +256,19 @@ export default function AdminUsersPage() {
           placeholder={t("field.search")}
           autoComplete="off"
         />
-        <div className="admin-users__tabs" role="tablist" aria-label="관리자 사용자 탭">
-          <Button
-            variant={tab === "users" ? "primary" : "secondary"}
-            onClick={() => setTab("users")}
-            role="tab"
-            aria-selected={tab === "users"}
-          >
-            사용자 목록 ({users.length})
-          </Button>
-          <Button
-            variant={tab === "invites" ? "primary" : "secondary"}
-            onClick={() => setTab("invites")}
-            role="tab"
-            aria-selected={tab === "invites"}
-          >
-            초대 목록 ({invites.length})
-          </Button>
-        </div>
+        <TabBar
+          tabs={tabs}
+          activeId={tab}
+          onChange={(id) => setTab(id === "invites" ? "invites" : "users")}
+        />
       </div>
 
       {loadErrorKey ? <div className="admin-users__error">{t(loadErrorKey)}</div> : null}
 
       {loading ? (
-        <EmptyState title="로딩 중" detail="목록을 불러오는 중입니다." />
+        <EmptyState title={t("msg.loading")} detail={t("admin.users.loadingDetail")} />
       ) : listState.length === 0 ? (
-        <EmptyState title="항목이 없습니다" detail="검색 조건을 바꿔보세요." />
+        <EmptyState title={t("admin.users.emptyTitle")} detail={t("admin.users.emptyDetail")} />
       ) : tab === "users" ? (
         <DataTable<UserRow>
           items={visibleUsers}
@@ -294,31 +289,31 @@ export default function AdminUsersPage() {
 
       <Dialog
         open={isInviteOpen}
-        title="사용자 초대 생성"
+        title={t("admin.users.inviteDialogTitle")}
         onClose={() => setInviteOpen(false)}
-        closeLabel="닫기"
+        closeLabel={t("action.close")}
         footer={
           <div className="nd-dialog__actions">
             <Button variant="ghost" onClick={() => setInviteOpen(false)} disabled={isInviteBusy}>
-              닫기
+              {t("action.close")}
             </Button>
             <Button onClick={handleCreateInvite} disabled={isInviteBusy} loading={isInviteBusy}>
-              생성
+              {t("admin.users.createAction")}
             </Button>
           </div>
         }
       >
         <form onSubmit={handleCreateInvite} className="admin-users__dialog-body">
-          <TextField
-            type="number"
-            label="초대 만료일수"
-            value={inviteExpiryDays}
-            min={1}
-            onChange={(event) => setInviteExpiryDays(event.currentTarget.value)}
-            placeholder="7"
-          />
+            <TextField
+              type="number"
+              label={t("admin.users.inviteExpiryDays")}
+              value={inviteExpiryDays}
+              min={1}
+              onChange={(event) => setInviteExpiryDays(event.currentTarget.value)}
+              placeholder="7"
+            />
           {createdToken ? (
-            <TextField label="생성된 토큰" value={createdToken} readOnly />
+            <TextField label={t("admin.users.createdToken")} value={createdToken} readOnly />
           ) : null}
           {inviteErrorKey ? <div className="admin-users__dialog-error">{t(inviteErrorKey)}</div> : null}
         </form>
