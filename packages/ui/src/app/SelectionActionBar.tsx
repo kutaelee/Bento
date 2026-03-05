@@ -78,7 +78,7 @@ export function SelectionActionBar({
                     <div style={barStyles.count}>
                         <span style={{
                             background: "var(--nd-color-accent-default)",
-                            color: "#fff",
+                            color: "var(--nd-color-surface-primary)",
                             borderRadius: "50%",
                             width: 24,
                             height: 24,

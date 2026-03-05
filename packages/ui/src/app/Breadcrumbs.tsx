@@ -12,6 +12,7 @@ const breadcrumbStyles: {
   link: React.CSSProperties;
   current: React.CSSProperties;
   ellipsis: React.CSSProperties;
+  ellipsisButton: React.CSSProperties;
   dropdown: React.CSSProperties;
   dropdownLink: React.CSSProperties;
   error: React.CSSProperties;
@@ -21,31 +22,39 @@ const breadcrumbStyles: {
     alignItems: "center",
     gap: 8,
     fontSize: 14,
-    color: "#111827",
+    color: "var(--nd-color-text-primary)",
   },
   separator: {
-    color: "#9ca3af",
+    color: "var(--nd-color-text-disabled)",
   },
   link: {
-    color: "#2563eb",
+    color: "var(--nd-color-accent-hover)",
     textDecoration: "none",
   },
   current: {
-    color: "#111827",
+    color: "var(--nd-color-text-primary)",
     fontWeight: 600,
   },
   ellipsis: {
-    cursor: "pointer",
     padding: "0 4px",
     position: "relative",
+  },
+  ellipsisButton: {
+    border: "none",
+    background: "transparent",
+    padding: 0,
+    cursor: "pointer",
+    color: "var(--nd-color-text-primary)",
+    fontSize: "inherit",
+    lineHeight: "inherit",
   },
   dropdown: {
     position: "absolute",
     top: "100%",
     left: 0,
     marginTop: 4,
-    background: "#fff",
-    border: "1px solid #e5e7eb",
+    background: "var(--nd-color-surface-current)",
+    border: "1px solid var(--nd-color-border-default)",
     borderRadius: 8,
     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
     display: "flex",
@@ -54,14 +63,14 @@ const breadcrumbStyles: {
     zIndex: 50,
   },
   dropdownLink: {
-    color: "#374151",
+    color: "var(--nd-color-text-primary)",
     textDecoration: "none",
     padding: "6px 12px",
     whiteSpace: "nowrap",
     borderRadius: 6,
   },
   error: {
-    color: "#b91c1c",
+    color: "var(--nd-color-status-danger)",
     fontSize: 12,
   },
 };
@@ -93,13 +102,15 @@ export function BreadcrumbTrail({ items, rootId = ROOT_NODE_ID }: BreadcrumbTrai
         if (item.id === "ellipsis") {
           return (
             <React.Fragment key="ellipsis">
-              <span
-                style={breadcrumbStyles.ellipsis}
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
-                tabIndex={0}
-              >
-                {item.name}
+              <div style={breadcrumbStyles.ellipsis}>
+                <button
+                  type="button"
+                  style={breadcrumbStyles.ellipsisButton}
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+                >
+                  {item.name}
+                </button>
                 {isDropdownOpen && (
                   <div style={breadcrumbStyles.dropdown}>
                     {collapsedItems.map((cItem) => (
@@ -113,7 +124,7 @@ export function BreadcrumbTrail({ items, rootId = ROOT_NODE_ID }: BreadcrumbTrai
                     ))}
                   </div>
                 )}
-              </span>
+              </div>
               <span style={breadcrumbStyles.separator}>/</span>
             </React.Fragment>
           );

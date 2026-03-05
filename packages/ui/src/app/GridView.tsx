@@ -22,16 +22,16 @@ const gridStyles: {
         flexDirection: "column",
         alignItems: "center",
         padding: 16,
-        border: "1px solid #e5e7eb",
+        border: "1px solid var(--nd-color-border-default)",
         borderRadius: 12,
-        background: "#fff",
+        background: "var(--nd-color-surface-current)",
         cursor: "pointer",
         transition: "box-shadow 0.2s, border-color 0.2s",
     },
     selectedCard: {
-        borderColor: "#6366f1",
-        boxShadow: "0 0 0 2px rgba(99, 102, 241, 0.2)",
-        background: "#eef2ff",
+        borderColor: "var(--nd-color-accent-default)",
+        boxShadow: "0 0 0 2px color-mix(in srgb, var(--nd-color-accent-default) 24%, transparent)",
+        background: "color-mix(in srgb, var(--nd-color-accent-default) 12%, var(--nd-color-surface-current))",
     },
     icon: {
         width: 48,
@@ -40,14 +40,14 @@ const gridStyles: {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#f3f4f6",
+        background: "var(--nd-color-surface-tertiary)",
         borderRadius: 8,
         fontSize: 24,
     },
     name: {
         fontSize: 14,
         fontWeight: 500,
-        color: "#111827",
+        color: "var(--nd-color-text-primary)",
         textAlign: "center",
         wordBreak: "break-all",
         display: "-webkit-box",
@@ -58,7 +58,7 @@ const gridStyles: {
     },
     meta: {
         fontSize: 12,
-        color: "#6b7280",
+        color: "var(--nd-color-text-secondary)",
         textAlign: "center",
     },
 };
@@ -88,7 +88,7 @@ export function GridView({ items, loading, selectedIds, onToggleSelect }: GridVi
         return (
             <div style={gridStyles.container}>
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={`skel-${i}`} style={{ display: "flex", flexDirection: "column", gap: 12, border: "1px solid #e5e7eb", padding: 16, borderRadius: 12 }}>
+                    <div key={`skel-${i}`} style={{ display: "flex", flexDirection: "column", gap: 12, border: "1px solid var(--nd-color-border-default)", padding: 16, borderRadius: 12 }}>
                         <SkeletonBlock height={48} width={48} style={{ alignSelf: "center", borderRadius: 8 }} />
                         <SkeletonBlock height={16} width="80%" style={{ alignSelf: "center" }} />
                         <SkeletonBlock height={12} width="40%" style={{ alignSelf: "center" }} />
@@ -103,18 +103,11 @@ export function GridView({ items, loading, selectedIds, onToggleSelect }: GridVi
             {items.map((item) => {
                 const isSelected = selectedIds?.has(item.id) ?? false;
                 return (
-                    <div
+                    <button
+                        type="button"
                         key={item.id}
-                        role="button"
-                        tabIndex={0}
                         style={{ ...gridStyles.card, ...(isSelected ? gridStyles.selectedCard : null) }}
                         onClick={(event: React.MouseEvent) => onToggleSelect?.(item, event.metaKey || event.ctrlKey || event.shiftKey)}
-                        onKeyDown={(event: React.KeyboardEvent) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                onToggleSelect?.(item, event.metaKey || event.ctrlKey || event.shiftKey);
-                            }
-                        }}
                     >
                         <div style={gridStyles.icon}>
                             {item.type === "FOLDER" ? "📁" : "📄"}
@@ -125,7 +118,7 @@ export function GridView({ items, loading, selectedIds, onToggleSelect }: GridVi
                         <div style={gridStyles.meta}>
                             {item.type === "FOLDER" ? t("nav.files") : formatSize(item.size_bytes)}
                         </div>
-                    </div>
+                    </button>
                 );
             })}
         </div>

@@ -3,24 +3,24 @@
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #111827;
+  color: var(--nd-color-text-primary);
 }
 
 .breadcrumbs__separator {
-  color: #9ca3af;
+  color: var(--nd-color-text-disabled);
 }
 
 .breadcrumbs__link {
-  color: #2563eb;
+  color: var(--nd-color-accent-hover);
   text-decoration: none;
 }
 
 .breadcrumbs__current {
-  color: #111827;
+  color: var(--nd-color-text-primary);
   font-weight: 600;
 }
 
 .breadcrumbs__error {
-  color: #b91c1c;
+  color: var(--nd-color-status-danger);
   font-size: 12px;
 }

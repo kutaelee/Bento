@@ -23,21 +23,13 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
-  color: color-mix(in srgb, #000 85%, transparent);
-}
-
-.dark .files-view__title {
-  color: color-mix(in srgb, #fff 88%, transparent);
+  color: var(--nd-color-text-primary);
 }
 
 .files-view__meta {
   margin: 0.25rem 0 0;
   font-size: var(--nd-font-size-xs);
-  color: color-mix(in srgb, #000 55%, transparent);
-}
-
-.dark .files-view__meta {
-  color: color-mix(in srgb, #fff 60%, transparent);
+  color: var(--nd-color-text-secondary);
 }
 
 .files-view__toolbar {
@@ -49,11 +41,7 @@
 
 .files-view__toolbar-item {
   font-size: var(--nd-font-size-xs);
-  color: color-mix(in srgb, #000 55%, transparent);
-}
-
-.dark .files-view__toolbar-item {
-  color: color-mix(in srgb, #fff 60%, transparent);
+  color: var(--nd-color-text-secondary);
 }
 
 .files-view__table {
@@ -69,7 +57,7 @@
 
 .files-view__load-more {
   border-radius: var(--nd-radius-lg);
-  border: 1px solid color-mix(in srgb, #000 14%, transparent);
+  border: 1px solid var(--nd-color-border-default);
   padding: 0.5rem 0.75rem;
   background: var(--nd-color-surface-current);
   font-size: var(--nd-font-size-sm);
@@ -90,7 +78,7 @@
 
 .files-view__action-button {
   border-radius: var(--nd-radius-base);
-  border: 1px solid color-mix(in srgb, #000 12%, transparent);
+  border: 1px solid var(--nd-color-border-default);
   background: var(--nd-color-surface-current);
   padding: 0.35rem 0.6rem;
   font-size: var(--nd-font-size-xs);
@@ -111,9 +99,5 @@
 
 .files-view__name {
   font-weight: 600;
-  color: color-mix(in srgb, #000 80%, transparent);
-}
-
-.dark .files-view__name {
-  color: color-mix(in srgb, #fff 85%, transparent);
+  color: var(--nd-color-text-primary);
 }
