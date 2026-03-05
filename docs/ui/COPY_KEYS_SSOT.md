@@ -11,7 +11,7 @@
 
 ## 0) 키 규칙
 
-- 네임스페이스: `app`, `nav`, `action`, `field`, `msg`, `err`, `status`, `modal`, `admin`
+- 네임스페이스: `app`, `nav`, `action`, `field`, `msg`, `err`, `status`, `modal`, `admin`, `setup`
 - 점 표기: `nav.files`, `action.upload`
 - UI에서 직접 문자열을 쓰지 말고 키만 참조
 - 신규 키는 반드시 여기와 `locales/ko-KR.json`, `locales/en-US.json`에 동시에 추가
@@ -22,6 +22,7 @@
 
 | key | ko-KR | en-US |
 |---|---|---|
+| app.brand | Nimbus Drive | Nimbus Drive |
 | app.greeting | 안녕하세요, Nimbus Drive | Hello Nimbus Drive |
 
 ## 2) Navigation (nav.*)

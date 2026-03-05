@@ -105,7 +105,7 @@ export function AppShell() {
         <header className="app-shell__topbar">
           <div className="app-shell__topbar-left">
 
-            <div className="app-shell__brand">Nimbus Drive</div>
+            <div className="app-shell__brand">{t("app.brand")}</div>
             <input
               aria-label={t("field.search")}
               placeholder={t("field.search")}

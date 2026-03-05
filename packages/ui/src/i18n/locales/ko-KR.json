@@ -152,6 +152,7 @@
   "admin.users.status.pending": "대기",
   "admin.users.tab.invites": "초대 목록",
   "admin.users.tab.users": "사용자 목록",
+  "app.brand": "Nimbus Drive",
   "app.greeting": "안녕하세요, Nimbus Drive",
   "err.conflict": "이름 충돌이 발생했습니다.",
   "err.forbidden": "접근 권한이 없습니다.",
