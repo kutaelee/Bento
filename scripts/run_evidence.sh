@@ -6,10 +6,11 @@ set -euo pipefail
 # Scopes:
 # - full:    run all evidence scripts
 # - api:     run API/DB evidence subset
-# - ui:      run ui_fast + optional ui_task (if TASK_ID/--task exists)
-# - ui_fast: run only fast UI checks (no DB)
-# - ui_task: run only one task evidence script (requires TASK_ID/--task; if missing, degrades to ui_fast)
-# - ui_full: legacy broad UI suite (P13~P20)
+# - ui:       run ui_fast + optional ui_task (if TASK_ID/--task exists)
+# - ui_light: run lightweight UI checks (no Playwright/visual)
+# - ui_fast:  run fast UI checks (includes visual harness)
+# - ui_task:  run only one task evidence script (requires TASK_ID/--task; if missing, degrades to ui_fast)
+# - ui_full:  legacy broad UI suite (P13~P20)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
@@ -26,7 +27,7 @@ fi
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/run_evidence.sh [--scope <full|ui|api|ui_fast|ui_task|ui_full>] [--task Pxx-Ty]
+Usage: scripts/run_evidence.sh [--scope <full|ui|api|ui_light|ui_fast|ui_task|ui_full>] [--task Pxx-Ty]
 
 Options:
   --scope <...>     Evidence scope selector.
@@ -65,7 +66,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$scope" in
-  full|ui|api|ui_fast|ui_task|ui_full)
+  full|ui|api|ui_light|ui_fast|ui_task|ui_full)
     ;;
   *)
     echo "[evidence] unknown scope '$scope' -> fail-closed to full" >&2
@@ -112,6 +113,44 @@ resolve_task_script() {
     return 0
   fi
   return 1
+}
+
+run_ui_light() {
+  echo "[evidence] ui_light: openapi contract sanity"
+  python3 - <<'PY'
+import yaml
+
+path = 'openapi/openapi.yaml'
+with open(path, 'r', encoding='utf-8') as f:
+    doc = yaml.safe_load(f)
+
+if not isinstance(doc, dict):
+    raise SystemExit('openapi-invalid:root-not-object')
+
+paths = doc.get('paths')
+if not isinstance(paths, dict):
+    raise SystemExit('openapi-invalid:paths-missing')
+
+required_paths = [
+    '/nodes/{node_id}/children',
+    '/nodes/{node_id}/download',
+    '/uploads',
+]
+
+missing = [p for p in required_paths if p not in paths]
+if missing:
+    raise SystemExit('openapi-missing-required-paths:' + ','.join(missing))
+
+print('openapi-contract-ok')
+PY
+  echo "[evidence] ui_light: pnpm -C packages/ui typecheck"
+  pnpm -C packages/ui run typecheck
+  echo "[evidence] ui_light: pnpm -C packages/ui-kit lint"
+  pnpm -C packages/ui-kit run lint
+  echo "[evidence] ui_light: pnpm -C packages/ui lint"
+  pnpm -C packages/ui run lint
+  echo "[evidence] ui_light: /files smoke test"
+  pnpm -C packages/ui exec vitest run src/app/FilesPage.spec.tsx
 }
 
 run_ui_fast() {
@@ -248,9 +287,13 @@ case "$scope" in
     )
     SCOPE_REASON="api: non-UI subset"
     ;;
+  ui_light)
+    UI_FAST_ONLY=1
+    SCOPE_REASON="ui_light: lightweight UI checks only (no Playwright)"
+    ;;
   ui_fast)
     UI_FAST_ONLY=1
-    SCOPE_REASON="ui_fast: fast UI checks only"
+    SCOPE_REASON="ui_fast: fast UI checks (includes visual)"
     ;;
   ui_task)
     if [[ -n "$EFFECTIVE_TASK_ID" ]] && task_script="$(resolve_task_script "$EFFECTIVE_TASK_ID" 2>/dev/null)"; then
@@ -332,7 +375,9 @@ if [[ -n "$EFFECTIVE_TASK_ID" ]] && [[ "$EFFECTIVE_TASK_ID" =~ ^P([0-9]+)-T[0-9]
   fi
 fi
 
-if [[ "$scope" == "ui" || "$scope" == "ui_fast" ]]; then
+if [[ "$scope" == "ui_light" ]]; then
+  run_ui_light
+elif [[ "$scope" == "ui" || "$scope" == "ui_fast" ]]; then
   run_ui_fast
 elif [[ "$scope" == "ui_task" && "$TASK_IS_UI" == "1" ]]; then
   # ui_task for UI pieces keeps fast UI guardrails.
@@ -405,7 +450,7 @@ summary_paths = [
 scope = os.environ.get('EVIDENCE_SCOPE_EFFECTIVE', '')
 task = os.environ.get('EVIDENCE_TASK_EFFECTIVE', '')
 
-if not summary_paths and scope not in ('ui_fast', 'ui', 'ui_task'):
+if not summary_paths and scope not in ('ui_light', 'ui_fast', 'ui', 'ui_task'):
     summary_paths = [
         p for p in sorted(glob('evidence/**/summary.json', recursive=True))
         if os.path.normpath(p) != os.path.normpath('evidence/summary.json')
@@ -422,7 +467,7 @@ for path in summary_paths:
         data = None
     summaries.append({'path': path, 'summary': data})
 
-if scope in ('ui_fast', 'ui', 'ui_task') and len(summaries) == 0:
+if scope in ('ui_light', 'ui_fast', 'ui', 'ui_task') and len(summaries) == 0:
     out = {
         'pass': True,
         'result': 'PASS',

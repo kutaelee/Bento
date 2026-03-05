@@ -37,7 +37,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run light gate (short)
-        run: bash scripts/run_evidence.sh --scope ui_fast
+        run: bash scripts/run_evidence.sh --scope ui_light
 
   ci-heavy:
     name: ci-heavy (manual/label only)
@@ -45,7 +45,7 @@ jobs:
     timeout-minutes: 45
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-heavy'))
+      (github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name, 'run-heavy'))
     steps:
       - uses: actions/checkout@v4
         with:
