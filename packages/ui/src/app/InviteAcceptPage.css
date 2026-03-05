@@ -3,14 +3,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--nd-color-background-light);
+  background: var(--nd-color-surface-secondary);
   padding: var(--nd-space-6);
 }
 
 .invite-accept__card {
   width: 100%;
   max-width: 26rem;
-  background: var(--nd-color-surface-light);
+  background: var(--nd-color-surface-primary);
   border-radius: var(--nd-radius-xl);
   padding: var(--nd-space-8);
   box-shadow: var(--nd-shadow-lg);
@@ -21,14 +21,14 @@
 
 .invite-accept__title {
   margin: 0;
-  font-size: var(--nd-font-size-xl, 1.5rem);
+  font-size: var(--nd-font-size-h1);
   line-height: 1.2;
 }
 
 .invite-accept__subtitle {
   margin: 0;
   font-size: var(--nd-font-size-sm);
-  color: var(--nd-color-text-subtle);
+  color: var(--nd-color-text-secondary);
 }
 
 .invite-accept__actions {

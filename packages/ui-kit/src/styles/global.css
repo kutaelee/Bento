@@ -127,6 +127,19 @@
   --nd-color-surface-current: var(--nd-color-surface-primary);
 }
 
+@media (max-width: 1024px) {
+  :root {
+    --nd-sidebar-width: 0px;
+    --nd-inspector-width: 0px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --nd-topbar-height: 52px;
+  }
+}
+
 /* Phase 7: A11y Focus Rule */
 *:focus-visible {
   outline: 2px solid var(--nd-color-accent-default, #2563eb);

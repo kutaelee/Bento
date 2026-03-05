@@ -1,2 +1,0 @@
-packages/ui/src/app/AppShell.css
-packages/ui/src/app/JobDetailsCard.css
