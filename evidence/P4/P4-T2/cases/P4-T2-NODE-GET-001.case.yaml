@@ -1,0 +1,5 @@
+case_id: P4-T2-NODE-GET-001
+operation: GET /nodes/{node_id}
+assertions:
+  - when existing node: status 200
+  - response has id and type

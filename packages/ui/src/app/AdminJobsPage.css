@@ -1,0 +1,25 @@
+.admin-jobs {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-jobs__section {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--nd-color-border-weak);
+  border-radius: 12px;
+  background: var(--nd-color-surface);
+}
+
+.admin-jobs__section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--nd-color-text);
+}
+
+.admin-jobs__table {
+  border-top: 1px solid var(--nd-color-border-weak);
+  padding-top: 8px;
+}

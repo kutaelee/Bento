@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nimbus Drive - 미디어 갤러리</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "surface-dark": "#1a2632",
+                        "surface-dark-hover": "#233648",
+                        "border-dark": "#233648",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "Noto Sans KR", "sans-serif"],
+                        "body": ["Inter", "Noto Sans KR", "sans-serif"],
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #101922; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #233648; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #344a61; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-body min-h-screen flex flex-col overflow-hidden">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-border-dark bg-white dark:bg-background-dark px-6 py-3 shrink-0 z-20">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-slate-900 dark:text-white cursor-pointer">
+<div class="size-8 text-primary">
+<svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor"></path>
+<path clip-rule="evenodd" d="M10.4485 13.8519C10.4749 13.9271 10.6203 14.246 11.379 14.7361C12.298 15.3298 13.7492 15.9145 15.6717 16.3735C18.0007 16.9296 20.8712 17.2655 24 17.2655C27.1288 17.2655 29.9993 16.9296 32.3283 16.3735C34.2508 15.9145 35.702 15.3298 36.621 14.7361C37.3796 14.246 37.5251 13.9271 37.5515 13.8519C37.5287 13.7876 37.4333 13.5973 37.0635 13.2931C36.5266 12.8516 35.6288 12.3647 34.343 11.9175C31.79 11.0295 28.1333 10.4437 24 10.4437C19.8667 10.4437 16.2099 11.0295 13.657 11.9175C12.3712 12.3647 11.4734 12.8516 10.9365 13.2931C10.5667 13.5973 10.4713 13.7876 10.4485 13.8519ZM37.5563 18.7877C36.3176 19.3925 34.8502 19.8839 33.2571 20.2642C30.5836 20.9025 27.3973 21.2655 24 21.2655C20.6027 21.2655 17.4164 20.9025 14.7429 20.2642C13.1498 19.8839 11.6824 19.3925 10.4436 18.7877V34.1275C10.4515 34.1545 10.5427 34.4867 11.379 35.027C12.298 35.6207 13.7492 36.2054 15.6717 36.6644C18.0007 37.2205 20.8712 37.5564 24 37.5564C27.1288 37.5564 29.9993 37.2205 32.3283 36.6644C34.2508 36.2054 35.702 35.6207 36.621 35.027C37.4573 34.4867 37.5485 34.1546 37.5563 34.1275V18.7877ZM41.5563 13.8546V34.1455C41.5563 36.1078 40.158 37.5042 38.7915 38.3869C37.3498 39.3182 35.4192 40.0389 33.2571 40.5551C30.5836 41.1934 27.3973 41.5564 24 41.5564C20.6027 41.5564 17.4164 41.1934 14.7429 40.5551C12.5808 40.0389 10.6502 39.3182 9.20848 38.3869C7.84205 37.5042 6.44365 36.1078 6.44365 34.1455L6.44365 13.8546C6.44365 12.2684 7.37223 11.0454 8.39581 10.2036C9.43325 9.3505 10.8137 8.67141 12.343 8.13948C15.4203 7.06909 19.5418 6.44366 24 6.44366C28.4582 6.44366 32.5797 7.06909 35.657 8.13948C37.1863 8.67141 38.5667 9.3505 39.6042 10.2036C40.6278 11.0454 41.5563 12.2684 41.5563 13.8546Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">Nimbus Drive</h2>
+</div>
+<div class="hidden md:flex flex-col min-w-60 w-96 h-10">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full bg-slate-100 dark:bg-surface-dark-hover transition-colors">
+<div class="text-slate-500 dark:text-slate-400 flex items-center justify-center pl-4 pr-2">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:ring-0 text-sm h-full" placeholder="검색"/>
+</div>
+</div>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<nav class="hidden lg:flex items-center gap-8">
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-white text-sm font-medium transition-colors" href="#">파일</a>
+<a class="text-primary dark:text-white text-sm font-bold" href="#">사진</a>
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-white text-sm font-medium transition-colors" href="#">공유됨</a>
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-white text-sm font-medium transition-colors" href="#">휴지통</a>
+</nav>
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-bold transition-colors">
+<span class="material-symbols-outlined text-[20px]">cloud_upload</span>
+<span class="hidden sm:inline">업로드</span>
+</button>
+<div class="size-9 rounded-full bg-cover bg-center border border-slate-200 dark:border-border-dark cursor-pointer" data-alt="User profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCkSAJTLt9S_qnLCjtVJZd6GbEfagncM3r2sMvWiNX511VjO0T_jaMesPhvM7XUpUbW7ql5Mpnbuhsu4FXYXTEEkTb2k3_qixAwiZkbo8qF3jq7aj2u0KeUMA0yDc7L7sRsPPuXWRCxO0qw-b1lnhO2lsAmDc5wxZHSvoEb3BL6d-9KORsuEFCrzdH_vkSmKEEEH11z2UC6475EmCctEZKnRmNH9oytsicfP91fn8Ekv0yGWrPcm3uxwwWuZ9O-45iA7MljqySj0R0");'></div>
+</div>
+</div>
+</header>
+<main class="flex flex-1 overflow-hidden relative">
+<!-- Main Content (Gallery) -->
+<div class="flex-1 flex flex-col h-full overflow-hidden bg-background-light dark:bg-background-dark relative">
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 pb-2 shrink-0">
+<div>
+<h1 class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight mb-1">미디어 갤러리</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm">모든 사진 및 비디오 관리</p>
+</div>
+<div class="flex items-center gap-2 bg-white dark:bg-surface-dark p-1 rounded-lg border border-slate-200 dark:border-border-dark shadow-sm">
+<button aria-label="Grid view" class="p-2 rounded hover:bg-slate-100 dark:hover:bg-surface-dark-hover text-slate-500 dark:text-slate-400 transition-colors">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+</button>
+<button aria-label="List view" class="p-2 rounded hover:bg-slate-100 dark:hover:bg-surface-dark-hover text-primary dark:text-white bg-slate-100 dark:bg-surface-dark-hover shadow-sm transition-colors">
+<span class="material-symbols-outlined text-[20px]">view_list</span>
+</button>
+</div>
+</div>
+<!-- Filters -->
+<div class="flex gap-2 px-6 py-4 overflow-x-auto no-scrollbar shrink-0 border-b border-transparent">
+<button class="flex items-center gap-2 h-9 px-4 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-medium shadow-sm transition-colors whitespace-nowrap">
+                    모두
+                </button>
+<button class="flex items-center gap-2 h-9 px-4 rounded-full bg-white dark:bg-surface-dark hover:bg-slate-100 dark:hover:bg-surface-dark-hover border border-slate-200 dark:border-border-dark text-slate-700 dark:text-slate-300 text-sm font-medium transition-colors whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">image</span>
+                    이미지
+                </button>
+<button class="flex items-center gap-2 h-9 px-4 rounded-full bg-white dark:bg-surface-dark hover:bg-slate-100 dark:hover:bg-surface-dark-hover border border-slate-200 dark:border-border-dark text-slate-700 dark:text-slate-300 text-sm font-medium transition-colors whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">movie</span>
+                    비디오
+                </button>
+<button class="flex items-center gap-2 h-9 px-4 rounded-full bg-white dark:bg-surface-dark hover:bg-slate-100 dark:hover:bg-surface-dark-hover border border-slate-200 dark:border-border-dark text-slate-700 dark:text-slate-300 text-sm font-medium transition-colors whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+                    최근 업로드
+                </button>
+<button class="flex items-center gap-2 h-9 px-4 rounded-full bg-white dark:bg-surface-dark hover:bg-slate-100 dark:hover:bg-surface-dark-hover border border-slate-200 dark:border-border-dark text-slate-700 dark:text-slate-300 text-sm font-medium transition-colors whitespace-nowrap ml-auto">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                    필터
+                </button>
+</div>
+<!-- Scrollable Grid Area -->
+<div class="flex-1 overflow-y-auto p-6 pt-2">
+<!-- Section: This Week -->
+<h3 class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider mb-4 mt-2">이번 주</h3>
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
+<!-- Video Card (Selected) -->
+<div class="group relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer ring-2 ring-primary ring-offset-2 ring-offset-background-light dark:ring-offset-background-dark">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Mountain landscape video thumbnail" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBi3RVeY41gFhWc8RL_KwO2HMyowJq_C11L_lV43n3PHZbBr4rPfBuQyAU_AiSudPeqMoZ_uEGquPQB1KK0BXAAlFXroxsXt1Os2xU_n98xddOReSs7Q7bSnQi6Mngby2pDzTYrhrXQgifmbn6MHP4IC8u4oPA3-L1EGEKnW4pdrMSV04sG8Hvd2nS4oKUMtg2vdkZpec1wK8D6TVT4gBlxflo7C-qdrsytqUkbiQREY-4Oac-ascRl7dxiU3Kd1HWyDvUHdjCAyrw");'></div>
+<div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+<div class="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded">0:37</div>
+<div class="absolute bottom-2 left-2 bg-primary text-white p-1.5 rounded-full shadow-lg">
+<span class="material-symbols-outlined text-[16px] block">play_arrow</span>
+</div>
+</div>
+<!-- Image Card -->
+<div class="group relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Desert landscape photo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDSU_Kk0KbNLvRd_lM9ON17jolsNp93yKEdflCQBsg3MYLvVYs-sbLSRJ6ttui49tZ6XY42A3wrs8zYQSWmTgsMbsxn5_kLI-wazptWuhwu8Cut3_X4a19nBhaV_K643mF12eOHyhAE7TR87THWebyiPczQM-IaXCLDVaDLJqQOJspD77DgiLNR9pvj0lNag4VqRab_ZtoEd4bHVAisEFPLq6USHmA3P7ltZUDABPx6EaWqVqNceNxG4bARzycxMt8j7vzGG6ak6no");'></div>
+<div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+<div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="bg-white/20 backdrop-blur-md p-1.5 rounded-full hover:bg-white/40 text-white cursor-pointer">
+<span class="material-symbols-outlined text-[16px] block">more_horiz</span>
+</div>
+</div>
+</div>
+<!-- Image Card -->
+<div class="group relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Foggy forest photo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA_qXRtyREfq7GC7CGa4D5NAmmWnYlHjd6lKs1tjXPwxZEH094WxDqfyx5AIXkgyxjTSvU408Grx03PZ-cJIImQ_YkxKZZ-cdaue1k8gARJYuKEz7gNyB_xlsODntKikDjEYP0fKsLZTabMeaq7uc_nAR3mfVemt-rMcYbbxQRaqE0zWvBYhMUP69TFBqWDfh5oS6gjSw0k3rNEz_5dLXPEVIQo8zW9p9SjxHxSccQrVyxGIuz4nZY9ObN7mm5Ki5723ckHG-82_p8");'></div>
+<div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+</div>
+<!-- Video Card -->
+<div class="group relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Weather forecast video thumbnail" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDcCzKGROrpcsbqb2fgHOwy3jjohtgDU8ZoqQGWthq18h1EfnNnqp_OqWKfqfIXPWrjShsAVsH7lraR_keLjTkZuOU-7GFBt8CaFjsSwJAVAWPEarRO_S2-3usO2LcAfjn3vLdI--4prV3psI5jlWUT9GmaOAGLeIrD9neqpeq__oXb61hbos07Z2Xrk_pXPM0MxudvQgg9Nd5EVT1ayGvG2LXsd4A1XwbyvN29tXeGm4H1sCzDHdUJFj8re_cl1gYbgLFk6l0Ekww");'></div>
+<div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+<div class="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded">12:04</div>
+<div class="absolute bottom-2 left-2 bg-white/20 backdrop-blur-md text-white p-1.5 rounded-full">
+<span class="material-symbols-outlined text-[16px] block">play_arrow</span>
+</div>
+</div>
+<!-- Image Card -->
+<div class="group relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Beach scene photo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA1-0jFQa7JM0UuHEDFOGSfpCP7jvNljrNofAOFt1ewCt_FypEoHQE5DeJy8G6kqLC4RF7DQK-xXtjBMRWONgQo5Vg3sN29srfL8LuOYX7cOcVkUUVn14VcvJno3VJdOt699NvH5QPLQNIr9m7gW0qe1eyCqllASGgDxOzc0sIg09qdzWxzLjfWIPnYiRAhf38si39D46hJtj7Pf7terymAybtmGWdsn_nXw54SpZ7wNmWagM-mQQxARjL9kD4z_Nk-0YBmJvnwARU");'></div>
+<div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+</div>
+</div>
+<!-- Section: Last Month -->
+<h3 class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider mb-4">지난 달</h3>
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+<!-- Image Card -->
+<div class="group relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Dog portrait photo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDxD6lfHXXze9jZF_z6Fw2iYmWa0pIfaVN9CLBPsbJIX3DR8RHOzpWrMxDrUJ--nIu7oYKa_yvb78kDdLzcfsvp5DjupRHInews4McV49V3ai_0LByXwoEBp2ZOS3oih1LWPaCWwd3E0TOBls_oRHGTKcHtqaLLV3TLJHrdBOQ1MSn10jeG74YgeXb8bete9tLYkEAtn_F0K18dGS6pGRUrpafrfOGkXs5E2D3KrlYIBYQx-_YqjDMfHCoA-ti0pcupNBuSwBIPZVw");'></div>
+<div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+</div>
+<!-- Image Card -->
+<div class="group relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Luxury hotel room photo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCmcBmJDJt6UCciKF9HG5qlDuaHneVu1kZ3xsafZ6h2zPlPCj_KxefziJl2IL-L3Nr-23rFDhbLsqZZph1fRZv2PxcqtjDBQj4vgEXPvTruYQgLcYf_n0FUvHk73J0ysNjHspcM4lJaStbRewzynSFEAbiqnD1i4GwK3sHmYLz3LDmkPiorkLSHrUQ6pTMECehlhLJ3ZoKyOjCdpyltby0tT_UjFakURfSX12EM1m36HLR92wNqEt0VacvPuN38w3Htc032ovknRGo");'></div>
+<div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+</div>
+<!-- Image Card -->
+<div class="group relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Data analytics dashboard screenshot" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCFiLoExyOAXjLCwyjUhKxhaYIUO5ZRWPxf8ysjojAOSDGPZrMjiKsNnDlH1VtG_RuhGkggnAbkgEHY_KnOVkaDK1_P7q5YPhvnFNgjZZGupNPW7vtkiz2cFDi8KCNc1eJ1v3UTNsh95SQSPwuOrwjCdaSwyf2bdj5Kgi7Y6-rBL-XD1xwTHAsdMN6oKuHypb4eZk7fqCVNTKI53W8ZpGEu3afvuliL-0lVfHe49HpRTJuv3dQuSYsYuow_NlWkO5Ux1G4suRBzzDw");'></div>
+<div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Side Inspector Panel -->
+<aside class="hidden lg:flex w-[360px] flex-col border-l border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark overflow-y-auto shrink-0 z-10 shadow-xl">
+<!-- Preview Player -->
+<div class="p-6 pb-4 border-b border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-[#151f28]">
+<div class="relative w-full aspect-video bg-black rounded-lg overflow-hidden shadow-lg group">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="Video player preview" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAlwNVlzTP0jCW7gwFc9Ygh-IizT_NBtep_LkHYMZCdG5cQAMfvDL7_Gt3W0gXgm662kim-3GEjiHxim8EVlfXNhFO0IFQPCFrEp2_DOXjuL_HgctTuvLOEDT08xrxtLbgvQ6IGIybbrvWI9K_fEBghAFN5KMlvQiQYkTkRF1ZK_SHmc8hKXWOWnUTv5wKCtbmQMRPrhZbRsn-sA7X30-xta1_mxzX43JyAzHaMv2tHj17MreDC6_EiofBeNuALSIYKXrs4zvHgle4");'></div>
+<!-- Player Overlay -->
+<div class="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<div class="p-3">
+<!-- Progress Bar -->
+<div class="relative h-1 bg-white/30 rounded-full mb-2 cursor-pointer group/progress">
+<div class="absolute top-0 left-0 h-full w-[35%] bg-primary rounded-full"></div>
+<div class="absolute top-1/2 -translate-y-1/2 left-[35%] w-2.5 h-2.5 bg-white rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity shadow"></div>
+</div>
+<!-- Controls -->
+<div class="flex items-center justify-between text-white">
+<div class="flex items-center gap-2">
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">play_arrow</span></button>
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined text-[18px]">volume_up</span></button>
+<span class="text-[10px] font-mono ml-1 opacity-80">0:37 / 2:23</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="hover:text-primary transition-colors" title="자막"><span class="material-symbols-outlined text-[18px]">closed_caption</span></button>
+<button class="hover:text-primary transition-colors" title="설정"><span class="material-symbols-outlined text-[18px]">settings</span></button>
+<button class="hover:text-primary transition-colors" title="전체화면"><span class="material-symbols-outlined text-[18px]">fullscreen</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Centered Play Button (Always visible when paused/hovered) -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-sm rounded-full p-3 text-white pointer-events-none group-hover:opacity-0 transition-opacity">
+<span class="material-symbols-outlined text-[32px] block">play_arrow</span>
+</div>
+</div>
+<div class="mt-4 flex justify-between items-start">
+<div>
+<h2 class="text-base font-bold text-slate-900 dark:text-white leading-tight mb-1">산맥_드론_촬영_Final.mp4</h2>
+<p class="text-xs text-slate-500 dark:text-slate-400">2023년 10월 24일 • 248MB</p>
+</div>
+<button class="text-primary hover:text-blue-400 transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+</div>
+<!-- Tabs -->
+<div class="flex border-b border-slate-200 dark:border-border-dark">
+<button class="flex-1 py-3 text-sm font-medium text-primary border-b-2 border-primary">정보</button>
+<button class="flex-1 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">활동</button>
+<button class="flex-1 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">댓글</button>
+</div>
+<!-- Inspector Content -->
+<div class="p-6 space-y-8">
+<!-- Information Section -->
+<div class="space-y-4">
+<h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary">info</span>
+                        파일 정보
+                    </h3>
+<div class="grid grid-cols-[100px_1fr] gap-y-3 text-sm">
+<div class="text-slate-500 dark:text-slate-400">유형</div>
+<div class="text-slate-900 dark:text-slate-200">MPEG-4 비디오</div>
+<div class="text-slate-500 dark:text-slate-400">해상도</div>
+<div class="text-slate-900 dark:text-slate-200">3840 x 2160 (4K)</div>
+<div class="text-slate-500 dark:text-slate-400">재생 시간</div>
+<div class="text-slate-900 dark:text-slate-200">02:23</div>
+<div class="text-slate-500 dark:text-slate-400">프레임 속도</div>
+<div class="text-slate-900 dark:text-slate-200">60 fps</div>
+<div class="text-slate-500 dark:text-slate-400">저장 위치</div>
+<div class="text-primary hover:underline cursor-pointer">/프로젝트/2023_여행</div>
+</div>
+</div>
+<!-- EXIF / Camera Info -->
+<div class="space-y-4 pt-4 border-t border-slate-200 dark:border-border-dark">
+<h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary">camera</span>
+                        촬영 정보 (Exif)
+                    </h3>
+<div class="grid grid-cols-[100px_1fr] gap-y-3 text-sm">
+<div class="text-slate-500 dark:text-slate-400">기기</div>
+<div class="text-slate-900 dark:text-slate-200">DJI Mavic 3</div>
+<div class="text-slate-500 dark:text-slate-400">ISO</div>
+<div class="text-slate-900 dark:text-slate-200">100</div>
+<div class="text-slate-500 dark:text-slate-400">조리개</div>
+<div class="text-slate-900 dark:text-slate-200">f/2.8</div>
+<div class="text-slate-500 dark:text-slate-400">위치</div>
+<div class="flex items-start gap-1 text-slate-900 dark:text-slate-200">
+<span class="material-symbols-outlined text-[16px] text-slate-400 mt-0.5">location_on</span>
+                            강원도, 평창군
+                        </div>
+<div class="col-span-2 mt-1 rounded-lg overflow-hidden h-32 relative">
+<div class="absolute inset-0 bg-cover bg-center" data-location="Pyeongchang-gun, Gangwon-do" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBCyf58S-KRDURmPPZR8SjYHYGb0zAqKpZdW0Uy6RLyEAwLBw0IFnACRB_64cAzK6_rqIzk6B-e4BK-MLsUWb7o28Jk_WJRACut67Pxthm0VjsjIRGn5-Gosp8OczeJtEzvShMQUF_Nb_3NulgL6fOsXqS4hXk6MNJ34AY2W4VwViyQV_89zTPowRwWkc24En52z1uhCYF8x2y047rN_mIdiJrckjOiuBdO-_DjJvVd2rREgfOJv4M0Srpqy4Zew43GxaQkrdwS4rQ");'></div>
+<div class="absolute inset-0 bg-black/10"></div>
+<div class="absolute center w-3 h-3 bg-blue-500 border-2 border-white rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-lg"></div>
+</div>
+</div>
+</div>
+<!-- Sharing Settings -->
+<div class="space-y-4 pt-4 border-t border-slate-200 dark:border-border-dark">
+<h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary">share</span>
+                        공유 설정
+                    </h3>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
+<span class="material-symbols-outlined text-[18px]">link</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium text-slate-900 dark:text-white">링크 공유</span>
+<span class="text-xs text-slate-500 dark:text-slate-400">링크가 있는 모든 사용자</span>
+</div>
+</div>
+<div class="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors cursor-pointer">
+<span class="translate-x-6 inline-block h-4 w-4 transform rounded-full bg-white transition"></span>
+</div>
+</div>
+<div class="flex -space-x-2 pt-2">
+<div class="size-8 rounded-full ring-2 ring-white dark:ring-surface-dark bg-cover bg-center" data-alt="Collaborator avatar 1" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCjBNsgCXz6S6ZMwk-Dm-OhbvYn8bztb97HAyCDf0PJXxSYKFDMPohdmmbWU5eWArFCwj8_bKtchDVgi6XbAhj151Oeho1noU7LLJiyEOe8gmkOGbunyc848lGKRR0nhYw6mmrVeXnhL6xYAdxEZvVdTps_qjrRV5W6brj2qglQ0dLNS207RQcnRkcmeyS3ba1zkNWNPHax9TXcJHBdirS8nFn0i6m1zBl-9V8PpjHrIePtr1Q5bpOdFZiVk9o4FmpJFhEYsT4BiiE");'></div>
+<div class="size-8 rounded-full ring-2 ring-white dark:ring-surface-dark bg-cover bg-center" data-alt="Collaborator avatar 2" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBAeFz9uavJDqW0wf_X7lATwM4HS_pgwJTfKnHW6ECpP5s_QtOKIA-ifcvqrNbFsf7Rf7qEsYMvtPINN6HUj-wlw4hcMqIkL6QoOQGc-UK7iKdcF-bPe-VWqHjfAPZGiD20OodelAN2SdciY1qv5DZQCbBSsp3TpQJFTEN-b37_NVZQOhyoJ2Ow90FFRe6QDKH_pYGkuD45JBlzR_bHYBa81X9GLHeWFoUElwaKNqyHPDu23KuulDQd-cX5wae-vskReUd5E3BmH1o");'></div>
+<div class="size-8 rounded-full ring-2 ring-white dark:ring-surface-dark bg-cover bg-center" data-alt="Collaborator avatar 3" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDMGJg1Iwsc69WQ_wGSLUD2z1ywKO_qGCRRFt2FNxD_UndRTqtkq-KsYINA5BVC667r8sG2C4PtxfV6jeyjxcTkyyWtWfLufrYQuhbd-duv7rF2wiuV7wmJ-qz28GynkR-jOn-WuUfh_pK6lsxp3O1p-KryRv0ATCYDXGusx2WJQ3YCexYhmY6hzPABfgTSLYcshOiryCOgc3Rphw18NaFfoIkJMSgR_X7CDU-KhtBWQ1lDOUMoSOK9xcfMvhIAUZDUV6pg6sPZ-kg");'></div>
+<button class="size-8 rounded-full ring-2 ring-white dark:ring-surface-dark bg-slate-100 dark:bg-surface-dark-hover flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="pt-6 grid grid-cols-2 gap-3">
+<button class="flex items-center justify-center gap-2 h-10 rounded-lg border border-slate-200 dark:border-border-dark text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-surface-dark-hover transition-colors">
+<span class="material-symbols-outlined text-[20px]">download</span>
+                        다운로드
+                    </button>
+<button class="flex items-center justify-center gap-2 h-10 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors border border-transparent">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+                        삭제
+                    </button>
+</div>
+</div>
+</aside>
+</main>
+</body></html>

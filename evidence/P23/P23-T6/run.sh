@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TASK="P23-T6"
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+EVDIR="$ROOT/evidence/P23/$TASK"
+SUMMARY="$EVDIR/summary.json"
+
+TASK_FILE="$ROOT/packages/ui/src/app/AdminJobsPage.tsx"
+TASK_STYLE="$ROOT/packages/ui/src/app/AdminJobsPage.css"
+ROUTE_FILE="$ROOT/packages/ui/src/app/AdminRoutes.tsx"
+API_FILE="$ROOT/packages/ui/src/api/jobs.ts"
+
+update_summary() {
+  local status="$1"
+  local result="$2"
+  local pass="$3"
+  local details="$4"
+
+  python3 - "$SUMMARY" "$TASK" "$status" "$result" "$pass" "$details" <<'PY'
+import json
+import pathlib
+import sys
+
+summary_path, task, status, result, pass_flag, details = sys.argv[1:7]
+pathlib.Path(summary_path).write_text(
+    json.dumps(
+        {
+            "taskId": task,
+            "status": status,
+            "result": result,
+            "pass": pass_flag == "true",
+            "details": details,
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
+    + "\n",
+    encoding="utf-8",
+)
+PY
+}
+
+fail() {
+  local reason="$1"
+  update_summary "FAIL" "FAIL" "false" "$reason"
+  echo "[$TASK] FAIL: $reason"
+  exit 1
+}
+
+if [[ ! -f "$TASK_FILE" ]]; then
+  fail "missing $TASK_FILE"
+fi
+if [[ ! -f "$TASK_STYLE" ]]; then
+  fail "missing $TASK_STYLE"
+fi
+if [[ ! -f "$ROUTE_FILE" ]]; then
+  fail "missing $ROUTE_FILE"
+fi
+if [[ ! -f "$API_FILE" ]]; then
+  fail "missing $API_FILE"
+fi
+
+if ! grep -q "AdminJobsPage" "$TASK_FILE"; then
+  fail "admin jobs page component missing expected token"
+fi
+
+if ! grep -q "admin/jobs" "$ROUTE_FILE"; then
+  fail "admin/jobs route entry missing"
+fi
+
+if ! grep -q "DataTable" "$TASK_FILE"; then
+  fail "admin jobs page must use DataTable"
+fi
+
+if grep -q "TODO" "$TASK_FILE"; then
+  fail "placeholder TODO remains in task file"
+fi
+
+if grep -q "style=" "$TASK_FILE"; then
+  fail "inline style detected in task file"
+fi
+
+cd "$ROOT"
+
+pnpm -C packages/ui exec eslint src/app/AdminJobsPage.tsx src/app/AdminRoutes.tsx src/api/jobs.ts >/tmp/${TASK}-eslint.log 2>&1 || {
+  details="$(tail -n 120 /tmp/${TASK}-eslint.log | tr '\n' ' ' | cut -c1-240)"
+  fail "eslint failed: $details"
+}
+
+pnpm -C packages/ui typecheck >/tmp/${TASK}-typecheck.log 2>&1 || {
+  details="$(tail -n 120 /tmp/${TASK}-typecheck.log | tr '\n' ' ' | cut -c1-240)"
+  fail "typecheck failed: $details"
+}
+
+update_summary "PASS" "PASS" "true" "admin jobs page implemented, route wired, and lint/typecheck passed"
+echo "[$TASK] PASS"

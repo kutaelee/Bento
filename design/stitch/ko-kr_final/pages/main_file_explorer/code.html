@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nimbus Drive - Main File Explorer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "surface-dark": "#18232e",
+                        "border-dark": "#233648",
+                        "text-secondary": "#92adc9",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "Noto Sans KR", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden h-screen flex flex-col">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between border-b border-gray-200 dark:border-border-dark bg-white dark:bg-background-dark px-6 py-3 shrink-0 h-16 z-20">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 text-slate-900 dark:text-white">
+<div class="size-8 flex items-center justify-center bg-primary rounded-lg text-white">
+<span class="material-symbols-outlined text-xl">cloud</span>
+</div>
+<h2 class="text-lg font-bold tracking-tight">님버스 드라이브</h2>
+</div>
+<!-- Search Bar -->
+<div class="hidden md:flex relative w-96 group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-text-secondary group-focus-within:text-primary transition-colors">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="block w-full pl-10 pr-12 py-2 border-none rounded-lg bg-gray-100 dark:bg-surface-dark text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-secondary focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-surface-dark transition-all text-sm" placeholder="검색 (Cmd+K)" type="text"/>
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+<kbd class="hidden sm:inline-block border border-gray-300 dark:border-border-dark rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-400 dark:text-text-secondary font-sans">⌘K</kbd>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<nav class="hidden lg:flex items-center gap-6 mr-4">
+<a class="text-sm font-medium text-slate-600 dark:text-text-secondary hover:text-primary dark:hover:text-primary transition-colors" href="#">파일</a>
+<a class="text-sm font-medium text-slate-600 dark:text-text-secondary hover:text-primary dark:hover:text-primary transition-colors" href="#">편집</a>
+<a class="text-sm font-medium text-slate-600 dark:text-text-secondary hover:text-primary dark:hover:text-primary transition-colors" href="#">보기</a>
+<a class="text-sm font-medium text-slate-600 dark:text-text-secondary hover:text-primary dark:hover:text-primary transition-colors" href="#">도구</a>
+</nav>
+<button class="relative p-2 rounded-full text-slate-500 dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-surface-dark hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-white dark:border-background-dark"></span>
+</button>
+<button class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors border border-transparent hover:border-gray-200 dark:hover:border-border-dark">
+<div class="size-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500" data-alt="User Avatar Gradient"></div>
+<span class="text-sm font-medium hidden sm:block">김민수</span>
+</button>
+</div>
+</header>
+<!-- Main Layout -->
+<div class="flex flex-1 overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 flex flex-col bg-gray-50 dark:bg-background-dark border-r border-gray-200 dark:border-border-dark shrink-0">
+<div class="p-4">
+<button class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white py-2.5 px-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span class="font-semibold text-sm">새로 만들기</span>
+</button>
+</div>
+<nav class="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+<div class="mb-6">
+<p class="px-3 text-xs font-semibold text-slate-400 dark:text-text-secondary uppercase tracking-wider mb-2">탐색</p>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 dark:bg-primary/10 text-primary font-medium" href="#">
+<span class="material-symbols-outlined fill-current" style="font-variation-settings: 'FILL' 1;">hard_drive</span>
+<span class="text-sm">내 드라이브</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-current">star</span>
+<span class="text-sm">즐겨찾기</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-current">share</span>
+<span class="text-sm">공유됨</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-current">schedule</span>
+<span class="text-sm">최근 항목</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-current">delete</span>
+<span class="text-sm">휴지통</span>
+</a>
+</div>
+<div>
+<p class="px-3 text-xs font-semibold text-slate-400 dark:text-text-secondary uppercase tracking-wider mb-2 flex justify-between items-center group cursor-pointer">
+                        위치
+                        <span class="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100 transition-opacity">add</span>
+</p>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-current">folder_shared</span>
+<span class="text-sm">프로젝트 알파</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-surface-dark hover:text-slate-900 dark:hover:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-current">folder_shared</span>
+<span class="text-sm">마케팅 팀</span>
+</a>
+</div>
+</nav>
+<div class="p-4 border-t border-gray-200 dark:border-border-dark">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-medium text-slate-500 dark:text-text-secondary">저장 공간</span>
+<span class="text-xs font-medium text-primary">70% 사용 중</span>
+</div>
+<div class="w-full bg-gray-200 dark:bg-surface-dark rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-1.5 rounded-full" style="width: 70%"></div>
+</div>
+<p class="mt-2 text-[11px] text-slate-400 dark:text-text-secondary">15GB 중 10.5GB 사용</p>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#111a22] relative">
+<!-- Breadcrumbs & Actions -->
+<div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-border-dark/50">
+<div class="flex items-center gap-2 text-sm">
+<a class="text-slate-500 dark:text-text-secondary hover:text-primary transition-colors" href="#">홈</a>
+<span class="material-symbols-outlined text-[16px] text-slate-400">chevron_right</span>
+<a class="text-slate-500 dark:text-text-secondary hover:text-primary transition-colors" href="#">내 드라이브</a>
+<span class="material-symbols-outlined text-[16px] text-slate-400">chevron_right</span>
+<span class="font-semibold text-slate-900 dark:text-white">프로젝트 알파</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-slate-500 dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-surface-dark rounded-lg transition-colors" title="보기 전환">
+<span class="material-symbols-outlined">grid_view</span>
+</button>
+<div class="w-px h-6 bg-gray-200 dark:bg-border-dark mx-1"></div>
+<button class="p-2 text-slate-500 dark:text-text-secondary hover:bg-gray-100 dark:hover:bg-surface-dark rounded-lg transition-colors" title="정보">
+<span class="material-symbols-outlined">info</span>
+</button>
+</div>
+</div>
+<!-- Toolbar -->
+<div class="px-6 py-3 flex gap-3">
+<button class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg hover:bg-gray-50 dark:hover:bg-opacity-80 transition-colors">
+<span class="material-symbols-outlined text-[18px]">create_new_folder</span>
+                    새 폴더
+                 </button>
+<button class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg hover:bg-gray-50 dark:hover:bg-opacity-80 transition-colors">
+<span class="material-symbols-outlined text-[18px]">upload_file</span>
+                    업로드
+                 </button>
+<div class="flex-1"></div>
+<button class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                    필터
+                 </button>
+</div>
+<!-- File List Header -->
+<div class="flex-1 overflow-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-gray-50 dark:bg-[#151f2a] sticky top-0 z-10 text-xs uppercase text-slate-500 dark:text-text-secondary font-semibold tracking-wider">
+<tr>
+<th class="px-6 py-3 border-b border-gray-200 dark:border-border-dark w-[40%]">이름</th>
+<th class="px-6 py-3 border-b border-gray-200 dark:border-border-dark w-[20%]">수정일</th>
+<th class="px-6 py-3 border-b border-gray-200 dark:border-border-dark w-[20%]">소유자</th>
+<th class="px-6 py-3 border-b border-gray-200 dark:border-border-dark w-[20%] text-right">크기</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-100 dark:divide-border-dark/50 text-sm">
+<!-- Item 1: Folder -->
+<tr class="group hover:bg-blue-50 dark:hover:bg-primary/5 transition-colors cursor-pointer">
+<td class="px-6 py-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-yellow-400 fill-current" style="font-variation-settings: 'FILL' 1;">folder</span>
+<span class="font-medium text-slate-700 dark:text-slate-200 group-hover:text-primary dark:group-hover:text-primary">디자인 에셋</span>
+</div>
+</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">2023년 10월 24일</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">
+<div class="flex items-center gap-2">
+<div class="size-5 rounded-full bg-purple-500 text-[10px] text-white flex items-center justify-center">김</div>
+<span>김철수</span>
+</div>
+</td>
+<td class="px-6 py-3 text-right text-slate-500 dark:text-text-secondary">--</td>
+</tr>
+<!-- Item 2: Selected Item -->
+<tr class="bg-blue-50 dark:bg-primary/10 border-l-2 border-l-primary cursor-pointer">
+<td class="px-6 py-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-red-500">picture_as_pdf</span>
+<span class="font-medium text-slate-900 dark:text-white">프로젝트 제안서.pdf</span>
+</div>
+</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">2023년 10월 24일</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">
+<div class="flex items-center gap-2">
+<div class="size-5 rounded-full bg-primary text-[10px] text-white flex items-center justify-center">나</div>
+<span>나</span>
+</div>
+</td>
+<td class="px-6 py-3 text-right text-slate-500 dark:text-text-secondary">2.4 MB</td>
+</tr>
+<!-- Item 3: Spreadsheet -->
+<tr class="group hover:bg-blue-50 dark:hover:bg-primary/5 transition-colors cursor-pointer">
+<td class="px-6 py-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-green-500">table_chart</span>
+<span class="font-medium text-slate-700 dark:text-slate-200 group-hover:text-primary dark:group-hover:text-primary">분기별 보고서.xlsx</span>
+</div>
+</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">2023년 10월 20일</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">
+<div class="flex items-center gap-2">
+<div class="size-5 rounded-full bg-orange-500 text-[10px] text-white flex items-center justify-center">이</div>
+<span>이영희</span>
+</div>
+</td>
+<td class="px-6 py-3 text-right text-slate-500 dark:text-text-secondary">1.2 MB</td>
+</tr>
+<!-- Item 4: Image -->
+<tr class="group hover:bg-blue-50 dark:hover:bg-primary/5 transition-colors cursor-pointer">
+<td class="px-6 py-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-blue-400">image</span>
+<span class="font-medium text-slate-700 dark:text-slate-200 group-hover:text-primary dark:group-hover:text-primary">마케팅 이미지.png</span>
+</div>
+</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">2023년 10월 18일</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">
+<div class="flex items-center gap-2">
+<div class="size-5 rounded-full bg-primary text-[10px] text-white flex items-center justify-center">나</div>
+<span>나</span>
+</div>
+</td>
+<td class="px-6 py-3 text-right text-slate-500 dark:text-text-secondary">4.5 MB</td>
+</tr>
+<!-- Item 5: Doc -->
+<tr class="group hover:bg-blue-50 dark:hover:bg-primary/5 transition-colors cursor-pointer">
+<td class="px-6 py-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-blue-600">description</span>
+<span class="font-medium text-slate-700 dark:text-slate-200 group-hover:text-primary dark:group-hover:text-primary">회의록.docx</span>
+</div>
+</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">2023년 10월 15일</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">
+<div class="flex items-center gap-2">
+<div class="size-5 rounded-full bg-teal-500 text-[10px] text-white flex items-center justify-center">박</div>
+<span>박지민</span>
+</div>
+</td>
+<td class="px-6 py-3 text-right text-slate-500 dark:text-text-secondary">15 KB</td>
+</tr>
+<!-- Item 6: Video -->
+<tr class="group hover:bg-blue-50 dark:hover:bg-primary/5 transition-colors cursor-pointer">
+<td class="px-6 py-3">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-red-600">movie</span>
+<span class="font-medium text-slate-700 dark:text-slate-200 group-hover:text-primary dark:group-hover:text-primary">제품 소개 영상.mp4</span>
+</div>
+</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">2023년 10월 10일</td>
+<td class="px-6 py-3 text-slate-500 dark:text-text-secondary">
+<div class="flex items-center gap-2">
+<div class="size-5 rounded-full bg-indigo-500 text-[10px] text-white flex items-center justify-center">최</div>
+<span>최우식</span>
+</div>
+</td>
+<td class="px-6 py-3 text-right text-slate-500 dark:text-text-secondary">152 MB</td>
+</tr>
+</tbody>
+</table>
+</div>
+</main>
+<!-- Right Inspector Panel -->
+<aside class="w-80 border-l border-gray-200 dark:border-border-dark bg-white dark:bg-background-dark flex flex-col shrink-0">
+<!-- File Header -->
+<div class="p-6 border-b border-gray-100 dark:border-border-dark">
+<div class="flex justify-center mb-4">
+<div class="size-20 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-red-500 text-5xl">picture_as_pdf</span>
+</div>
+</div>
+<h3 class="text-center font-semibold text-slate-900 dark:text-white truncate px-2 mb-1">프로젝트 제안서.pdf</h3>
+<p class="text-center text-xs text-slate-500 dark:text-text-secondary">2.4 MB • PDF 문서</p>
+</div>
+<!-- Tabs -->
+<div class="flex border-b border-gray-200 dark:border-border-dark">
+<button class="flex-1 py-3 text-sm font-medium text-primary border-b-2 border-primary">상세</button>
+<button class="flex-1 py-3 text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-700 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-surface-dark transition-colors">공유</button>
+<button class="flex-1 py-3 text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-700 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-surface-dark transition-colors">권한</button>
+<button class="flex-1 py-3 text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-700 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-surface-dark transition-colors">활동</button>
+</div>
+<!-- Panel Content -->
+<div class="flex-1 overflow-y-auto p-5 space-y-6">
+<!-- Properties -->
+<div>
+<h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">속성</h4>
+<div class="space-y-3">
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-text-secondary">유형</span>
+<span class="text-slate-700 dark:text-slate-300">PDF 문서</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-text-secondary">크기</span>
+<span class="text-slate-700 dark:text-slate-300">2.4 MB</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-text-secondary">위치</span>
+<span class="text-slate-700 dark:text-slate-300">프로젝트 알파</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-text-secondary">소유자</span>
+<span class="text-slate-700 dark:text-slate-300">나</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-text-secondary">수정됨</span>
+<span class="text-slate-700 dark:text-slate-300">10월 24일</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-slate-500 dark:text-text-secondary">생성됨</span>
+<span class="text-slate-700 dark:text-slate-300">10월 20일</span>
+</div>
+</div>
+</div>
+<!-- Shared Users Preview -->
+<div>
+<h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">공유 대상</h4>
+<div class="flex -space-x-2 overflow-hidden">
+<img alt="User Avatar" class="inline-block size-8 rounded-full ring-2 ring-white dark:ring-background-dark" data-alt="User Avatar KC" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxL76nikw3T6QbSORD5Kp9dVqQNTXs2N9YoloFLsm8S-RgRN-nsg0NxPl1WviG-06Bbs_lr7sgjrhPiHSHfYelXIYfRl9X6QdXMWpZPPPYHAdx8Up5M_YLWzgRXgJdNMmC8WZx7s12wj0TShD3V1mYYMHZxUPXk_B6Ak1Swbk0l4sMf-gVdCnsO9GFar7dUILaJYAdQCNzYb5pxpJLoHfbzuvfY6yEQoObhg1zoT5CewdIrJT92hctExiLWis-Zi3XdweFPy7idI0"/>
+<img alt="User Avatar" class="inline-block size-8 rounded-full ring-2 ring-white dark:ring-background-dark" data-alt="User Avatar LY" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmTxAKVcpLoussVgPBGLnX4iLjQKlj5FrY5ip-r40lzwBlOhma3GUZ-aj2qPq9ukAJJOcmoCNmnKNfhZAOibbBtkdZ2LPMnhCr_MEZisZs1hSo4kIl-WSQKt8iJ6iBOzEU-IFEAhsygr5bwM6F3MAbSKxSLH02-NV0CdQwaJSN94ms67b8wSkMG6fjLlStUsVgGYaXjzpWABnaONMVJtLAignM8ckwX4ceqK12T0zT5DYe7vcGqPpmYkLzf946Dz0DlU8QDJtg8Ug"/>
+<img alt="User Avatar" class="inline-block size-8 rounded-full ring-2 ring-white dark:ring-background-dark" data-alt="User Avatar PJ" src="https://lh3.googleusercontent.com/aida-public/AB6AXuALQ0KBEfw5GzqxjGwC9JBQCkpFHX5snOucU3wviyjt0B4LkAEArGqR0z7udrr45Kbgs6xzDpg4Wnv-CHUSxZIGOuZsCsnmVoBkwGUQ2lx6JglH2UAhBhOd3ij_qfDBSAECkolDzxWYc-6I3KQruta5PlJSns9RNFKDK74THg6m2C9KRmuEHngMVbMwJK9ZJEK8EP6hn6Jb8PP1_r32dxgApwtL5D3SASqEzewXg5_TI3Tugv6RvflQUtB3Dun7cmW-7V6yh-1MjKA"/>
+<button class="inline-flex items-center justify-center size-8 rounded-full ring-2 ring-white dark:ring-background-dark bg-gray-100 dark:bg-surface-dark text-xs font-medium text-slate-500 hover:bg-gray-200 dark:hover:bg-border-dark transition-colors">
+                            +2
+                        </button>
+</div>
+<button class="mt-3 w-full py-1.5 text-xs font-medium text-primary border border-primary/30 rounded hover:bg-primary/5 transition-colors">
+                        액세스 관리
+                    </button>
+</div>
+<!-- Description -->
+<div>
+<h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2">설명</h4>
+<textarea class="w-full bg-gray-50 dark:bg-surface-dark border-none rounded-lg text-sm text-slate-700 dark:text-slate-300 p-3 h-24 resize-none placeholder-slate-400 dark:placeholder-text-secondary focus:ring-1 focus:ring-primary" placeholder="설명을 추가하세요..."></textarea>
+</div>
+</div>
+<!-- Bottom Actions -->
+<div class="p-4 border-t border-gray-200 dark:border-border-dark flex gap-2">
+<button class="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white py-2 rounded-lg text-sm font-medium transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    다운로드
+                </button>
+<button class="p-2 text-slate-500 dark:text-text-secondary hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors" title="삭제">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</aside>
+</div>
+</body></html>

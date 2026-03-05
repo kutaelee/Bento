@@ -1,0 +1,12 @@
+id: P12-T1-MIGRATION-002
+name: Migration job completes
+depends_on:
+  - P12-T1-MIGRATION-001
+request:
+  method: GET
+  url: /jobs/{job_id}
+expect:
+  status: 200
+  assertions:
+    - type: jq
+      expr: '.status == "SUCCEEDED"'

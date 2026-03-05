@@ -1,0 +1,72 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci-light:
+    name: ci-light (default)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.11.1'
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Run light gate (short)
+        run: bash scripts/run_evidence.sh --scope ui_fast
+
+  ci-heavy:
+    name: ci-heavy (manual/label only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-heavy'))
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.11.1'
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm -C packages/ui exec playwright install --with-deps chromium
+
+      - name: Run heavy evidence (full)
+        run: bash scripts/run_evidence.sh --scope full

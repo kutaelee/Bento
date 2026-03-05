@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>님버스 드라이브 - 관리자 설정</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased overflow-x-hidden">
+<div class="relative flex h-screen w-full flex-row overflow-hidden">
+<!-- Sidebar -->
+<div class="flex h-full w-64 flex-col justify-between border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111a22] p-4">
+<div class="flex flex-col gap-4">
+<div class="flex gap-3 items-center px-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-primary/20" data-alt="Nimbus Drive Logo Placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA8y8ltvmA7yqpMoBqB7v4hn2_n_kLoc2OiPQ8vIeO-QkfUNEQ3NNWO4DOlzSlKkYf3ActM65oD1wAzF-vWk1CWN41jhJw0uH1Nt6eG_-vrxmIFwf5nxvGmDMSYggTQCvLzf-SPpeibf8cfWBhtLKX5EZ36g3QewVcIwE2oUT7u_d8TsOAGZj1jVySSDt8ULkIDstfHLdDseOJ5cGjgFXeEMtpnUMYZ3Xv9coC-gxLxBxTZUpKQFCTwHptq6NFEYyS4U1TPQ16kaEM");'></div>
+<div class="flex flex-col">
+<h1 class="text-slate-900 dark:text-white text-base font-bold leading-normal">님버스 드라이브</h1>
+<p class="text-slate-500 dark:text-[#92adc9] text-xs font-normal leading-normal">관리자 콘솔</p>
+</div>
+</div>
+<div class="flex flex-col gap-1 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#1c2b36] transition-colors group" href="#">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400 group-hover:text-primary">home</span>
+<p class="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal group-hover:text-primary">대시보드</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-[#233648]" href="#">
+<span class="material-symbols-outlined text-primary dark:text-white">hard_drive</span>
+<p class="text-primary dark:text-white text-sm font-bold leading-normal">저장소 관리</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#1c2b36] transition-colors group" href="#">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400 group-hover:text-primary">group</span>
+<p class="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal group-hover:text-primary">사용자</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#1c2b36] transition-colors group" href="#">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400 group-hover:text-primary">verified_user</span>
+<p class="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal group-hover:text-primary">보안</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#1c2b36] transition-colors group" href="#">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400 group-hover:text-primary">settings</span>
+<p class="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal group-hover:text-primary">설정</p>
+</a>
+</div>
+</div>
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-slate-100 dark:bg-[#1c2b36] text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-[#2a3f55] transition-colors text-sm font-bold leading-normal">
+<span class="truncate">로그아웃</span>
+</button>
+</div>
+<!-- Main Content -->
+<div class="flex-1 flex flex-col h-full overflow-y-auto bg-background-light dark:bg-background-dark">
+<div class="w-full max-w-[1200px] mx-auto p-6 md:p-8 flex flex-col gap-6">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div class="flex flex-col gap-2">
+<h2 class="text-slate-900 dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">저장소 및 설정 관리</h2>
+<p class="text-slate-500 dark:text-[#92adc9] text-base font-normal leading-normal">시스템 상태 및 볼륨 구성을 확인하고 관리하세요.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-10 px-4 border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#233648] text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-[#2d445a] transition-colors text-sm font-bold shadow-sm">
+<span class="material-symbols-outlined text-lg mr-2">add</span>
+<span>볼륨 추가</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-10 px-4 bg-primary text-white hover:bg-blue-600 transition-colors text-sm font-bold shadow-md shadow-blue-500/20">
+<span class="material-symbols-outlined text-lg mr-2">rocket_launch</span>
+<span>마이그레이션 시작</span>
+</button>
+</div>
+</div>
+<!-- Alert Banner -->
+<div class="w-full rounded-xl bg-gradient-to-r from-orange-500/10 to-orange-600/5 border border-orange-500/20 p-1">
+<div class="flex flex-col md:flex-row items-center gap-6 rounded-lg px-6 py-8 md:py-10">
+<div class="flex flex-col items-center md:items-start gap-2 flex-1 text-center md:text-left">
+<div class="flex items-center gap-2 text-orange-600 dark:text-orange-400 mb-1">
+<span class="material-symbols-outlined">warning</span>
+<span class="text-sm font-bold uppercase tracking-wider">시스템 알림</span>
+</div>
+<p class="text-slate-900 dark:text-white text-xl font-bold leading-tight">현재 읽기 전용 모드입니다</p>
+<p class="text-slate-600 dark:text-slate-300 text-sm font-normal leading-normal max-w-[600px]">시스템 유지보수 중에는 설정을 변경할 수 없습니다. 유지보수가 완료될 때까지 기다려 주시거나, 긴급한 경우 관리자에게 문의하세요.</p>
+</div>
+<button class="whitespace-nowrap flex cursor-pointer items-center justify-center rounded-lg h-10 px-6 bg-white dark:bg-[#1c2b36] text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-[#2a3f55] text-sm font-bold transition-colors">
+                            자세히 보기
+                        </button>
+</div>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="flex flex-col gap-2 rounded-xl p-5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#15202b] shadow-sm">
+<div class="flex justify-between items-start">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">전체 용량</p>
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-600">database</span>
+</div>
+<div class="flex items-end gap-2 mt-2">
+<p class="text-slate-900 dark:text-white text-2xl font-bold leading-none">100 TB</p>
+</div>
+<div class="mt-2 flex items-center gap-1 text-emerald-500 text-xs font-medium bg-emerald-500/10 w-fit px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px]">trending_flat</span>
+<span>변동 없음</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#15202b] shadow-sm">
+<div class="flex justify-between items-start">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">사용 중</p>
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-600">pie_chart</span>
+</div>
+<div class="flex items-end gap-2 mt-2">
+<p class="text-slate-900 dark:text-white text-2xl font-bold leading-none">64 TB</p>
+</div>
+<div class="mt-2 flex items-center gap-1 text-emerald-500 text-xs font-medium bg-emerald-500/10 w-fit px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span>+5% 증가</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#15202b] shadow-sm">
+<div class="flex justify-between items-start">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">남은 용량</p>
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-600">data_usage</span>
+</div>
+<div class="flex items-end gap-2 mt-2">
+<p class="text-slate-900 dark:text-white text-2xl font-bold leading-none">36 TB</p>
+</div>
+<div class="mt-2 flex items-center gap-1 text-orange-500 text-xs font-medium bg-orange-500/10 w-fit px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px]">trending_down</span>
+<span>-2% 감소</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#15202b] shadow-sm">
+<div class="flex justify-between items-start">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">활성 사용자</p>
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-600">groups</span>
+</div>
+<div class="flex items-end gap-2 mt-2">
+<p class="text-slate-900 dark:text-white text-2xl font-bold leading-none">1,240</p>
+</div>
+<div class="mt-2 flex items-center gap-1 text-emerald-500 text-xs font-medium bg-emerald-500/10 w-fit px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span>+12% 신규</span>
+</div>
+</div>
+</div>
+<!-- Feature Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 pb-8">
+<!-- User Management -->
+<div class="group flex flex-col gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#15202b] p-6 hover:border-primary/50 transition-all hover:shadow-lg dark:hover:shadow-primary/5 cursor-pointer">
+<div class="size-12 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">manage_accounts</span>
+</div>
+<div class="flex flex-col gap-1">
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight group-hover:text-primary transition-colors">사용자 관리</h2>
+<p class="text-slate-500 dark:text-[#92adc9] text-sm font-normal leading-relaxed">계정 권한을 수정하고 사용자 그룹을 설정합니다.</p>
+</div>
+<div class="mt-auto pt-4 flex items-center text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 transition-transform duration-300">
+<span>관리하기</span>
+<span class="material-symbols-outlined text-sm ml-1">arrow_forward</span>
+</div>
+</div>
+<!-- Storage Volumes -->
+<div class="group flex flex-col gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#15202b] p-6 hover:border-primary/50 transition-all hover:shadow-lg dark:hover:shadow-primary/5 cursor-pointer">
+<div class="size-12 rounded-lg bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">dns</span>
+</div>
+<div class="flex flex-col gap-1">
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight group-hover:text-purple-500 transition-colors">저장소 볼륨</h2>
+<p class="text-slate-500 dark:text-[#92adc9] text-sm font-normal leading-relaxed">새로운 볼륨을 할당하고 사용량을 모니터링합니다.</p>
+</div>
+<div class="mt-auto pt-4 flex items-center text-sm font-medium text-purple-600 dark:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 transition-transform duration-300">
+<span>볼륨 확인</span>
+<span class="material-symbols-outlined text-sm ml-1">arrow_forward</span>
+</div>
+</div>
+<!-- System Performance -->
+<div class="group flex flex-col gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#15202b] p-6 hover:border-primary/50 transition-all hover:shadow-lg dark:hover:shadow-primary/5 cursor-pointer">
+<div class="size-12 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">monitoring</span>
+</div>
+<div class="flex flex-col gap-1">
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight group-hover:text-emerald-500 transition-colors">시스템 성능</h2>
+<p class="text-slate-500 dark:text-[#92adc9] text-sm font-normal leading-relaxed">서버 로드 밸런싱 및 응답 시간을 최적화합니다.</p>
+</div>
+<div class="mt-auto pt-4 flex items-center text-sm font-medium text-emerald-600 dark:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 transition-transform duration-300">
+<span>대시보드</span>
+<span class="material-symbols-outlined text-sm ml-1">arrow_forward</span>
+</div>
+</div>
+<!-- Security Policies -->
+<div class="group flex flex-col gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#15202b] p-6 hover:border-primary/50 transition-all hover:shadow-lg dark:hover:shadow-primary/5 cursor-pointer">
+<div class="size-12 rounded-lg bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">admin_panel_settings</span>
+</div>
+<div class="flex flex-col gap-1">
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight group-hover:text-rose-500 transition-colors">보안 정책</h2>
+<p class="text-slate-500 dark:text-[#92adc9] text-sm font-normal leading-relaxed">방화벽 규칙 및 데이터 암호화 수준을 관리합니다.</p>
+</div>
+<div class="mt-auto pt-4 flex items-center text-sm font-medium text-rose-600 dark:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 transition-transform duration-300">
+<span>정책 편집</span>
+<span class="material-symbols-outlined text-sm ml-1">arrow_forward</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,12 @@
+id: P11-T1-THUMBNAIL-002
+name: Thumbnail request returns 200 image
+request:
+  method: GET
+  url: /media/{node_id}/thumbnail
+  headers:
+    Accept: image/png
+expect:
+  status: 200
+  assertions:
+    - type: regex
+      expr: 'image/png'

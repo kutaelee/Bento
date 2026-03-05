@@ -1,0 +1,17 @@
+.admin-audit {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-audit__panel {
+  padding: 12px;
+  border: 1px solid var(--nd-color-border-weak);
+  border-radius: 12px;
+  background: var(--nd-color-surface);
+}
+
+.admin-audit__detail {
+  margin: 8px 0 0;
+  color: color-mix(in srgb, var(--nd-color-text) 70%, transparent);
+  font-size: 0.9rem;
+}

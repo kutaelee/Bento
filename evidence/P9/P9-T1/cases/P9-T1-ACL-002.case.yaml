@@ -1,0 +1,13 @@
+id: P9-T1-ACL-002
+name: Reject invalid ACL payload
+request:
+  method: PUT
+  url: /nodes/{{node_id}}/acl
+  headers:
+    Accept-Language: ko-KR
+    Content-Type: application/json
+    Authorization: Bearer {{access_token}}
+  body:
+    entries: not-an-array
+expect:
+  status: 400

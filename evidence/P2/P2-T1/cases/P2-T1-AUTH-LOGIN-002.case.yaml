@@ -1,0 +1,22 @@
+id: P2-T1-AUTH-LOGIN-002
+name: auth login wrong password
+steps:
+  - name: seed initial admin
+    request:
+      method: POST
+      path: /setup/admin
+      json:
+        username: admin
+        password: CorrectHorseBatteryStaple
+        locale: en-US
+    expect:
+      status: 201
+  - name: login wrong password
+    request:
+      method: POST
+      path: /auth/login
+      json:
+        username: admin
+        password: WrongPassword123
+    expect:
+      status: 401

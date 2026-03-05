@@ -1,0 +1,10 @@
+id: P9-T2-ACCESS-002
+name: Access check invalid node
+request:
+  method: GET
+  url: /nodes/{{missing_node_id}}/access
+  headers:
+    Accept-Language: ko-KR
+    Authorization: Bearer {{access_token}}
+expect:
+  status: 404

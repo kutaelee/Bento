@@ -1,0 +1,37 @@
+.admin-security {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-security__section {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-security__section h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--nd-color-text);
+}
+
+.admin-security__section p {
+  margin: 0;
+  color: color-mix(in srgb, var(--nd-color-text) 72%, transparent);
+  font-size: 0.9rem;
+}
+
+.admin-security__panel {
+  border: 1px solid var(--nd-color-border-weak);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--nd-color-surface);
+}
+
+.admin-security__toggle-forbidden {
+  justify-self: start;
+  border: 1px solid var(--nd-color-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--nd-color-text);
+}

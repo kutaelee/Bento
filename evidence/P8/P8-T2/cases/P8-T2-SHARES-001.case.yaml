@@ -1,0 +1,5 @@
+# Evidence case placeholder for P8-T2 (public shares)
+# SSOT: openapi/openapi.yaml paths./s/{token}.get + paths./s/{token}/download.get
+# This repo uses bash-run evidence scripts as the executable spec.
+case_id: P8-T2-SHARES-001
+summary: Public share link access (metadata + download) with optional password

@@ -1,0 +1,229 @@
+{
+  "version": "1",
+  "routes": [
+    {
+      "path": "/files",
+      "states": [
+        "default",
+        "loading",
+        "empty",
+        "error"
+      ],
+      "seed": "visual-files-route-seed",
+      "baseline": {
+        "mode": "reference",
+        "screen": "design/stitch/ko-kr_final/pages/main_file_explorer/screen.png"
+      }
+    },
+    {
+      "path": "/files/:nodeId",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-files-node-seed",
+      "baseline": {
+        "mode": "reference",
+        "screen": "design/stitch/ko-kr_final/pages/main_file_explorer/screen.png"
+      }
+    },
+    {
+      "path": "/search",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-search-route-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#search"
+      }
+    },
+    {
+      "path": "/recent",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-recent-route-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#recent"
+      }
+    },
+    {
+      "path": "/favorites",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-favorites-route-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#favorites"
+      }
+    },
+    {
+      "path": "/shared",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-shared-route-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#shared"
+      }
+    },
+    {
+      "path": "/media",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-media-route-seed",
+      "baseline": {
+        "mode": "reference",
+        "screen": "design/stitch/ko-kr_final/pages/media_gallery_viewer/screen.png"
+      }
+    },
+    {
+      "path": "/trash",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-trash-route-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#trash"
+      }
+    },
+    {
+      "path": "/login",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-login-route-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#login"
+      }
+    },
+    {
+      "path": "/setup",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-setup-route-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#setup"
+      }
+    },
+    {
+      "path": "/invite/accept",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-invite-route-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#inviteaccept"
+      }
+    },
+    {
+      "path": "/admin",
+      "states": [
+        "default",
+        "forbidden"
+      ],
+      "seed": "visual-admin-route-seed",
+      "baseline": {
+        "mode": "reference",
+        "screen": "design/stitch/ko-kr_final/pages/admin_settings/screen.png"
+      }
+    },
+    {
+      "path": "/admin/users",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-admin-users-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#admin-users"
+      }
+    },
+    {
+      "path": "/admin/storage",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-admin-storage-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#admin-storage"
+      }
+    },
+    {
+      "path": "/admin/migration",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-admin-migration-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#admin-migration"
+      }
+    },
+    {
+      "path": "/admin/performance",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-admin-performance-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#admin-performance"
+      }
+    },
+    {
+      "path": "/admin/jobs",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-admin-jobs-seed",
+      "baseline": {
+        "mode": "reference",
+        "screen": "design/stitch/ko-kr_final/pages/jobs_and_system_status/screen.png"
+      }
+    },
+    {
+      "path": "/admin/audit",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-admin-audit-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#admin-audit"
+      }
+    },
+    {
+      "path": "/admin/security",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-admin-security-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#admin-security"
+      }
+    },
+    {
+      "path": "/admin/appearance",
+      "states": [
+        "default"
+      ],
+      "seed": "visual-admin-appearance-seed",
+      "baseline": {
+        "mode": "derived",
+        "derived": "design/stitch/ko-kr_final/inventory/_derived_checklist.md#admin-appearance"
+      }
+    }
+  ]
+}

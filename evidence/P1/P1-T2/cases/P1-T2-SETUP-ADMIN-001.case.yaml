@@ -1,0 +1,27 @@
+id: P1-T2-SETUP-ADMIN-001
+name: 최초 관리자 생성 201
+depends_on: []
+request:
+  method: POST
+  url: /setup/admin
+  headers:
+    Accept-Language: ko-KR
+    Content-Type: application/json
+  body:
+    username: admin
+    password: "admin1234!"
+    display_name: "Admin"
+    locale: ko-KR
+expect:
+  status: 201
+  assertions:
+    - type: jq
+      expr: '.user.username == "admin"'
+    - type: jq
+      expr: '.user.role == "ADMIN"'
+    - type: jq
+      expr: '.tokens.token_type == "Bearer"'
+    - type: jq
+      expr: '(.tokens.access_token | length) > 20'
+    - type: jq
+      expr: '(.tokens.refresh_token | length) > 20'

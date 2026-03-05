@@ -1,0 +1,16 @@
+id: P12-T2-SCAN-002
+name: orphan 파일 삭제 옵션 적용
+depends_on: [P12-T2-SCAN-001]
+request:
+  method: POST
+  url: /admin/storage/scan
+  headers:
+    Content-Type: application/json
+  body:
+    delete_orphan_files: true
+    delete_orphan_db_rows: false
+expect:
+  status: 202
+  assertions:
+    - type: jq
+      expr: '.type == "SCAN_CLEANUP"'

@@ -1,0 +1,20 @@
+id: P3-T1-VOLUME-VALIDATE-PATH-002
+name: validate-path valid writable directory returns 200
+depends_on:
+  - P3-T1-VOLUME-VALIDATE-PATH-001
+request:
+  method: POST
+  url: /admin/volumes/validate-path
+  headers:
+    Content-Type: application/json
+  body:
+    base_path: __DYNAMIC_TEMP_DIR__
+expect:
+  status: 200
+  assertions:
+    - type: jq
+      expr: '.ok == true'
+    - type: jq
+      expr: '.writable == true'
+    - type: jq
+      expr: '.free_bytes >= 0 and .total_bytes >= 0'

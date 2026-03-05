@@ -1,0 +1,11 @@
+id: P7-T3-TRASH-HARD-DELETE-001
+summary: Hard-delete a trashed node and decrement blob ref_count
+steps:
+  - POST /setup/admin
+  - POST /admin/volumes (create local volume)
+  - POST /uploads + PUT chunk + POST complete (create FILE node with blob)
+  - DELETE /nodes/{id} (move to trash)
+  - DELETE /trash/{id} (permanent delete)
+assertions:
+  - blob.ref_count decremented
+  - node removed from nodes table

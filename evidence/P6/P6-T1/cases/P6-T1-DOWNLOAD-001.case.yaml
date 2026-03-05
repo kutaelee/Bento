@@ -1,0 +1,15 @@
+id: P6-T1-DOWNLOAD-001
+name: Download supports Range 206 and 416
+depends_on: []
+request:
+  method: GET
+  url: /nodes/{node_id}/download
+  headers:
+    Accept-Language: en-US
+    Range: bytes=0-9
+expect:
+  status: 206
+  assertions:
+    - type: equals
+      expr: content-length
+      value: "10"

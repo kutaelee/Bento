@@ -1,0 +1,8 @@
+id: P2-T3-AUTH-LOGOUT-001
+name: auth logout invalidates refresh token
+method: POST
+path: /auth/logout
+headers:
+  authorization: "Bearer ${ACCESS_TOKEN}"
+expects:
+  status: 200

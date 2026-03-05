@@ -1,0 +1,15 @@
+id: P3-T2-VOLUMES-LIST-001
+name: List volumes includes created volume (admin)
+depends_on:
+  - P3-T2-VOLUMES-CREATE-001
+request:
+  method: GET
+  url: /admin/volumes
+  headers:
+    Accept-Language: en-US
+    Authorization: Bearer ${ADMIN_ACCESS_TOKEN}
+expect:
+  status: 200
+  assertions:
+    - type: jq
+      expr: '.items and (.items | type) == "array"'

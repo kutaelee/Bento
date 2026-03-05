@@ -1,0 +1,15 @@
+id: P7-T1-NODES-DELETE-001
+name: Delete node moves subtree to trash and appears in trash list
+depends_on: []
+request:
+  method: DELETE
+  url: /nodes/{node_id}
+  headers:
+    Accept-Language: en-US
+  auth: bearer
+expect:
+  status: 200
+  assertions:
+    - type: equals
+      expr: '$.ok'
+      value: true

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nimbus Drive Core Modals</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "surface-dark": "#192633",
+                        "surface-border": "#324d67",
+                        "text-secondary": "#92adc9",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "Noto Sans KR", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for better aesthetics in modals */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #324d67;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #4a6b8a;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col overflow-x-hidden">
+<!-- Header / Navigation Placeholder -->
+<header class="w-full h-16 border-b border-gray-200 dark:border-surface-border bg-white dark:bg-surface-dark flex items-center px-6 justify-between shrink-0 sticky top-0 z-50">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">cloud</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight">Nimbus Drive</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                KO
+            </div>
+</div>
+</header>
+<main class="flex-1 p-8 md:p-12 overflow-y-auto">
+<div class="max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+<!-- 1. New Folder Modal (새 폴더) -->
+<div class="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-surface-border shadow-xl overflow-hidden flex flex-col">
+<div class="p-6 border-b border-gray-100 dark:border-surface-border/50 flex justify-between items-center">
+<h3 class="text-xl font-bold leading-tight">새 폴더 (New Folder)</h3>
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-6 flex flex-col gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-medium text-text-secondary">폴더 이름</label>
+<div class="relative">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined">folder</span>
+<input class="w-full bg-background-light dark:bg-background-dark border border-gray-300 dark:border-surface-border rounded-lg pl-12 pr-4 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="폴더 이름을 입력하세요" value="새 폴더"/>
+</div>
+<p class="text-xs text-text-secondary pl-1">특수 문자는 사용할 수 없습니다.</p>
+</div>
+</div>
+<div class="p-4 bg-gray-50 dark:bg-surface-dark/50 border-t border-gray-100 dark:border-surface-border/50 flex justify-end gap-3">
+<button class="px-5 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-surface-border transition-colors font-medium text-sm">
+                        취소
+                    </button>
+<button class="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium text-sm shadow-lg shadow-primary/25 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">create_new_folder</span>
+                        만들기
+                    </button>
+</div>
+</div>
+<!-- 2. File Move/Copy with Collision (파일 이동/복사 - 충돌 처리) -->
+<div class="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-surface-border shadow-xl overflow-hidden flex flex-col">
+<div class="p-6 border-b border-gray-100 dark:border-surface-border/50 flex justify-between items-center bg-orange-500/5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-orange-500">warning</span>
+<h3 class="text-xl font-bold leading-tight">파일 충돌 (File Conflict)</h3>
+</div>
+</div>
+<div class="p-6 flex flex-col gap-4">
+<p class="text-slate-600 dark:text-slate-300 leading-relaxed">
+<span class="font-bold text-slate-900 dark:text-white">'2023_보고서.pdf'</span> 파일이 대상 폴더에 이미 존재합니다. 어떻게 처리하시겠습니까?
+                    </p>
+<div class="flex flex-col gap-3 mt-2">
+<!-- Option 1 -->
+<label class="flex items-start gap-4 p-4 rounded-lg border border-gray-200 dark:border-surface-border hover:border-primary/50 bg-background-light dark:bg-background-dark cursor-pointer transition-all group">
+<input checked="" class="mt-1 w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary dark:bg-surface-border dark:border-gray-600" name="collision" type="radio"/>
+<div class="flex flex-col gap-1">
+<span class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">두 파일 모두 유지</span>
+<span class="text-sm text-text-secondary">원본 파일 이름에 숫자를 붙여 저장합니다. (예: 2023_보고서 (1).pdf)</span>
+</div>
+</label>
+<!-- Option 2 -->
+<label class="flex items-start gap-4 p-4 rounded-lg border border-gray-200 dark:border-surface-border hover:border-primary/50 bg-background-light dark:bg-background-dark cursor-pointer transition-all group">
+<input class="mt-1 w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary dark:bg-surface-border dark:border-gray-600" name="collision" type="radio"/>
+<div class="flex flex-col gap-1">
+<span class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">덮어쓰기</span>
+<span class="text-sm text-text-secondary">기존 파일을 새 파일로 대체합니다. 이 작업은 되돌릴 수 없습니다.</span>
+</div>
+</label>
+</div>
+</div>
+<div class="p-4 bg-gray-50 dark:bg-surface-dark/50 border-t border-gray-100 dark:border-surface-border/50 flex justify-end gap-3">
+<button class="px-5 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-surface-border transition-colors font-medium text-sm">
+                        취소
+                    </button>
+<button class="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium text-sm shadow-lg shadow-primary/25 transition-all">
+                        확인
+                    </button>
+</div>
+</div>
+<!-- 3. Invite Users (사용자 초대) -->
+<div class="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-surface-border shadow-xl overflow-hidden flex flex-col lg:col-span-2">
+<div class="p-6 border-b border-gray-100 dark:border-surface-border/50 flex justify-between items-center">
+<div class="flex flex-col">
+<h3 class="text-xl font-bold leading-tight">사용자 초대 (Invite Users)</h3>
+<p class="text-sm text-text-secondary mt-1">프로젝트 폴더에 팀원을 초대하고 권한을 설정하세요.</p>
+</div>
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-6 flex flex-col gap-6">
+<!-- Email Input Area -->
+<div class="flex flex-col sm:flex-row gap-3">
+<div class="flex-1 relative">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary material-symbols-outlined">mail</span>
+<input class="w-full bg-background-light dark:bg-background-dark border border-gray-300 dark:border-surface-border rounded-lg pl-12 pr-32 py-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="이메일 주소 입력 (콤마로 구분)"/>
+<!-- Permission Select Dropdown (Absolute positioned inside input container for style) -->
+<div class="absolute right-2 top-1.5 bottom-1.5">
+<select class="h-full bg-white dark:bg-surface-dark border-none rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-0 cursor-pointer pl-3 pr-8 py-0">
+<option>뷰어</option>
+<option>편집자</option>
+<option>관리자</option>
+</select>
+</div>
+</div>
+<button class="px-6 py-3 rounded-lg bg-primary hover:bg-primary/90 text-white font-bold text-sm shadow-lg shadow-primary/25 transition-all whitespace-nowrap">
+                            초대 보내기
+                        </button>
+</div>
+<!-- Current Members List -->
+<div class="flex flex-col gap-3">
+<h4 class="text-sm font-bold text-text-secondary uppercase tracking-wider">현재 멤버</h4>
+<div class="divide-y divide-gray-100 dark:divide-surface-border/50 border border-gray-200 dark:border-surface-border rounded-lg bg-background-light dark:bg-background-dark overflow-hidden">
+<!-- Member Item 1 -->
+<div class="p-4 flex items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-primary flex items-center justify-center text-white font-bold" data-alt="Avatar with initials KS">KS</div>
+<div class="flex flex-col">
+<span class="font-medium text-slate-900 dark:text-white">김민수 (Kim Min-su)</span>
+<span class="text-xs text-text-secondary">minsu.kim@nimbus.com</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="px-2 py-1 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">소유자</span>
+</div>
+</div>
+<!-- Member Item 2 -->
+<div class="p-4 flex items-center justify-between gap-4 hover:bg-white dark:hover:bg-surface-dark/50 transition-colors">
+<div class="flex items-center gap-3">
+<img alt="Profile picture of a woman smiling" class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-surface-border" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCh0mPPWLL0dqPtPUaQmwBAPfYdWZKXsv411r-98J2mtQMaE0zZUiTHGyLioI5u9HFuC_YbDZHEE4RVhybDuMxTX3sZhaIhQK1EgCCRXmB27-x3zzkdcqsFAMn49TLYvUypKpd4J2386sFLdKc1EntZd1wUJSe34AWT82LjjfPYg5KdiGn_Ddmuf5oblNMX4UmQ6gh8nBFCz-UscXFXavGl0ppXqJn8Xq5vkGLpUhqol5DXzTyZY0xThoUbj486DfFAwMr5qEcOaNM"/>
+<div class="flex flex-col">
+<span class="font-medium text-slate-900 dark:text-white">이영희 (Lee Young-hee)</span>
+<span class="text-xs text-text-secondary">younghee.lee@partner.com</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<select class="bg-transparent border-none text-sm text-text-secondary focus:ring-0 cursor-pointer text-right">
+<option>편집자</option>
+<option>뷰어</option>
+<option>제거</option>
+</select>
+</div>
+</div>
+<!-- Member Item 3 -->
+<div class="p-4 flex items-center justify-between gap-4 hover:bg-white dark:hover:bg-surface-dark/50 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-surface-border flex items-center justify-center text-slate-500 font-bold" data-alt="Default avatar silhouette"><span class="material-symbols-outlined">person</span></div>
+<div class="flex flex-col">
+<span class="font-medium text-slate-900 dark:text-white">박준호 (Park Jun-ho)</span>
+<span class="text-xs text-text-secondary">junho.park@nimbus.com</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<select class="bg-transparent border-none text-sm text-text-secondary focus:ring-0 cursor-pointer text-right">
+<option>뷰어</option>
+<option>편집자</option>
+<option>제거</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2">
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="rounded border-gray-300 dark:border-surface-border text-primary focus:ring-primary bg-transparent w-5 h-5" type="checkbox"/>
+<span class="text-sm text-text-secondary group-hover:text-primary transition-colors">초대된 사용자에게 이메일 알림 보내기</span>
+</label>
+<button class="text-primary text-sm font-medium hover:underline flex items-center gap-1">
+<span class="material-symbols-outlined text-base">link</span>
+                            공유 링크 복사
+                        </button>
+</div>
+</div>
+</div>
+<!-- 4. Path Verification Result (경로 검증 결과) -->
+<div class="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-surface-border shadow-xl overflow-hidden flex flex-col lg:col-span-2">
+<div class="p-6 border-b border-gray-100 dark:border-surface-border/50 flex justify-between items-center">
+<h3 class="text-xl font-bold leading-tight">경로 이동 결과 (Move Results)</h3>
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-0">
+<!-- Status Header -->
+<div class="px-6 py-4 bg-red-50 dark:bg-red-900/10 border-b border-red-100 dark:border-red-900/20 flex items-start gap-3">
+<span class="material-symbols-outlined text-red-500 mt-0.5">error</span>
+<div class="flex flex-col gap-1">
+<span class="font-bold text-red-700 dark:text-red-400">일부 파일 이동 실패</span>
+<span class="text-sm text-red-600/80 dark:text-red-400/70">총 5개 파일 중 2개 파일을 이동할 수 없습니다. 권한을 확인해 주세요.</span>
+</div>
+</div>
+<!-- File List -->
+<div class="max-h-[240px] overflow-y-auto">
+<table class="w-full text-sm text-left">
+<thead class="text-xs text-text-secondary uppercase bg-gray-50 dark:bg-background-dark sticky top-0">
+<tr>
+<th class="px-6 py-3 font-medium" scope="col">파일명</th>
+<th class="px-6 py-3 font-medium" scope="col">원래 위치</th>
+<th class="px-6 py-3 font-medium" scope="col">상태</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-100 dark:divide-surface-border/30">
+<!-- Success Item -->
+<tr class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-border/10">
+<td class="px-6 py-3 font-medium text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-blue-500 text-lg">description</span>
+                                        2023_Q3_매출.xlsx
+                                    </td>
+<td class="px-6 py-3 text-text-secondary">/재무팀/공유/2023</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                            성공
+                                        </span>
+</td>
+</tr>
+<!-- Error Item -->
+<tr class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-border/10">
+<td class="px-6 py-3 font-medium text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-red-400 text-lg">lock</span>
+                                        인사고과_초안.docx
+                                    </td>
+<td class="px-6 py-3 text-text-secondary">/인사팀/대외비</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+<span class="material-symbols-outlined text-[14px]">block</span>
+                                            권한 없음
+                                        </span>
+</td>
+</tr>
+<!-- Success Item -->
+<tr class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-border/10">
+<td class="px-6 py-3 font-medium text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-purple-500 text-lg">image</span>
+                                        워크샵_사진_01.jpg
+                                    </td>
+<td class="px-6 py-3 text-text-secondary">/사진/2023_워크샵</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                            성공
+                                        </span>
+</td>
+</tr>
+<!-- Error Item -->
+<tr class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-border/10">
+<td class="px-6 py-3 font-medium text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-gray-400 text-lg">folder_off</span>
+                                        시스템_설정.conf
+                                    </td>
+<td class="px-6 py-3 text-text-secondary">/System/Config</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+<span class="material-symbols-outlined text-[14px]">cancel</span>
+                                            경로 없음
+                                        </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="p-4 bg-gray-50 dark:bg-surface-dark/50 border-t border-gray-100 dark:border-surface-border/50 flex justify-end gap-3">
+<button class="px-5 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-surface-border transition-colors font-medium text-sm">
+                        실패 항목 재시도
+                    </button>
+<button class="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium text-sm shadow-lg shadow-primary/25 transition-all">
+                        닫기
+                    </button>
+</div>
+</div>
+</div>
+</main>
+</body></html>

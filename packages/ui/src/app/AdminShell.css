@@ -1,0 +1,77 @@
+.admin-shell {
+  display: flex;
+  min-height: 100%;
+  min-width: 0;
+  background: var(--nd-bg-page, #f8fafc);
+}
+
+.admin-shell__sidebar {
+  width: 260px;
+  background: var(--nd-color-surface, #fff);
+  border-right: 1px solid var(--nd-color-divider, #e5e7eb);
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-shell__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.admin-shell__body {
+  background: var(--nd-color-surface, #fff);
+  border: 1px solid var(--nd-color-divider, #e5e7eb);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.admin-shell__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-shell__title {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--nd-color-subtle, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.admin-shell__subtitle {
+  font-size: 12px;
+  color: var(--nd-color-subtle, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.admin-shell__nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-shell__link {
+  text-decoration: none;
+  color: var(--nd-color-text, #111827);
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 2px;
+}
+
+.admin-shell__link:hover {
+  background: var(--nd-color-hover, #eef2ff);
+}
+
+.admin-shell__link--active {
+  background: var(--nd-color-focus, #eef2ff);
+  color: var(--nd-color-accent, #4338ca);
+  font-weight: 600;
+}

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nimbus Drive UI Kit - Korean Localization</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "Noto Sans KR", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem", 
+                        "lg": "0.5rem", 
+                        "xl": "0.75rem", 
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d455d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #425f7c;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col antialiased selection:bg-primary selection:text-white">
+<!-- Top Navigation -->
+<nav class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-[#111a22]/80 backdrop-blur-md sticky top-0 z-50">
+<div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex justify-between h-16 items-center">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[20px]">cloud</span>
+</div>
+<span class="text-lg font-bold tracking-tight">Nimbus Drive</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider ml-1">UI Kit v2.4</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex items-center text-sm font-medium text-slate-500 dark:text-slate-400 gap-6">
+<a class="hover:text-primary transition-colors" href="#">가이드라인</a>
+<a class="text-primary" href="#">컴포넌트</a>
+<a class="hover:text-primary transition-colors" href="#">아이콘</a>
+<a class="hover:text-primary transition-colors" href="#">리소스</a>
+</div>
+<div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
+<button class="flex items-center justify-center w-9 h-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">light_mode</span>
+</button>
+<button class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+                        로그인
+                    </button>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-grow">
+<div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<!-- Hero Section -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-20 items-center">
+<div class="lg:col-span-7 flex flex-col gap-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 w-fit">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+</span>
+<span class="text-xs font-bold uppercase tracking-wide">업데이트 완료: 2023.10.14</span>
+</div>
+<h1 class="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter leading-[1.1] text-slate-900 dark:text-white">
+                        Nimbus Drive <br/>
+<span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">디자인 시스템</span>
+</h1>
+<p class="text-lg text-slate-600 dark:text-slate-400 max-w-xl leading-relaxed">
+                        한국어(ko-KR) 현지화가 완료된 UI 키트 및 디자인 토큰 가이드입니다. Pretendard 폰트 기반의 타이포그래피와 접근성을 고려한 색상 팔레트를 포함합니다.
+                    </p>
+<div class="flex flex-wrap gap-3 pt-2">
+<button class="h-12 px-6 rounded-lg bg-primary hover:bg-blue-600 text-white font-bold flex items-center gap-2 transition-all shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined">download</span>
+<span>피그마 파일 다운로드</span>
+</button>
+<button class="h-12 px-6 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined">code</span>
+<span>개발 문서 보기</span>
+</button>
+</div>
+</div>
+<div class="lg:col-span-5 relative">
+<div class="absolute -inset-4 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-2xl blur-2xl opacity-50 dark:opacity-40"></div>
+<div class="relative bg-white dark:bg-[#1e2936] rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
+<div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-red-500"></div>
+<div class="w-3 h-3 rounded-full bg-amber-500"></div>
+<div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+</div>
+<div class="p-6 space-y-4">
+<div class="flex items-center justify-between">
+<div class="h-4 w-32 bg-slate-200 dark:bg-slate-600 rounded"></div>
+<div class="h-8 w-24 bg-primary rounded-lg"></div>
+</div>
+<div class="space-y-3">
+<div class="flex items-center gap-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+<div class="w-10 h-10 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">folder</span>
+</div>
+<div class="flex-1 space-y-2">
+<div class="h-3 w-24 bg-slate-200 dark:bg-slate-600 rounded"></div>
+<div class="h-2 w-16 bg-slate-100 dark:bg-slate-700 rounded"></div>
+</div>
+<span class="px-2 py-1 rounded text-xs bg-green-500/10 text-green-500 font-medium">동기화 중</span>
+</div>
+<div class="flex items-center gap-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+<div class="w-10 h-10 rounded bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500">
+<span class="material-symbols-outlined">image</span>
+</div>
+<div class="flex-1 space-y-2">
+<div class="h-3 w-32 bg-slate-200 dark:bg-slate-600 rounded"></div>
+<div class="h-2 w-20 bg-slate-100 dark:bg-slate-700 rounded"></div>
+</div>
+<span class="px-2 py-1 rounded text-xs bg-blue-500/10 text-blue-500 font-medium">공유됨</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="h-px w-full bg-slate-200 dark:bg-slate-800 mb-16"></div>
+<!-- Typography Section -->
+<section class="mb-20">
+<div class="flex items-end justify-between mb-8">
+<div>
+<h2 class="text-2xl font-bold mb-2">타이포그래피 (Typography)</h2>
+<p class="text-slate-500 dark:text-slate-400">기본 폰트는 Pretendard를 사용하며, 가독성과 계층 구조를 명확히 합니다.</p>
+</div>
+<span class="text-xs font-mono text-slate-400 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded">font-family: Pretendard</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Headings -->
+<div class="space-y-6 p-8 bg-white dark:bg-[#16202a] rounded-xl border border-slate-200 dark:border-slate-800">
+<div class="border-b border-slate-100 dark:border-slate-700/50 pb-2 mb-4 text-xs font-mono text-slate-400 uppercase">Headings</div>
+<div class="flex flex-col gap-6">
+<div>
+<span class="text-4xl font-black tracking-tight block mb-1">디스플레이 제목</span>
+<span class="text-xs text-slate-400 font-mono">Display Bold 36px</span>
+</div>
+<div>
+<span class="text-2xl font-bold tracking-tight block mb-1">섹션 제목 H1</span>
+<span class="text-xs text-slate-400 font-mono">Heading 1 Bold 24px</span>
+</div>
+<div>
+<span class="text-xl font-bold tracking-tight block mb-1">카드 제목 H2</span>
+<span class="text-xs text-slate-400 font-mono">Heading 2 Bold 20px</span>
+</div>
+<div>
+<span class="text-lg font-semibold tracking-tight block mb-1">소제목 H3</span>
+<span class="text-xs text-slate-400 font-mono">Heading 3 Semibold 18px</span>
+</div>
+</div>
+</div>
+<!-- Body Text -->
+<div class="space-y-6 p-8 bg-white dark:bg-[#16202a] rounded-xl border border-slate-200 dark:border-slate-800">
+<div class="border-b border-slate-100 dark:border-slate-700/50 pb-2 mb-4 text-xs font-mono text-slate-400 uppercase">Body &amp; Detail</div>
+<div class="flex flex-col gap-6">
+<div>
+<p class="text-base font-normal leading-relaxed mb-1">본문 텍스트입니다. 사용자 인터페이스의 일반적인 설명이나 긴 문단에 사용됩니다. 가독성을 위해 적절한 줄 간격을 유지합니다.</p>
+<span class="text-xs text-slate-400 font-mono">Body Regular 16px</span>
+</div>
+<div>
+<p class="text-sm font-medium leading-relaxed mb-1">보조 텍스트입니다. 목록 아이템이나 캡션 설명에 자주 사용됩니다.</p>
+<span class="text-xs text-slate-400 font-mono">Body Small Medium 14px</span>
+</div>
+<div>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">메타데이터 또는 라벨 텍스트</p>
+<span class="text-xs text-slate-400 font-mono">Caption Medium 12px</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Color Palette -->
+<section class="mb-20">
+<h2 class="text-2xl font-bold mb-2">색상 팔레트 (Color Palette)</h2>
+<p class="text-slate-500 dark:text-slate-400 mb-8">다크 모드를 기본으로 설계된 의미론적 색상 체계입니다.</p>
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+<!-- Primary -->
+<div class="space-y-2">
+<div class="h-24 rounded-lg bg-primary shadow-lg shadow-primary/20 flex items-end p-3">
+<span class="text-white text-xs font-mono font-bold">Primary</span>
+</div>
+<div class="text-xs text-slate-500 dark:text-slate-400 font-mono">#137fec</div>
+</div>
+<!-- Success -->
+<div class="space-y-2">
+<div class="h-24 rounded-lg bg-emerald-500 shadow-lg shadow-emerald-500/20 flex items-end p-3">
+<span class="text-white text-xs font-mono font-bold">Success</span>
+</div>
+<div class="text-xs text-slate-500 dark:text-slate-400 font-mono">#10b981</div>
+</div>
+<!-- Warning -->
+<div class="space-y-2">
+<div class="h-24 rounded-lg bg-amber-500 shadow-lg shadow-amber-500/20 flex items-end p-3">
+<span class="text-white text-xs font-mono font-bold">Warning</span>
+</div>
+<div class="text-xs text-slate-500 dark:text-slate-400 font-mono">#f59e0b</div>
+</div>
+<!-- Danger -->
+<div class="space-y-2">
+<div class="h-24 rounded-lg bg-rose-500 shadow-lg shadow-rose-500/20 flex items-end p-3">
+<span class="text-white text-xs font-mono font-bold">Danger</span>
+</div>
+<div class="text-xs text-slate-500 dark:text-slate-400 font-mono">#f43f5e</div>
+</div>
+<!-- Surface Dark -->
+<div class="space-y-2">
+<div class="h-24 rounded-lg bg-[#1e2936] border border-slate-700 flex items-end p-3">
+<span class="text-white text-xs font-mono font-bold">Surface</span>
+</div>
+<div class="text-xs text-slate-500 dark:text-slate-400 font-mono">#1e2936</div>
+</div>
+<!-- Background Dark -->
+<div class="space-y-2">
+<div class="h-24 rounded-lg bg-[#101922] border border-slate-800 flex items-end p-3">
+<span class="text-white text-xs font-mono font-bold">Background</span>
+</div>
+<div class="text-xs text-slate-500 dark:text-slate-400 font-mono">#101922</div>
+</div>
+</div>
+</section>
+<!-- Components Grid -->
+<section>
+<h2 class="text-2xl font-bold mb-2">컴포넌트 라이브러리 (Components)</h2>
+<p class="text-slate-500 dark:text-slate-400 mb-8">자주 사용되는 UI 요소들의 모음입니다.</p>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Buttons Card -->
+<div class="bg-white dark:bg-[#16202a] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+<div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#1c2835]/50 flex justify-between items-center">
+<h3 class="font-bold">버튼 (Buttons)</h3>
+<span class="text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 font-mono">Interactive</span>
+</div>
+<div class="p-8 flex flex-col gap-6 items-start">
+<div class="flex flex-wrap gap-4 items-center">
+<button class="bg-primary hover:bg-blue-600 text-white font-bold py-2.5 px-5 rounded-lg transition-colors shadow-sm">
+                                    기본 버튼
+                                </button>
+<button class="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold py-2.5 px-5 rounded-lg transition-colors">
+                                    보조 버튼
+                                </button>
+<button class="text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold py-2.5 px-5 rounded-lg transition-colors">
+                                    텍스트 버튼
+                                </button>
+</div>
+<div class="flex flex-wrap gap-4 items-center">
+<button class="bg-primary hover:bg-blue-600 text-white font-bold py-2.5 px-4 rounded-lg transition-colors shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>추가하기</span>
+</button>
+<button class="bg-white dark:bg-[#1e2936] border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 font-bold py-2.5 px-4 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">share</span>
+<span>공유</span>
+</button>
+<button class="opacity-50 cursor-not-allowed bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold py-2.5 px-5 rounded-lg">
+                                    비활성화
+                                </button>
+</div>
+<div class="flex flex-wrap gap-4 items-center">
+<button class="p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+<button class="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Input Fields Card -->
+<div class="bg-white dark:bg-[#16202a] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+<div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#1c2835]/50 flex justify-between items-center">
+<h3 class="font-bold">입력 필드 (Inputs)</h3>
+<span class="text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 font-mono">Forms</span>
+</div>
+<div class="p-8 flex flex-col gap-6">
+<div class="space-y-1.5">
+<label class="text-sm font-medium text-slate-700 dark:text-slate-300">이메일 주소</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">mail</span>
+</div>
+<input class="w-full bg-white dark:bg-[#111a22] border border-slate-300 dark:border-slate-700 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:text-white" placeholder="user@nimbus.com" type="email"/>
+</div>
+</div>
+<div class="space-y-1.5">
+<div class="flex justify-between">
+<label class="text-sm font-medium text-slate-700 dark:text-slate-300">비밀번호</label>
+<a class="text-xs text-primary hover:underline" href="#">비밀번호 찾기</a>
+</div>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">lock</span>
+</div>
+<input class="w-full bg-white dark:bg-[#111a22] border border-slate-300 dark:border-slate-700 rounded-lg py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400 dark:text-white" type="password" value="password123"/>
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-slate-400 hover:text-slate-600">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</div>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-1">8자 이상, 특수문자 포함</p>
+</div>
+<!-- Checkbox & Toggle -->
+<div class="flex items-center justify-between pt-2">
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="w-5 h-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#111a22] flex items-center justify-center group-hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-primary text-[16px] opacity-0 group-hover:opacity-100">check</span>
+</div>
+<span class="text-sm text-slate-600 dark:text-slate-300">로그인 유지</span>
+</label>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+<span class="ml-3 text-sm font-medium text-slate-900 dark:text-slate-300">알림 켜기</span>
+</label>
+</div>
+</div>
+</div>
+<!-- Status Badges Card -->
+<div class="bg-white dark:bg-[#16202a] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+<div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#1c2835]/50 flex justify-between items-center">
+<h3 class="font-bold">상태 배지 (Status Badges)</h3>
+<span class="text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 font-mono">Feedback</span>
+</div>
+<div class="p-8">
+<div class="grid grid-cols-2 gap-6">
+<div class="space-y-4">
+<div class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">기본 스타일</div>
+<div class="flex flex-col items-start gap-3">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                            공유됨
+                                        </span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            완료
+                                        </span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+<span class="material-symbols-outlined text-[14px]">sync</span>
+                                            동기화 중
+                                        </span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+                                            읽기 전용
+                                        </span>
+</div>
+</div>
+<div class="space-y-4">
+<div class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Large 스타일</div>
+<div class="flex flex-col items-start gap-3">
+<span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-rose-500/10 text-rose-500 border border-rose-500/20">
+<span class="material-symbols-outlined text-[16px]">error</span>
+                                            오류 발생
+                                        </span>
+<span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+<span class="material-symbols-outlined text-[16px]">star</span>
+                                            중요 파일
+                                        </span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- List Items Card -->
+<div class="bg-white dark:bg-[#16202a] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+<div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#1c2835]/50 flex justify-between items-center">
+<h3 class="font-bold">리스트 아이템 (List Items)</h3>
+<span class="text-xs px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 font-mono">Layout</span>
+</div>
+<div class="p-4">
+<div class="flex flex-col">
+<!-- Item 1 -->
+<div class="group flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+<div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined">folder</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold text-slate-900 dark:text-white truncate">디자인 프로젝트 2024</p>
+<p class="text-xs text-slate-500 truncate">업데이트: 2시간 전 • 12MB</p>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex -space-x-2 mr-2">
+<img alt="User Avatar" class="w-6 h-6 rounded-full border-2 border-white dark:border-[#16202a]" data-alt="User Avatar Kim Min" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIAwNVQN0oW421g6F2FyxDjaM1zRbVibGQhGpia7Xt-Ihvye45k7FDt67XSfuJ0EHfWLaE24mtMEXPtEKlHEmLwUJE5EGRZOtjPKbxzFxzIGiDenK3qu5c4c2VSwmL7ZMOyVlycpf6B7BVYp_Caxzh6SXpjp284zMZqCol06PsVLiQ5fI3Wf1mfWIMzD3FXB00EuAPCeo3DOGglJy5DKb-iXe5J2yV1CSsA6P7S5pQA0jknX_j_U8twvpNLQ3_BPHMtPGbwbnZABQ"/>
+<img alt="User Avatar Lee Su" class="w-6 h-6 rounded-full border-2 border-white dark:border-[#16202a]" data-alt="User Avatar Lee Su" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAf3ql4addy9oew2okUe96c3H7poj4yQUOsHGG_8eSTgzequVxIUGqtX63OssoIDU_RTa5gNmEqVdqXx5IIW0PUMDfINm9WtcILeLYxW1NHftHclJhym8bockOwIhNajxD0apx5n-30G67AhsuAbL4PhJtFWHI4orBgsPPXH9OyT98yWvkhsB6XZwKI7PH9cTxKXvrEvwfciXOyeY6PSqyZxT1qzYiAD7OshQrltkKIh-wMD0uQ8VhMnVTMhiQ-N_pULUofFuZcfeA"/>
+</div>
+<button class="text-slate-400 hover:text-primary opacity-0 group-hover:opacity-100 transition-all">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="group flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+<div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold text-slate-900 dark:text-white truncate">Q4 마케팅 리포트.pdf</p>
+<p class="text-xs text-slate-500 truncate">작성자: 김민수 • 2.4MB</p>
+</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                                        읽기 전용
+                                    </span>
+</div>
+<!-- Item 3 -->
+<div class="group flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-[#111a22] transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+<div class="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
+<span class="material-symbols-outlined">image</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold text-slate-900 dark:text-white truncate">워크샵 사진 모음.zip</p>
+<p class="text-xs text-slate-500 truncate">업데이트: 어제 • 156MB</p>
+</div>
+<button class="text-slate-400 hover:text-primary opacity-0 group-hover:opacity-100 transition-all">
+<span class="material-symbols-outlined">download</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer -->
+<footer class="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111a22] py-12">
+<div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[14px]">cloud</span>
+</div>
+<span class="text-sm font-bold text-slate-700 dark:text-slate-200">Nimbus Drive System</span>
+</div>
+<div class="text-sm text-slate-500 text-center md:text-right">
+<p>© 2024 Nimbus Inc. All rights reserved.</p>
+<p class="mt-1">Designed for Korean Localization (ko-KR)</p>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

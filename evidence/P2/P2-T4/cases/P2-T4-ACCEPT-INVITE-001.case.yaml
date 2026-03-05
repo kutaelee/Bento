@@ -1,0 +1,27 @@
+id: P2-T4-ACCEPT-INVITE-001
+name: invite 수락 -> user 생성 + tokens 발급 (201)
+depends_on: [P2-T4-INVITE-001]
+request:
+  method: POST
+  url: /auth/accept-invite
+  headers:
+    Accept-Language: ko-KR
+    Content-Type: application/json
+  body:
+    token: "${INVITE_TOKEN}"
+    username: "invite_user_01"
+    password: "invite_user_01_pw!"
+    display_name: "Invite User 01"
+expect:
+  status: 201
+  assertions:
+    - type: jq
+      expr: '.user.username == "invite_user_01"'
+    - type: jq
+      expr: '.user.role == "USER"'
+    - type: jq
+      expr: '.tokens.token_type == "Bearer"'
+    - type: jq
+      expr: '(.tokens.access_token | length) > 20'
+    - type: jq
+      expr: '(.tokens.refresh_token | length) > 20'

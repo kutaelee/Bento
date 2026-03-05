@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: nimbus_drive
+      POSTGRES_USER: nimbus
+      POSTGRES_PASSWORD: nimbus
+    ports:
+      - "15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  pgdata:

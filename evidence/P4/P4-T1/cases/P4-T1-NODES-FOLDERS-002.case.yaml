@@ -1,0 +1,18 @@
+id: P4-T1-NODES-FOLDERS-002
+name: Create folder (duplicate name under same parent => 409)
+depends_on:
+  - P4-T1-NODES-FOLDERS-001
+request:
+  method: POST
+  url: /nodes/folders
+  headers:
+    Accept-Language: en-US
+    Content-Type: application/json
+  body:
+    parent_id: 00000000-0000-0000-0000-000000000001
+    name: Docs
+expect:
+  status: 409
+  assertions:
+    - type: jq
+      expr: '(.error.code | length) > 0'

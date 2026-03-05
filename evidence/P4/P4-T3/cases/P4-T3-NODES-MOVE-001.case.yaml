@@ -1,0 +1,6 @@
+case_id: P4-T3-NODES-MOVE-001
+operation: POST /nodes/{node_id}/move
+assertions:
+  - status 200
+  - moved node parent_id is destination folder id
+  - response status 200

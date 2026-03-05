@@ -1,0 +1,14 @@
+id: P7-T2-TRASH-RESTORE-001
+name: Restore node from trash
+depends_on: []
+request:
+  method: POST
+  url: /trash/{node_id}/restore
+  headers:
+    Accept-Language: en-US
+    Authorization: Bearer ${ACCESS_TOKEN}
+expect:
+  status: 200
+  assertions:
+    - type: jq
+      expr: '.id == "${NODE_ID}"'

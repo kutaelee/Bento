@@ -1,0 +1,15 @@
+id: P3-T1-VOLUME-VALIDATE-PATH-001
+name: validate-path invalid base_path returns 400
+depends_on: []
+request:
+  method: POST
+  url: /admin/volumes/validate-path
+  headers:
+    Content-Type: application/json
+  body:
+    base_path: /this/path/should/not/exist
+expect:
+  status: 400
+  assertions:
+    - type: jq
+      expr: '.error.code and .error.message'

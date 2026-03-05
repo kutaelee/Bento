@@ -1,0 +1,6 @@
+case_id: P4-T3-NODES-COPY-001
+operation: POST /nodes/{node_id}/copy
+assertions:
+  - status 201
+  - copy node exists under destination parent
+  - copied id != source id

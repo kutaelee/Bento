@@ -1,0 +1,18 @@
+id: P1-T2-SETUP-ADMIN-002
+name: 최초 관리자 생성은 1회만 (이미 유저가 있으면 409)
+depends_on:
+  - P1-T2-SETUP-ADMIN-001
+request:
+  method: POST
+  url: /setup/admin
+  headers:
+    Accept-Language: ko-KR
+    Content-Type: application/json
+  body:
+    username: admin2
+    password: "admin1234!"
+expect:
+  status: 409
+  assertions:
+    - type: jq
+      expr: '.error.code == "SETUP_ALREADY_COMPLETED"'

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nimbus Drive - 작업 큐 및 시스템 상태</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Header -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-10 py-3 bg-white dark:bg-[#111a22]">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-slate-900 dark:text-white">
+<div class="size-8 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined !text-[32px]">cloud_queue</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">Nimbus Drive</h2>
+</div>
+<label class="flex flex-col min-w-40 !h-10 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full bg-slate-100 dark:bg-[#233648]">
+<div class="text-slate-500 dark:text-[#92adc9] flex border-none items-center justify-center pl-4 rounded-l-lg border-r-0">
+<span class="material-symbols-outlined" style="font-size: 24px;">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-slate-500 dark:placeholder:text-[#92adc9] px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal" placeholder="Search" value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-1 justify-end gap-8">
+<div class="hidden lg:flex items-center gap-9">
+<a class="text-slate-900 dark:text-white text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors" href="#">대시보드</a>
+<a class="text-slate-900 dark:text-white text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors" href="#">파일</a>
+<a class="text-slate-900 dark:text-white text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors" href="#">작업</a>
+<a class="text-slate-900 dark:text-white text-sm font-medium leading-normal hover:text-primary dark:hover:text-primary transition-colors" href="#">설정</a>
+</div>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary hover:bg-primary/90 transition-colors text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">새 작업</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border border-slate-200 dark:border-slate-700" data-alt="User profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCzQ9aZAKnHibV_6RRW1ZIUmWlYQ5JSJtVZCbL8Sakzeeqffgl-Zi3BCIaoQhe_uohJEjYzRjZJ1s0zcnsOSAb1BOyhjEpXfyeLl7ilIXbAiXYqBBfUYrkLg49PyxaP53Nn0Pm-vTv_GurLCs-VWd0mh70HJSMY2w0US5Hu6MCeyzrbz6WPtOJ8yU_ebhYcHuAr2k3jesUeVx364BNEu76xfB0xkFHE30MzpJUjMqa6hjNtD30Xv_8KEGT75VPOONDUZAdHtwW9jQ8");'></div>
+</div>
+</header>
+<main class="flex flex-1 justify-center py-5 px-4 md:px-10 lg:px-40">
+<div class="layout-content-container flex flex-col max-w-[1200px] flex-1 gap-8">
+<!-- Title Section -->
+<div class="flex flex-col gap-2">
+<h1 class="text-slate-900 dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">시스템 상태 및 백그라운드 작업</h1>
+<p class="text-slate-500 dark:text-[#92adc9] text-base font-normal leading-normal">현재 시스템 리소스 사용량과 작업 대기열을 실시간으로 모니터링하세요.</p>
+</div>
+<!-- Job Queue Status Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="flex flex-col gap-2 rounded-xl p-6 border border-slate-200 dark:border-[#324d67] bg-white dark:bg-[#1a2632] shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 dark:text-[#92adc9]">pending</span>
+<p class="text-slate-500 dark:text-[#92adc9] text-base font-medium leading-normal">대기 중</p>
+</div>
+<div class="flex items-end justify-between">
+<p class="text-slate-900 dark:text-white tracking-light text-3xl font-bold leading-tight">12</p>
+<span class="text-emerald-500 text-sm font-medium leading-normal bg-emerald-500/10 px-2 py-1 rounded">+2%</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 border border-slate-200 dark:border-[#324d67] bg-white dark:bg-[#1a2632] shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary animate-spin">sync</span>
+<p class="text-slate-500 dark:text-[#92adc9] text-base font-medium leading-normal">실행 중</p>
+</div>
+<div class="flex items-end justify-between">
+<p class="text-slate-900 dark:text-white tracking-light text-3xl font-bold leading-tight">3</p>
+<span class="text-slate-400 dark:text-[#92adc9] text-sm font-medium leading-normal bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">0%</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 border border-slate-200 dark:border-[#324d67] bg-white dark:bg-[#1a2632] shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-emerald-500">check_circle</span>
+<p class="text-slate-500 dark:text-[#92adc9] text-base font-medium leading-normal">완료됨</p>
+</div>
+<div class="flex items-end justify-between">
+<p class="text-slate-900 dark:text-white tracking-light text-3xl font-bold leading-tight">1,245</p>
+<span class="text-emerald-500 text-sm font-medium leading-normal bg-emerald-500/10 px-2 py-1 rounded">+15%</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 border border-slate-200 dark:border-[#324d67] bg-white dark:bg-[#1a2632] shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-red-500">error</span>
+<p class="text-slate-500 dark:text-[#92adc9] text-base font-medium leading-normal">실패함</p>
+</div>
+<div class="flex items-end justify-between">
+<p class="text-slate-900 dark:text-white tracking-light text-3xl font-bold leading-tight">2</p>
+<span class="text-red-500 text-sm font-medium leading-normal bg-red-500/10 px-2 py-1 rounded">-5%</span>
+</div>
+</div>
+</div>
+<!-- System Resources Charts -->
+<div class="flex flex-col gap-6">
+<h2 class="text-slate-900 dark:text-white tracking-light text-2xl font-bold leading-tight pt-4">시스템 리소스 상태</h2>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- CPU Usage -->
+<div class="flex flex-col gap-4 p-6 rounded-xl border border-slate-200 dark:border-[#324d67] bg-white dark:bg-[#1a2632] shadow-sm">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-slate-500 dark:text-[#92adc9] text-sm font-medium uppercase tracking-wider">CPU 사용량</p>
+<div class="flex items-baseline gap-2 mt-1">
+<p class="text-slate-900 dark:text-white text-3xl font-bold">45%</p>
+<span class="text-emerald-500 text-sm font-medium">-5% (지난 1시간)</span>
+</div>
+</div>
+<div class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400">memory</span>
+</div>
+</div>
+<div class="h-40 w-full mt-4 relative">
+<!-- Simplified SVG Chart Representation -->
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 50">
+<defs>
+<lineargradient id="cpuGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#137fec" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#137fec" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,50 L0,30 Q10,20 20,35 T40,25 T60,40 T80,15 T100,30 L100,50 Z" fill="url(#cpuGradient)"></path>
+<path d="M0,30 Q10,20 20,35 T40,25 T60,40 T80,15 T100,30" fill="none" stroke="#137fec" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+</svg>
+</div>
+</div>
+<!-- Memory Usage -->
+<div class="flex flex-col gap-4 p-6 rounded-xl border border-slate-200 dark:border-[#324d67] bg-white dark:bg-[#1a2632] shadow-sm">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-slate-500 dark:text-[#92adc9] text-sm font-medium uppercase tracking-wider">메모리 사용량</p>
+<div class="flex items-baseline gap-2 mt-1">
+<p class="text-slate-900 dark:text-white text-3xl font-bold">2.4GB</p>
+<span class="text-emerald-500 text-sm font-medium">+2% (지난 1시간)</span>
+</div>
+</div>
+<div class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400">view_column</span>
+</div>
+</div>
+<div class="h-40 w-full mt-4 relative">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 50">
+<defs>
+<lineargradient id="memGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#10b981" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#10b981" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,50 L0,40 Q25,38 50,35 T100,30 L100,50 Z" fill="url(#memGradient)"></path>
+<path d="M0,40 Q25,38 50,35 T100,30" fill="none" stroke="#10b981" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+</svg>
+</div>
+</div>
+<!-- Disk I/O -->
+<div class="flex flex-col gap-4 p-6 rounded-xl border border-slate-200 dark:border-[#324d67] bg-white dark:bg-[#1a2632] shadow-sm">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-slate-500 dark:text-[#92adc9] text-sm font-medium uppercase tracking-wider">디스크 I/O</p>
+<div class="flex items-baseline gap-2 mt-1">
+<p class="text-slate-900 dark:text-white text-3xl font-bold">120MB/s</p>
+<span class="text-slate-400 dark:text-slate-500 text-sm font-medium">0% (안정적)</span>
+</div>
+</div>
+<div class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400">storage</span>
+</div>
+</div>
+<div class="h-40 w-full mt-4 flex items-end justify-between gap-2 px-2">
+<!-- Bar Chart Simulation -->
+<div class="w-full bg-slate-100 dark:bg-slate-700 rounded-t-sm h-[40%] relative group">
+<div class="absolute bottom-0 w-full bg-indigo-500 h-[60%] rounded-t-sm opacity-80 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="w-full bg-slate-100 dark:bg-slate-700 rounded-t-sm h-[65%] relative group">
+<div class="absolute bottom-0 w-full bg-indigo-500 h-[80%] rounded-t-sm opacity-80 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="w-full bg-slate-100 dark:bg-slate-700 rounded-t-sm h-[50%] relative group">
+<div class="absolute bottom-0 w-full bg-indigo-500 h-[40%] rounded-t-sm opacity-80 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="w-full bg-slate-100 dark:bg-slate-700 rounded-t-sm h-[80%] relative group">
+<div class="absolute bottom-0 w-full bg-indigo-500 h-[70%] rounded-t-sm opacity-80 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="w-full bg-slate-100 dark:bg-slate-700 rounded-t-sm h-[60%] relative group">
+<div class="absolute bottom-0 w-full bg-indigo-500 h-[50%] rounded-t-sm opacity-80 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="w-full bg-slate-100 dark:bg-slate-700 rounded-t-sm h-[45%] relative group">
+<div class="absolute bottom-0 w-full bg-indigo-500 h-[30%] rounded-t-sm opacity-80 group-hover:opacity-100 transition-opacity"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Activity Log Section -->
+<div class="flex flex-col gap-4 mt-6">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<h2 class="text-slate-900 dark:text-white tracking-light text-2xl font-bold leading-tight">작업 활동 로그</h2>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#233648] text-slate-700 dark:text-white text-sm font-medium hover:bg-slate-50 dark:hover:bg-[#2c435a] transition-colors">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+                                    이벤트 필터
+                                </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-medium transition-colors">
+<span class="material-symbols-outlined text-[20px]">download</span>
+                                    로그 내보내기
+                                </button>
+</div>
+</div>
+<!-- Log Table -->
+<div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-[#324d67] bg-white dark:bg-[#1a2632] shadow-sm">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50 dark:bg-[#233648] border-b border-slate-200 dark:border-[#324d67]">
+<th class="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#92adc9]">작업 ID</th>
+<th class="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#92adc9]">이벤트 유형</th>
+<th class="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#92adc9]">상태</th>
+<th class="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#92adc9]">시간</th>
+<th class="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#92adc9]">기간</th>
+<th class="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#92adc9] text-right">작업</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-200 dark:divide-[#324d67] text-sm text-slate-700 dark:text-slate-200">
+<tr class="hover:bg-slate-50 dark:hover:bg-[#233648]/50 transition-colors group">
+<td class="py-4 px-6 font-mono text-xs">#JOB-8291</td>
+<td class="py-4 px-6 font-medium">데이터베이스 백업</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-500">
+<span class="size-1.5 rounded-full bg-emerald-500"></span>
+                                                성공
+                                            </span>
+</td>
+<td class="py-4 px-6 text-slate-500 dark:text-[#92adc9]">2023-10-24 14:30:05</td>
+<td class="py-4 px-6 text-slate-500 dark:text-[#92adc9]">2m 15s</td>
+<td class="py-4 px-6 text-right">
+<button class="text-slate-400 hover:text-primary dark:text-[#92adc9] dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-[#233648]/50 transition-colors group">
+<td class="py-4 px-6 font-mono text-xs">#JOB-8292</td>
+<td class="py-4 px-6 font-medium">이미지 최적화</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-500/10 text-blue-800 dark:text-blue-500">
+<span class="size-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                                실행 중
+                                            </span>
+</td>
+<td class="py-4 px-6 text-slate-500 dark:text-[#92adc9]">2023-10-24 14:32:10</td>
+<td class="py-4 px-6 text-slate-500 dark:text-[#92adc9]">--</td>
+<td class="py-4 px-6 text-right">
+<button class="text-slate-400 hover:text-primary dark:text-[#92adc9] dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-[#233648]/50 transition-colors group">
+<td class="py-4 px-6 font-mono text-xs">#JOB-8290</td>
+<td class="py-4 px-6 font-medium">이메일 발송 (뉴스레터)</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-500/10 text-red-800 dark:text-red-500">
+<span class="size-1.5 rounded-full bg-red-500"></span>
+                                                실패
+                                            </span>
+</td>
+<td class="py-4 px-6 text-slate-500 dark:text-[#92adc9]">2023-10-24 14:28:45</td>
+<td class="py-4 px-6 text-slate-500 dark:text-[#92adc9]">5s</td>
+<td class="py-4 px-6 text-right">
+<button class="text-slate-400 hover:text-primary dark:text-[#92adc9] dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-[#233648]/50 transition-colors group">
+<td class="py-4 px-6 font-mono text-xs">#JOB-8289</td>
+<td class="py-4 px-6 font-medium">캐시 갱신</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-500">
+<span class="size-1.5 rounded-full bg-emerald-500"></span>
+                                                성공
+                                            </span>
+</td>
+<td class="py-4 px-6 text-slate-500 dark:text-[#92adc9]">2023-10-24 14:25:00</td>
+<td class="py-4 px-6 text-slate-500 dark:text-[#92adc9]">450ms</td>
+<td class="py-4 px-6 text-right">
+<button class="text-slate-400 hover:text-primary dark:text-[#92adc9] dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-[#233648]/50 transition-colors group">
+<td class="py-4 px-6 font-mono text-xs">#JOB-8288</td>
+<td class="py-4 px-6 font-medium">사용자 통계 집계</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+<span class="size-1.5 rounded-full bg-slate-400"></span>
+                                                대기 중
+                                            </span>
+</td>
+<td class="py-4 px-6 text-slate-500 dark:text-[#92adc9]">-</td>
+<td class="py-4 px-6 text-slate-500 dark:text-[#92adc9]">-</td>
+<td class="py-4 px-6 text-right">
+<button class="text-slate-400 hover:text-primary dark:text-[#92adc9] dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="px-6 py-4 border-t border-slate-200 dark:border-[#324d67] flex items-center justify-between bg-slate-50 dark:bg-[#233648]/50">
+<p class="text-sm text-slate-500 dark:text-[#92adc9]">
+                                    전체 <span class="font-medium text-slate-900 dark:text-white">128</span>개 항목 중 <span class="font-medium text-slate-900 dark:text-white">1</span> - <span class="font-medium text-slate-900 dark:text-white">5</span> 표시
+                                </p>
+<div class="flex gap-2">
+<button class="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-[#92adc9] disabled:opacity-50">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-[#92adc9]">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

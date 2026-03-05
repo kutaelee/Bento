@@ -1,0 +1,4 @@
+case_id: P4-T1-NODES-FOLDER-DUPLICATE-409-001
+operation: POST /nodes/folders
+assertions:
+  - when duplicate name exists under same parent: status 409 and code NODE_NAME_CONFLICT

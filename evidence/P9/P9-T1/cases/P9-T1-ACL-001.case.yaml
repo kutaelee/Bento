@@ -1,0 +1,20 @@
+id: P9-T1-ACL-001
+name: Set and fetch ACL entry
+request:
+  method: PUT
+  url: /nodes/{{node_id}}/acl
+  headers:
+    Accept-Language: ko-KR
+    Content-Type: application/json
+    Authorization: Bearer {{access_token}}
+  body:
+    entries:
+      - principal_type: USER
+        principal_id: viewer
+        effect: ALLOW
+        permissions:
+          - READ
+          - WRITE
+        inheritable: true
+expect:
+  status: 200

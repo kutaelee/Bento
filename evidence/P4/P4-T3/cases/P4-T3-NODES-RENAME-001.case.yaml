@@ -1,0 +1,5 @@
+case_id: P4-T3-NODES-RENAME-001
+operation: POST /nodes/{node_id}/rename
+assertions:
+  - status 200
+  - node name changed to requested value

@@ -1,0 +1,17 @@
+id: P2-T2-AUTH-REFRESH-002
+name: Refresh token reuse should fail (rotation)
+depends_on:
+  - P2-T2-AUTH-REFRESH-001
+request:
+  method: POST
+  url: /auth/refresh
+  headers:
+    Accept-Language: en-US
+    Content-Type: application/json
+  body:
+    refresh_token: "${OLD_REFRESH_TOKEN}"
+expect:
+  status: 401
+  assertions:
+    - type: jq
+      expr: '.error.code and .error.message'

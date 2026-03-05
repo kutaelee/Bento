@@ -1,0 +1,13 @@
+id: P0-T1-OPENAPI-001
+name: OpenAPI 게이트 - health 호출
+depends_on: []
+request:
+  method: GET
+  url: /health
+  headers:
+    Accept-Language: ko-KR
+expect:
+  status: 200
+  assertions:
+    - type: jq
+      expr: '.ok == true'

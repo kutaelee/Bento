@@ -1,0 +1,30 @@
+.share-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.share-dialog__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.share-dialog__checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #111827;
+}
+
+.share-dialog__link-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share-dialog__error {
+  color: #b91c1c;
+  font-size: 12px;
+}

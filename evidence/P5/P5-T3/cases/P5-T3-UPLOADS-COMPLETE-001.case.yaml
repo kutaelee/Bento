@@ -1,0 +1,3 @@
+# Placeholder case file for traceability (Playbook SSOT).
+# SSOT: openapi/openapi.yaml paths./uploads/{upload_id}/complete.post
+id: P5-T3-UPLOADS-COMPLETE-001

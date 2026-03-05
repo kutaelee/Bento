@@ -1,0 +1,13 @@
+id: P1-T1-SETUP-STATUS-001
+name: 최초 설정 여부 조회 (DB empty)
+depends_on: []
+request:
+  method: GET
+  url: /setup/status
+  headers:
+    Accept-Language: ko-KR
+expect:
+  status: 200
+  assertions:
+    - type: jq
+      expr: '.setup_required == true'

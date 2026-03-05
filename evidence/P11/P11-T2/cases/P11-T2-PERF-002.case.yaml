@@ -1,0 +1,13 @@
+id: P11-T2-PERF-002
+name: Get performance state (under load)
+request:
+  method: GET
+  url: /system/performance
+  headers:
+    Accept-Language: en-US
+    Authorization: Bearer {{access_token}}
+expect:
+  status: 200
+  assertions:
+    - type: jq
+      expr: '.allowed.bg_worker_concurrency <= .limits.bg_worker_concurrency_max'

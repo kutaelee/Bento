@@ -1,0 +1,22 @@
+id: P2-T2-AUTH-REFRESH-001
+name: Refresh tokens success (rotating refresh token)
+depends_on: []
+request:
+  method: POST
+  url: /auth/refresh
+  headers:
+    Accept-Language: en-US
+    Content-Type: application/json
+  body:
+    refresh_token: "${REFRESH_TOKEN_FROM_LOGIN}"
+expect:
+  status: 200
+  assertions:
+    - type: jq
+      expr: '.token_type == "Bearer"'
+    - type: jq
+      expr: '(.access_token | length) > 20'
+    - type: jq
+      expr: '(.refresh_token | length) > 20'
+    - type: jq
+      expr: '.expires_in_seconds >= 60'

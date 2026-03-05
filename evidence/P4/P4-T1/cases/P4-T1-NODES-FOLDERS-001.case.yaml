@@ -1,0 +1,21 @@
+id: P4-T1-NODES-FOLDERS-001
+name: Create folder (happy path)
+depends_on: []
+request:
+  method: POST
+  url: /nodes/folders
+  headers:
+    Accept-Language: en-US
+    Content-Type: application/json
+  body:
+    parent_id: 00000000-0000-0000-0000-000000000001
+    name: Docs
+expect:
+  status: 201
+  assertions:
+    - type: jq
+      expr: '.type == "FOLDER"'
+    - type: jq
+      expr: '.parent_id == "00000000-0000-0000-0000-000000000001"'
+    - type: jq
+      expr: '(.id | length) > 10'

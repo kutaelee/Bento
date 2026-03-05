@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nimbus Drive - Language Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111a22", 
+                        "surface-dark": "#1c2936",
+                        "surface-light": "#ffffff",
+                        "text-main": "#f0f4f8",
+                        "text-muted": "#92adc9",
+                        "border-dark": "#233648",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    backgroundImage: {
+                         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom radio button style since tailwind forms plugin sometimes needs help with custom SVGs in bg */
+        .custom-radio:checked {
+            background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='rgb(19,127,236)' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='8' cy='8' r='3'/%3e%3c/svg%3e");
+            border-color: #137fec;
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-text-main overflow-x-hidden min-h-screen flex flex-col">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-border-dark px-10 py-3 bg-white dark:bg-background-dark sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-slate-900 dark:text-white">
+<div class="size-8 text-primary">
+<svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor" fill-opacity="0.5"></path>
+<path clip-rule="evenodd" d="M10.4485 13.8519C10.4749 13.9271 10.6203 14.246 11.379 14.7361C12.298 15.3298 13.7492 15.9145 15.6717 16.3735C18.0007 16.9296 20.8712 17.2655 24 17.2655C27.1288 17.2655 29.9993 16.9296 32.3283 16.3735C34.2508 15.9145 35.702 15.3298 36.621 14.7361C37.3796 14.246 37.5251 13.9271 37.5515 13.8519C37.5287 13.7876 37.4333 13.5973 37.0635 13.2931C36.5266 12.8516 35.6288 12.3647 34.343 11.9175C31.79 11.0295 28.1333 10.4437 24 10.4437C19.8667 10.4437 16.2099 11.0295 13.657 11.9175C12.3712 12.3647 11.4734 12.8516 10.9365 13.2931C10.5667 13.5973 10.4713 13.7876 10.4485 13.8519ZM37.5563 18.7877C36.3176 19.3925 34.8502 19.8839 33.2571 20.2642C30.5836 20.9025 27.3973 21.2655 24 21.2655C20.6027 21.2655 17.4164 20.9025 14.7429 20.2642C13.1498 19.8839 11.6824 19.3925 10.4436 18.7877V34.1275C10.4515 34.1545 10.5427 34.4867 11.379 35.027C12.298 35.6207 13.7492 36.2054 15.6717 36.6644C18.0007 37.2205 20.8712 37.5564 24 37.5564C27.1288 37.5564 29.9993 37.2205 32.3283 36.6644C34.2508 36.2054 35.702 35.6207 36.621 35.027C37.4573 34.4867 37.5485 34.1546 37.5563 34.1275V18.7877ZM41.5563 13.8546V34.1455C41.5563 36.1078 40.158 37.5042 38.7915 38.3869C37.3498 39.3182 35.4192 40.0389 33.2571 40.5551C30.5836 41.1934 27.3973 41.5564 24 41.5564C20.6027 41.5564 17.4164 41.1934 14.7429 40.5551C12.5808 40.0389 10.6502 39.3182 9.20848 38.3869C7.84205 37.5042 6.44365 36.1078 6.44365 34.1455L6.44365 13.8546C6.44365 12.2684 7.37223 11.0454 8.39581 10.2036C9.43325 9.3505 10.8137 8.67141 12.343 8.13948C15.4203 7.06909 19.5418 6.44366 24 6.44366C28.4582 6.44366 32.5797 7.06909 35.657 8.13948C37.1863 8.67141 38.5667 9.3505 39.6042 10.2036C40.6278 11.0454 41.5563 12.2684 41.5563 13.8546Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Nimbus Drive</h2>
+</div>
+<label class="flex flex-col min-w-40 !h-10 max-w-64 hidden md:flex">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full border border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-dark focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all">
+<div class="text-slate-400 dark:text-text-muted flex items-center justify-center pl-4 rounded-l-lg">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg bg-transparent text-slate-900 dark:text-white focus:outline-0 border-none h-full placeholder:text-slate-400 dark:placeholder:text-text-muted px-4 pl-2 text-sm font-normal leading-normal" placeholder="Search" value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<div class="hidden lg:flex items-center gap-6">
+<a class="text-slate-600 dark:text-text-muted hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">My Files</a>
+<a class="text-slate-600 dark:text-text-muted hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Shared</a>
+<a class="text-slate-600 dark:text-text-muted hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Photos</a>
+<a class="text-slate-900 dark:text-white text-sm font-medium leading-normal" href="#">Settings</a>
+</div>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-primary hover:bg-primary/90 transition-colors text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Upload</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-9 border border-slate-200 dark:border-border-dark" data-alt="User profile picture showing a smiling woman" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBWyesJ08jjR3DFlp_Zq2ov_2uN0qxhevAhOoSNqm3rXgVhtUPkO_dD6dS0Pfgw8ybM7ZlSgcfG7XdEvtXXiEFD4Kh1AT4iSde4f8vR3XeU5C4xgNHzv1iS3LdLV3V9JuHJf7-4IfE4wwDYGQaQVh8Un2rhcN5_I9F3XgCEI2yxkczqQ72EkvtuZGHuCxYx6Ou6t2WTcO0OWv-XyG-nIo8s7Nd4-CLErq642Pth-bZcVdNa4Gg6gl7wfaN8VWHFcMEp3c2WByNWGOk");'></div>
+</div>
+</header>
+<!-- Main Content Layout -->
+<div class="flex flex-1 justify-center py-8 px-4 sm:px-6 lg:px-8">
+<div class="max-w-[1200px] w-full flex flex-col md:flex-row gap-8">
+<!-- Sidebar Navigation -->
+<nav class="w-full md:w-64 flex-shrink-0 flex flex-col gap-6">
+<div class="flex items-center gap-3 px-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-12 border-2 border-primary/20" data-alt="User avatar large" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDBGpRHIDlc_Efgz-QcbvsTH_vV--10DwxKp2Ryy6cHhstZpE4WMKP1tSPFS4cNsfvAp5dDh8XX7ZtWr9BBa9h-YhXdWZTCgaoXZztuaLTYnURepWTH7yi9H8NvgKdCXlLmeVZNerUIr9Bz1sZ7zTf7gSigkFScu8xiAPBoeOVAcELzkdUGngipbUhwAD6aMnUAAivMEYkpauvPQpUTryBRIHXT7R44X0gw_HaonbYbOJTk8Kh_1nEEY9tE937v8e0vR6sL61_YnC0");'></div>
+<div class="flex flex-col">
+<h1 class="text-slate-900 dark:text-white text-base font-bold leading-normal">Jane Doe</h1>
+<p class="text-slate-500 dark:text-text-muted text-xs font-normal">Premium Plan</p>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-text-muted hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">settings</span>
+<span class="text-sm font-medium">General</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-text-muted hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">lock</span>
+<span class="text-sm font-medium">Security</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-text-muted hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">notifications</span>
+<span class="text-sm font-medium">Notifications</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary dark:text-white dark:bg-surface-dark border-l-4 border-primary shadow-sm" href="#">
+<span class="material-symbols-outlined text-[20px] text-primary">language</span>
+<span class="text-sm font-bold">Language &amp; Appearance</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-text-muted hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">storage</span>
+<span class="text-sm font-medium">Storage</span>
+</a>
+</div>
+<div class="mt-auto pt-6 border-t border-slate-200 dark:border-border-dark">
+<div class="bg-gradient-to-br from-primary/20 to-transparent p-4 rounded-xl border border-primary/10">
+<div class="flex items-center gap-2 mb-2 text-primary">
+<span class="material-symbols-outlined">cloud_done</span>
+<span class="text-xs font-bold uppercase tracking-wider">Storage Status</span>
+</div>
+<div class="w-full bg-slate-200 dark:bg-border-dark rounded-full h-1.5 mb-2 overflow-hidden">
+<div class="bg-primary h-1.5 rounded-full" style="width: 75%"></div>
+</div>
+<p class="text-xs text-slate-500 dark:text-text-muted">75 GB of 100 GB used</p>
+</div>
+</div>
+</nav>
+<!-- Main Panel -->
+<main class="flex-1 bg-white dark:bg-background-dark rounded-2xl md:border border-slate-200 dark:border-border-dark md:p-8">
+<header class="mb-8">
+<h2 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">Language &amp; Appearance</h2>
+<p class="text-slate-500 dark:text-text-muted text-base">Customize your interface language, date formats, and display preferences.</p>
+</header>
+<!-- Language Section -->
+<section class="mb-10">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white">Language Preference</h3>
+<span class="px-2 py-1 rounded bg-slate-100 dark:bg-surface-dark text-xs font-medium text-slate-500 dark:text-text-muted border border-slate-200 dark:border-border-dark">Auto-saved</span>
+</div>
+<div class="grid grid-cols-1 gap-3">
+<!-- Active Option -->
+<label class="relative flex items-center gap-4 rounded-xl border-2 border-primary bg-primary/5 p-4 cursor-pointer transition-all shadow-sm">
+<div class="flex-1">
+<p class="text-slate-900 dark:text-white text-base font-semibold">English (en-US)</p>
+<p class="text-primary text-sm font-medium mt-0.5">Current selection</p>
+</div>
+<div class="bg-primary/10 p-2 rounded-full">
+<input checked="" class="custom-radio h-5 w-5 border-2 border-primary text-primary focus:ring-offset-0 focus:ring-0 cursor-pointer" name="language_pref" type="radio"/>
+</div>
+</label>
+<!-- Inactive Options -->
+<label class="group relative flex items-center gap-4 rounded-xl border border-slate-200 dark:border-border-dark hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-surface-dark p-4 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-[#1f2d3b]">
+<div class="flex-1">
+<p class="text-slate-700 dark:text-slate-300 text-base font-medium group-hover:text-slate-900 dark:group-hover:text-white">Korean (한국어)</p>
+</div>
+<input class="custom-radio h-5 w-5 border-2 border-slate-300 dark:border-slate-600 bg-transparent text-transparent focus:ring-offset-0 focus:ring-0 cursor-pointer" name="language_pref" type="radio"/>
+</label>
+<label class="group relative flex items-center gap-4 rounded-xl border border-slate-200 dark:border-border-dark hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-surface-dark p-4 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-[#1f2d3b]">
+<div class="flex-1">
+<p class="text-slate-700 dark:text-slate-300 text-base font-medium group-hover:text-slate-900 dark:group-hover:text-white">Japanese (日本語)</p>
+</div>
+<input class="custom-radio h-5 w-5 border-2 border-slate-300 dark:border-slate-600 bg-transparent text-transparent focus:ring-offset-0 focus:ring-0 cursor-pointer" name="language_pref" type="radio"/>
+</label>
+<label class="group relative flex items-center gap-4 rounded-xl border border-slate-200 dark:border-border-dark hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-surface-dark p-4 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-[#1f2d3b]">
+<div class="flex-1">
+<p class="text-slate-700 dark:text-slate-300 text-base font-medium group-hover:text-slate-900 dark:group-hover:text-white">Spanish (Español)</p>
+</div>
+<input class="custom-radio h-5 w-5 border-2 border-slate-300 dark:border-slate-600 bg-transparent text-transparent focus:ring-offset-0 focus:ring-0 cursor-pointer" name="language_pref" type="radio"/>
+</label>
+</div>
+</section>
+<hr class="border-slate-200 dark:border-border-dark mb-10"/>
+<!-- Appearance Section -->
+<section>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Appearance Theme</h3>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<!-- Light Mode Option -->
+<label class="cursor-pointer group">
+<div class="aspect-video rounded-lg border-2 border-slate-200 dark:border-border-dark bg-slate-100 dark:bg-surface-dark mb-3 overflow-hidden relative group-hover:border-primary/50 transition-colors">
+<div class="absolute inset-x-4 top-4 bottom-0 bg-white shadow-lg rounded-t-md flex flex-col p-2 gap-2 opacity-80">
+<div class="h-2 w-1/3 bg-slate-200 rounded-full"></div>
+<div class="h-2 w-1/2 bg-slate-100 rounded-full"></div>
+<div class="h-20 bg-slate-50 rounded mt-1 border border-slate-100"></div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<input class="custom-radio h-4 w-4 border-slate-300 dark:border-slate-600 text-primary focus:ring-0" name="theme_pref" type="radio"/>
+<span class="text-sm font-medium text-slate-700 dark:text-slate-300">Light</span>
+</div>
+</label>
+<!-- Dark Mode Option -->
+<label class="cursor-pointer group">
+<div class="aspect-video rounded-lg border-2 border-primary bg-slate-900 mb-3 overflow-hidden relative">
+<div class="absolute inset-x-4 top-4 bottom-0 bg-[#1c2936] shadow-lg rounded-t-md flex flex-col p-2 gap-2 border border-[#2d3f50]">
+<div class="h-2 w-1/3 bg-[#2d3f50] rounded-full"></div>
+<div class="h-2 w-1/2 bg-[#233240] rounded-full"></div>
+<div class="h-20 bg-[#111a22] rounded mt-1 border border-[#1f2d3b]"></div>
+</div>
+<div class="absolute top-2 right-2 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded">ACTIVE</div>
+</div>
+<div class="flex items-center gap-2">
+<input checked="" class="custom-radio h-4 w-4 border-slate-300 dark:border-slate-600 text-primary focus:ring-0" name="theme_pref" type="radio"/>
+<span class="text-sm font-medium text-slate-900 dark:text-white">Dark</span>
+</div>
+</label>
+<!-- System Option -->
+<label class="cursor-pointer group">
+<div class="aspect-video rounded-lg border-2 border-slate-200 dark:border-border-dark bg-gradient-to-br from-slate-100 to-slate-900 mb-3 overflow-hidden relative group-hover:border-primary/50 transition-colors">
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-slate-400 drop-shadow-md">settings_brightness</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<input class="custom-radio h-4 w-4 border-slate-300 dark:border-slate-600 text-primary focus:ring-0" name="theme_pref" type="radio"/>
+<span class="text-sm font-medium text-slate-700 dark:text-slate-300">System</span>
+</div>
+</label>
+</div>
+</section>
+<div class="mt-12 flex justify-end gap-3">
+<button class="px-5 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-text-muted hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors">Cancel</button>
+<button class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-all shadow-md shadow-primary/20">Save Preferences</button>
+</div>
+</main>
+</div>
+</div>
+</body></html>

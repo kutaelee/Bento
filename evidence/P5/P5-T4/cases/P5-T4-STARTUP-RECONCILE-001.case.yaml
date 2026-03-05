@@ -1,0 +1,10 @@
+id: P5-T4-STARTUP-RECONCILE-001
+name: Startup reconciler cleans stuck/expired upload sessions
+request:
+  method: INTERNAL
+  url: startup_reconciler
+expect:
+  status: 200
+  assertions:
+    - type: equals
+      expr: "startup_reconciler"

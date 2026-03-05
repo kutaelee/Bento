@@ -1,0 +1,13 @@
+id: P3-T3-SYSTEM-MODE-PATCH-001
+name: Set system mode read-only
+request:
+  method: PATCH
+  path: /admin/system-mode
+  auth: bearer
+  json:
+    read_only: true
+    reason: maintenance
+expect:
+  status: 200
+  json:
+    read_only: true

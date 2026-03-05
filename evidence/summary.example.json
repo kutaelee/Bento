@@ -1,0 +1,17 @@
+{
+  "pass": true,
+  "result": "PASS",
+  "scope": "ui_fast",
+  "task": "example",
+  "summaries": [
+    {
+      "path": "evidence/P0/P0-T1/summary.json",
+      "summary": {
+        "taskId": "P0-T1",
+        "pass": true,
+        "result": "PASS",
+        "summary": "example only (no runtime artifacts)"
+      }
+    }
+  ]
+}

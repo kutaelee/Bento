@@ -1,0 +1,14 @@
+id: P12-T1-MIGRATION-001
+name: Start migration job
+request:
+  method: POST
+  url: /admin/migrations
+  headers:
+    Content-Type: application/json
+expect:
+  status: 202
+  assertions:
+    - type: jq
+      expr: '.type == "MIGRATION"'
+    - type: jq
+      expr: '.status == "QUEUED" or .status == "RUNNING"'

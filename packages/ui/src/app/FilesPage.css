@@ -1,0 +1,119 @@
+.files-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nd-space-4);
+  padding: var(--nd-space-6);
+  font-family: var(--nd-font-family-display);
+}
+
+.files-view__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nd-space-2);
+}
+
+.files-view__header-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--nd-space-4);
+}
+
+.files-view__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: color-mix(in srgb, #000 85%, transparent);
+}
+
+.dark .files-view__title {
+  color: color-mix(in srgb, #fff 88%, transparent);
+}
+
+.files-view__meta {
+  margin: 0.25rem 0 0;
+  font-size: var(--nd-font-size-xs);
+  color: color-mix(in srgb, #000 55%, transparent);
+}
+
+.dark .files-view__meta {
+  color: color-mix(in srgb, #fff 60%, transparent);
+}
+
+.files-view__toolbar {
+  display: inline-flex;
+  gap: var(--nd-space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.files-view__toolbar-item {
+  font-size: var(--nd-font-size-xs);
+  color: color-mix(in srgb, #000 55%, transparent);
+}
+
+.dark .files-view__toolbar-item {
+  color: color-mix(in srgb, #fff 60%, transparent);
+}
+
+.files-view__table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nd-space-3);
+}
+
+.files-view__footer {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.files-view__load-more {
+  border-radius: var(--nd-radius-lg);
+  border: 1px solid color-mix(in srgb, #000 14%, transparent);
+  padding: 0.5rem 0.75rem;
+  background: var(--nd-color-surface-current);
+  font-size: var(--nd-font-size-sm);
+  font-family: var(--nd-font-family-display);
+  cursor: pointer;
+}
+
+.files-view__load-more:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.files-view__action-group {
+  display: inline-flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.files-view__action-button {
+  border-radius: var(--nd-radius-base);
+  border: 1px solid color-mix(in srgb, #000 12%, transparent);
+  background: var(--nd-color-surface-current);
+  padding: 0.35rem 0.6rem;
+  font-size: var(--nd-font-size-xs);
+  font-family: var(--nd-font-family-display);
+  cursor: pointer;
+}
+
+.files-view__action-button--danger {
+  border-color: color-mix(in srgb, var(--nd-color-danger) 30%, transparent);
+  background: color-mix(in srgb, var(--nd-color-danger) 12%, transparent);
+  color: var(--nd-color-danger);
+}
+
+.files-view__action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.files-view__name {
+  font-weight: 600;
+  color: color-mix(in srgb, #000 80%, transparent);
+}
+
+.dark .files-view__name {
+  color: color-mix(in srgb, #fff 85%, transparent);
+}

@@ -1,0 +1,6 @@
+case_id: P4-T2-NODE-CHILDREN-001
+operation: GET /nodes/{node_id}/children
+assertions:
+  - status 200
+  - items length <= limit
+  - next_cursor is string when more items exist

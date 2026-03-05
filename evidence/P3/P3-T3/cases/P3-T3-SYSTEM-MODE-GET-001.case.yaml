@@ -1,0 +1,10 @@
+id: P3-T3-SYSTEM-MODE-GET-001
+name: Get system mode
+request:
+  method: GET
+  path: /admin/system-mode
+  auth: bearer
+expect:
+  status: 200
+  json:
+    read_only: false

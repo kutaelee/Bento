@@ -1,0 +1,17 @@
+id: P8-T1-SHARE-LINKS-001
+name: Create share link
+request:
+  method: POST
+  url: /nodes/{{node_id}}/share-links
+  headers:
+    Accept-Language: ko-KR
+    Content-Type: application/json
+  body:
+    expires_in_seconds: 604800
+    password: "sharepass"
+    permission: READ
+expect:
+  status: 201
+  assertions:
+    - type: jq
+      expr: '.token | length > 10'

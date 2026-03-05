@@ -1,0 +1,9 @@
+id: P13-T0-UI-HARNESS-001
+name: UI evidence harness self-test
+request:
+  command: "bash scripts/run_ui_evidence.sh --self-test"
+expect:
+  status: 0
+  assertions:
+    - type: regex
+      expr: 'result=PASS'

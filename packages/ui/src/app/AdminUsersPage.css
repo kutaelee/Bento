@@ -1,0 +1,30 @@
+.admin-users {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-users__panel {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-users__tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-users__states {
+  display: none;
+}
+
+.admin-users__dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-users__dialog-error {
+  color: #b91c1c;
+  font-size: 13px;
+}

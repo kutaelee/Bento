@@ -1,0 +1,13 @@
+id: P9-T2-ACCESS-001
+name: Access check for owner/admin
+request:
+  method: GET
+  url: /nodes/{{node_id}}/access
+  headers:
+    Accept-Language: ko-KR
+    Authorization: Bearer {{access_token}}
+expect:
+  status: 200
+  assertions:
+    - type: jq
+      expr: '.allowed | length == 4'

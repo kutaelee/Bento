@@ -1,0 +1,5028 @@
+openapi: 3.1.0
+info:
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  title: Nimbus Drive (Self-Hosted NAS) API
+  version: 1.0.0
+  description: 'Self-hosted NAS for 1–5 users. Contracts are SSOT. Default locale:
+    ko-KR; optional en-US.'
+servers:
+- url: https://api.nimbus-drive.com
+  description: Production API
+- url: http://localhost:8080
+  description: Local dev
+tags:
+- name: System
+- name: Setup
+- name: Auth
+- name: Users
+- name: Storage
+- name: Nodes
+- name: Uploads
+- name: Blobs
+- name: Shares
+- name: ACL
+- name: Jobs
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      schema:
+        type: string
+        default: ko-KR
+        enum:
+        - ko-KR
+        - en-US
+      description: Localization for error messages. Default ko-KR; supports en-US.
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+      description: Optional idempotency key for POST operations. Strongly recommended
+        for uploads and admin actions.
+  schemas:
+    UUID:
+      type: string
+      format: uuid
+    ISODateTime:
+      type: string
+      format: date-time
+    Locale:
+      type: string
+      enum:
+      - ko-KR
+      - en-US
+      default: ko-KR
+    ErrorResponse:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+            request_id:
+              type: string
+    SuccessResponse:
+      type: object
+      required:
+      - ok
+      properties:
+        ok:
+          type: boolean
+          const: true
+    UserRole:
+      type: string
+      enum:
+      - ADMIN
+      - USER
+    User:
+      type: object
+      required:
+      - id
+      - username
+      - role
+      - locale
+      - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+          pattern: ^[a-zA-Z0-9_.-]+$
+        display_name:
+          type: string
+          maxLength: 64
+        role:
+          $ref: '#/components/schemas/UserRole'
+        locale:
+          $ref: '#/components/schemas/Locale'
+        created_at:
+          $ref: '#/components/schemas/ISODateTime'
+        last_login_at:
+          $ref: '#/components/schemas/ISODateTime'
+    AuthTokens:
+      type: object
+      required:
+      - access_token
+      - refresh_token
+      - token_type
+      - expires_in_seconds
+      properties:
+        token_type:
+          type: string
+          const: Bearer
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in_seconds:
+          type: integer
+          minimum: 60
+    SetupStatus:
+      type: object
+      required:
+      - setup_required
+      properties:
+        setup_required:
+          type: boolean
+    SystemMode:
+      type: object
+      required:
+      - read_only
+      properties:
+        read_only:
+          type: boolean
+          default: false
+        reason:
+          type: string
+        updated_at:
+          $ref: '#/components/schemas/ISODateTime'
+    Capabilities:
+      type: object
+      required:
+      - cpu
+      - memory
+      - disk
+      - cgroup
+      properties:
+        cpu:
+          type: object
+          required:
+          - cores_logical
+          properties:
+            cores_logical:
+              type: integer
+              minimum: 1
+            cores_physical:
+              type: integer
+              minimum: 1
+            model:
+              type: string
+        memory:
+          type: object
+          required:
+          - total_bytes
+          properties:
+            total_bytes:
+              type: integer
+              minimum: 134217728
+            cgroup_limit_bytes:
+              type: integer
+              minimum: 0
+        disk:
+          type: object
+          required:
+          - data_path
+          properties:
+            data_path:
+              type: string
+            fs_type:
+              type: string
+        cgroup:
+          type: object
+          properties:
+            version:
+              type: string
+              enum:
+              - v1
+              - v2
+              - none
+            cpu_quota:
+              type: number
+    Volume:
+      type: object
+      required:
+      - id
+      - name
+      - base_path
+      - is_active
+      - status
+      - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          maxLength: 64
+        base_path:
+          type: string
+          description: Absolute mount path on host. Stored only here; blobs store
+            relative storage_key.
+        is_active:
+          type: boolean
+        status:
+          type: string
+          enum:
+          - OK
+          - DEGRADED
+          - OFFLINE
+        fs_type:
+          type: string
+        free_bytes:
+          type: integer
+          minimum: 0
+        total_bytes:
+          type: integer
+          minimum: 0
+        created_at:
+          $ref: '#/components/schemas/ISODateTime'
+    ValidatePathRequest:
+      type: object
+      required:
+      - base_path
+      properties:
+        base_path:
+          type: string
+    ValidatePathResponse:
+      type: object
+      required:
+      - ok
+      - writable
+      - free_bytes
+      - total_bytes
+      properties:
+        ok:
+          type: boolean
+        writable:
+          type: boolean
+        free_bytes:
+          type: integer
+        total_bytes:
+          type: integer
+        fs_type:
+          type: string
+        message:
+          type: string
+    NodeType:
+      type: string
+      enum:
+      - FOLDER
+      - FILE
+    Node:
+      type: object
+      required:
+      - id
+      - type
+      - name
+      - parent_id
+      - path
+      - created_at
+      - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        type:
+          $ref: '#/components/schemas/NodeType'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        parent_id:
+          $ref: '#/components/schemas/UUID'
+        path:
+          type: string
+          description: ltree label path, e.g., root.n<uuidhex>...
+        owner_user_id:
+          $ref: '#/components/schemas/UUID'
+        blob_id:
+          anyOf:
+          - $ref: '#/components/schemas/UUID'
+          - type: 'null'
+        size_bytes:
+          type: integer
+          minimum: 0
+        mime_type:
+          type: [string, 'null']
+        metadata:
+          type: object
+          additionalProperties: true
+        deleted_at:
+          anyOf:
+          - $ref: '#/components/schemas/ISODateTime'
+          - type: 'null'
+        created_at:
+          $ref: '#/components/schemas/ISODateTime'
+        updated_at:
+          $ref: '#/components/schemas/ISODateTime'
+    CreateFolderRequest:
+      type: object
+      required:
+      - parent_id
+      - name
+      properties:
+        parent_id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+    ListChildrenResponse:
+      type: object
+      required:
+      - items
+      - next_cursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Node'
+        next_cursor:
+          type: [string, 'null']
+    MoveCopyRequest:
+      type: object
+      required:
+      - destination_parent_id
+      properties:
+        destination_parent_id:
+          $ref: '#/components/schemas/UUID'
+        new_name:
+          type: string
+          maxLength: 255
+          # nullable: true (removed by fix_openapi_nullable.py; please model null via type union)
+    UploadStatus:
+      type: string
+      enum:
+      - INIT
+      - UPLOADING
+      - MERGING
+      - COMPLETED
+      - ABORTED
+      - FAILED
+    CreateUploadRequest:
+      type: object
+      required:
+      - parent_id
+      - filename
+      - size_bytes
+      properties:
+        parent_id:
+          $ref: '#/components/schemas/UUID'
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 255
+        size_bytes:
+          type: integer
+          minimum: 0
+        sha256:
+          type: string
+          pattern: ^[a-fA-F0-9]{64}$
+          # nullable: true (removed by fix_openapi_nullable.py; please model null via type union)
+        mime_type:
+          type: [string, 'null']
+        modified_at:
+          anyOf:
+          - $ref: '#/components/schemas/ISODateTime'
+          - type: 'null'
+    CreateUploadResponse:
+      type: object
+      required:
+      - upload_id
+      - status
+      - chunk_size_bytes
+      - total_chunks
+      - dedup_hit
+      properties:
+        upload_id:
+          $ref: '#/components/schemas/UUID'
+        status:
+          $ref: '#/components/schemas/UploadStatus'
+        chunk_size_bytes:
+          type: integer
+          minimum: 1048576
+        total_chunks:
+          type: integer
+          minimum: 1
+        received_chunks:
+          type: array
+          items:
+            type: integer
+        dedup_hit:
+          type: boolean
+          description: If true, server already had the blob; upload can be skipped;
+            node may be created on complete.
+    UploadSession:
+      type: object
+      required:
+      - upload_id
+      - status
+      - size_bytes
+      - chunk_size_bytes
+      - total_chunks
+      - received_chunks
+      properties:
+        upload_id:
+          $ref: '#/components/schemas/UUID'
+        status:
+          $ref: '#/components/schemas/UploadStatus'
+        size_bytes:
+          type: integer
+        chunk_size_bytes:
+          type: integer
+        total_chunks:
+          type: integer
+        received_chunks:
+          type: array
+          items:
+            type: integer
+        created_at:
+          $ref: '#/components/schemas/ISODateTime'
+        updated_at:
+          $ref: '#/components/schemas/ISODateTime'
+    CompleteUploadResponse:
+      type: object
+      required:
+      - node_id
+      - blob_id
+      - sha256
+      - size_bytes
+      properties:
+        node_id:
+          $ref: '#/components/schemas/UUID'
+        blob_id:
+          $ref: '#/components/schemas/UUID'
+        sha256:
+          type: string
+        size_bytes:
+          type: integer
+    Blob:
+      type: object
+      required:
+      - id
+      - sha256
+      - size_bytes
+      - storage_key
+      - volume_id
+      - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        sha256:
+          type: string
+          pattern: ^[a-fA-F0-9]{64}$
+        size_bytes:
+          type: integer
+          minimum: 0
+        storage_key:
+          type: string
+          description: Relative path under volume base_path.
+        volume_id:
+          $ref: '#/components/schemas/UUID'
+        ref_count:
+          type: integer
+          minimum: 0
+        created_at:
+          $ref: '#/components/schemas/ISODateTime'
+    ShareLinkCreateRequest:
+      type: object
+      properties:
+        expires_in_seconds:
+          type: integer
+          minimum: 300
+          maximum: 31536000
+          default: 604800
+        password:
+          type: string
+          minLength: 6
+          maxLength: 128
+          # nullable: true (removed by fix_openapi_nullable.py; please model null via type union)
+        permission:
+          type: string
+          enum:
+          - READ
+          - READ_WRITE
+          default: READ
+    ShareLink:
+      type: object
+      required:
+      - id
+      - token
+      - node_id
+      - created_at
+      - expires_at
+      - permission
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        token:
+          type: string
+          description: Opaque token used in /s/{token}. Stored hashed in DB.
+        node_id:
+          $ref: '#/components/schemas/UUID'
+        created_at:
+          $ref: '#/components/schemas/ISODateTime'
+        expires_at:
+          $ref: '#/components/schemas/ISODateTime'
+        permission:
+          type: string
+          enum:
+          - READ
+          - READ_WRITE
+        password_required:
+          type: boolean
+    ACLEntry:
+      type: object
+      required:
+      - id
+      - node_id
+      - principal_type
+      - principal_id
+      - effect
+      - permissions
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        node_id:
+          $ref: '#/components/schemas/UUID'
+        principal_type:
+          type: string
+          enum:
+          - USER
+          - GROUP
+          - SHARE_LINK
+        principal_id:
+          type: string
+        effect:
+          type: string
+          enum:
+          - ALLOW
+          - DENY
+        permissions:
+          type: array
+          items:
+            type: string
+            enum:
+            - READ
+            - WRITE
+            - DELETE
+            - SHARE
+        inheritable:
+          type: boolean
+          default: true
+    JobStatus:
+      type: string
+      enum:
+      - QUEUED
+      - RUNNING
+      - SUCCEEDED
+      - FAILED
+      - CANCELLED
+    Job:
+      type: object
+      required:
+      - id
+      - type
+      - status
+      - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        type:
+          type: string
+          enum:
+          - THUMBNAIL
+          - TRANSCODE
+          - MIGRATION
+          - TRASH_GC
+          - SCAN_CLEANUP
+          - MOVE_TREE
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        payload:
+          type: object
+          additionalProperties: true
+        result:
+          type: object
+          additionalProperties: true
+        error:
+          type: object
+          additionalProperties: true
+        created_at:
+          $ref: '#/components/schemas/ISODateTime'
+        started_at:
+          anyOf:
+          - $ref: '#/components/schemas/ISODateTime'
+          - type: 'null'
+        finished_at:
+          anyOf:
+          - $ref: '#/components/schemas/ISODateTime'
+          - type: 'null'
+    SearchResponse:
+      type: object
+      required:
+      - items
+      - next_cursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Node'
+        next_cursor:
+          type: [string, 'null']
+    VersionResponse:
+      type: object
+      required:
+      - name
+      - version
+      - build_time
+      properties:
+        name:
+          type: string
+          const: nimbus-drive
+        version:
+          type: string
+        build_time:
+          $ref: '#/components/schemas/ISODateTime'
+    PerformanceState:
+      type: object
+      required:
+      - profile
+      - limits
+      - pressure
+      - allowed
+      properties:
+        profile:
+          type: string
+          enum:
+          - ECO
+          - BALANCED
+          - PERFORMANCE
+          - CUSTOM
+          default: BALANCED
+        limits:
+          type: object
+          properties:
+            bg_worker_concurrency_max:
+              type: integer
+              minimum: 0
+            thumbnail_rps_max:
+              type: number
+              minimum: 0
+            transcode_concurrency_max:
+              type: integer
+              minimum: 0
+        pressure:
+          type: object
+          properties:
+            cpu_percent:
+              type: number
+              minimum: 0
+              maximum: 100
+            iowait_percent:
+              type: number
+              minimum: 0
+              maximum: 100
+            mem_available_bytes:
+              type: integer
+              minimum: 0
+            api_p95_ms:
+              type: number
+              minimum: 0
+        allowed:
+          type: object
+          properties:
+            bg_worker_concurrency:
+              type: integer
+              minimum: 0
+            thumbnail_rps:
+              type: number
+              minimum: 0
+            transcode_concurrency:
+              type: integer
+              minimum: 0
+            notes:
+              type: string
+    CreateAdminRequest:
+      type: object
+      required:
+      - username
+      - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+          pattern: ^[a-zA-Z0-9_.-]+$
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        display_name:
+          type: string
+          maxLength: 64
+        locale:
+          $ref: '#/components/schemas/Locale'
+    LoginRequest:
+      type: object
+      required:
+      - username
+      - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    RefreshRequest:
+      type: object
+      required:
+      - refresh_token
+      properties:
+        refresh_token:
+          type: string
+    UserPreferencesPatch:
+      type: object
+      required:
+      - locale
+      properties:
+        locale:
+          $ref: '#/components/schemas/Locale'
+    CreateUserRequest:
+      type: object
+      required:
+      - username
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+          pattern: ^[a-zA-Z0-9_.-]+$
+        temp_password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          # nullable: true (removed by fix_openapi_nullable.py; please model null via type union)
+        role:
+          $ref: '#/components/schemas/UserRole'
+        display_name:
+          type: string
+          maxLength: 64
+          # nullable: true (removed by fix_openapi_nullable.py; please model null via type union)
+        locale:
+          $ref: '#/components/schemas/Locale'
+    Invite:
+      type: object
+      required:
+      - id
+      - expires_at
+      - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        token:
+          type: string
+          description: One-time invite token (only returned at creation)
+        expires_at:
+          $ref: '#/components/schemas/ISODateTime'
+        created_at:
+          $ref: '#/components/schemas/ISODateTime'
+        used_at:
+          anyOf:
+          - $ref: '#/components/schemas/ISODateTime'
+          - type: 'null'
+    CreateInviteRequest:
+      type: object
+      properties:
+        expires_in_seconds:
+          type: integer
+          minimum: 300
+          maximum: 31536000
+          default: 604800
+        role:
+          $ref: '#/components/schemas/UserRole'
+        locale:
+          $ref: '#/components/schemas/Locale'
+    AcceptInviteRequest:
+      type: object
+      required:
+      - token
+      - username
+      - password
+      properties:
+        token:
+          type: string
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+          pattern: ^[a-zA-Z0-9_.-]+$
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        display_name:
+          type: string
+          maxLength: 64
+          # nullable: true (removed by fix_openapi_nullable.py; please model null via type union)
+    CreateVolumeRequest:
+      type: object
+      required:
+      - name
+      - base_path
+      properties:
+        name:
+          type: string
+          maxLength: 64
+        base_path:
+          type: string
+          description: Absolute path, e.g., /mnt/hdd1/nas_data
+    ListVolumesResponse:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Volume'
+    BreadcrumbItem:
+      type: object
+      required:
+      - id
+      - name
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+    BreadcrumbResponse:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BreadcrumbItem'
+    RenameRequest:
+      type: object
+      required:
+      - new_name
+      properties:
+        new_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+    SetAclRequest:
+      type: object
+      required:
+      - entries
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/ACLEntry'
+    ListAclResponse:
+      type: object
+      required:
+      - entries
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/ACLEntry'
+    AccessCheckResponse:
+      type: object
+      required:
+      - node_id
+      - allowed
+      properties:
+        node_id:
+          $ref: '#/components/schemas/UUID'
+        allowed:
+          type: array
+          items:
+            type: string
+            enum:
+            - READ
+            - WRITE
+            - DELETE
+            - SHARE
+        reason:
+          type: [string, 'null']
+    ListTrashResponse:
+      type: object
+      required:
+      - items
+      - next_cursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Node'
+        next_cursor:
+          type: [string, 'null']
+    StartMigrationRequest:
+      type: object
+      required:
+      - target_volume_id
+      properties:
+        target_volume_id:
+          $ref: '#/components/schemas/UUID'
+        verify_sha256:
+          type: boolean
+          default: true
+        delete_source_after:
+          type: boolean
+          default: false
+    ScanCleanupRequest:
+      type: object
+      properties:
+        delete_orphan_files:
+          type: boolean
+          default: false
+        delete_orphan_db_rows:
+          type: boolean
+          default: false
+    ListJobsResponse:
+      type: object
+      required:
+      - items
+      - next_cursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        next_cursor:
+          type: [string, 'null']
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      tags:
+      - System
+      summary: Health check
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '500':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /system/version:
+    get:
+      operationId: getSystemVersion
+      tags:
+      - System
+      summary: Get version
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
+        '500':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /system/capabilities:
+    get:
+      operationId: getSystemCapabilities
+      tags:
+      - System
+      summary: Get hardware capabilities (probe result) (authenticated)
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Capabilities'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - bearerAuth: []
+  /system/performance:
+    get:
+      operationId: getSystemPerformance
+      tags:
+      - System
+      summary: Get current QoS / performance controller state
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceState'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /setup/status:
+    get:
+      operationId: getSetupStatus
+      tags:
+      - Setup
+      summary: Check if first-time setup is required (no users exist)
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupStatus'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /setup/admin:
+    post:
+      operationId: postSetupAdmin
+      tags:
+      - Setup
+      summary: Create initial admin (only when setup_required=true)
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAdminRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - user
+                - tokens
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  tokens:
+                    $ref: '#/components/schemas/AuthTokens'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /auth/login:
+    post:
+      operationId: postAuthLogin
+      tags:
+      - Auth
+      summary: Login
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - user
+                - tokens
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  tokens:
+                    $ref: '#/components/schemas/AuthTokens'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /auth/refresh:
+    post:
+      operationId: postAuthRefresh
+      tags:
+      - Auth
+      summary: Refresh tokens (rotating refresh token)
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokens'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /auth/logout:
+    post:
+      operationId: postAuthLogout
+      tags:
+      - Auth
+      summary: Logout (invalidate refresh token)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me:
+    get:
+      operationId: getMe
+      tags:
+      - Users
+      summary: Get current user
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me/preferences:
+    patch:
+      operationId: patchMePreferences
+      tags:
+      - Users
+      summary: Update current user preferences (locale)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferencesPatch'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/users:
+    get:
+      operationId: getAdminUsers
+      tags:
+      - Users
+      summary: List users (admin only)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: postAdminUsers
+      tags:
+      - Users
+      summary: Create user (invite-only; admin only)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/invites:
+    post:
+      operationId: postAdminInvites
+      tags:
+      - Users
+      summary: Create invite token (admin only)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInviteRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invite'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/accept-invite:
+    post:
+      operationId: postAuthAcceptInvite
+      tags:
+      - Auth
+      summary: Accept invite (one-time) and create user credentials
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptInviteRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - user
+                - tokens
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  tokens:
+                    $ref: '#/components/schemas/AuthTokens'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /admin/system-mode:
+    get:
+      operationId: getAdminSystemMode
+      tags:
+      - Storage
+      summary: Get system mode (read-only)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemMode'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      operationId: patchAdminSystemMode
+      tags:
+      - Storage
+      summary: Set system mode (read-only)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SystemMode'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemMode'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/volumes:
+    get:
+      operationId: getAdminVolumes
+      tags:
+      - Storage
+      summary: List volumes
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListVolumesResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: postAdminVolumes
+      tags:
+      - Storage
+      summary: Create volume
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVolumeRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/volumes/validate-path:
+    post:
+      operationId: postAdminVolumesValidatePath
+      tags:
+      - Storage
+      summary: Validate base path (writable + free space)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidatePathRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidatePathResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/volumes/{volume_id}/activate:
+    post:
+      operationId: postAdminVolumesVolumeIdActivate
+      tags:
+      - Storage
+      summary: Activate volume (no data migration; expects empty or already-synced)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: volume_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/migrations:
+    post:
+      operationId: postAdminMigrations
+      tags:
+      - Storage
+      summary: Start volume migration (copy + optional verify sha256)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartMigrationRequest'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/storage/scan:
+    post:
+      operationId: postAdminStorageScan
+      tags:
+      - Storage
+      summary: Scan storage and optionally cleanup orphans (DB↔disk reconciliation)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanCleanupRequest'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /nodes/{node_id}:
+    get:
+      operationId: getNodesNodeId
+      tags:
+      - Nodes
+      summary: Get node metadata
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: deleteNodesNodeId
+      tags:
+      - Nodes
+      summary: Soft delete node (moves to trash). For large folders may enqueue background
+        job.
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /nodes/folders:
+    post:
+      operationId: postNodesFolders
+      tags:
+      - Nodes
+      summary: Create folder
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFolderRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /nodes/{node_id}/children:
+    get:
+      operationId: getNodesNodeIdChildren
+      tags:
+      - Nodes
+      summary: List children (virtualized-friendly cursor pagination)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: [string, 'null']
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 500
+          default: 100
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - name
+          - updated_at
+          - size_bytes
+          default: name
+      - name: order
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+          default: asc
+      - name: include_deleted
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListChildrenResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /nodes/{node_id}/breadcrumb:
+    get:
+      operationId: getNodesNodeIdBreadcrumb
+      tags:
+      - Nodes
+      summary: Get breadcrumb (ancestors)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BreadcrumbResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /nodes/{node_id}/rename:
+    post:
+      operationId: postNodesNodeIdRename
+      tags:
+      - Nodes
+      summary: Rename node
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /nodes/{node_id}/move:
+    post:
+      operationId: postNodesNodeIdMove
+      tags:
+      - Nodes
+      summary: Move node to another folder (may enqueue job for large subtree)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveCopyRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /nodes/{node_id}/copy:
+    post:
+      operationId: postNodesNodeIdCopy
+      tags:
+      - Nodes
+      summary: Copy node to another folder (may enqueue job for large subtree)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveCopyRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /trash:
+    get:
+      operationId: getTrash
+      tags:
+      - Nodes
+      summary: List trash
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: [string, 'null']
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 500
+          default: 100
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListTrashResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /trash/{node_id}/restore:
+    post:
+      operationId: postTrashNodeIdRestore
+      tags:
+      - Nodes
+      summary: Restore from trash
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /trash/{node_id}:
+    delete:
+      operationId: deleteTrashNodeId
+      tags:
+      - Nodes
+      summary: Permanently delete from trash (may enqueue GC job)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search:
+    get:
+      operationId: getSearch
+      tags:
+      - Nodes
+      summary: Search nodes (name + optional metadata). Default uses Postgres (ILIKE
+        + pg_trgm).
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 256
+      - name: parent_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/UUID'
+          - type: 'null'
+      - name: type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/NodeType'
+          - type: 'null'
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: [string, 'null']
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: include_metadata
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /uploads:
+    post:
+      operationId: postUploads
+      tags:
+      - Uploads
+      summary: Create upload session (idempotent; supports dedup via sha256)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUploadRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateUploadResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /uploads/{upload_id}:
+    get:
+      operationId: getUploadsUploadId
+      tags:
+      - Uploads
+      summary: Get upload session status
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: upload_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadSession'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: deleteUploadsUploadId
+      tags:
+      - Uploads
+      summary: Abort upload session and cleanup temp chunks
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: upload_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /uploads/{upload_id}/chunks/{chunk_index}:
+    put:
+      operationId: putUploadsUploadIdChunksChunkIndex
+      tags:
+      - Uploads
+      summary: Upload a chunk (binary). Idempotent per (upload_id, chunk_index, sha256).
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: upload_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - name: chunk_index
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 0
+      - name: X-Chunk-SHA256
+        in: header
+        required: true
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{64}$
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadSession'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /uploads/{upload_id}/complete:
+    post:
+      operationId: postUploadsUploadIdComplete
+      tags:
+      - Uploads
+      summary: Complete upload (merge chunks atomically; create blob + node)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: upload_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompleteUploadResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /blobs/{blob_id}:
+    get:
+      operationId: getBlobsBlobId
+      tags:
+      - Blobs
+      summary: Get blob metadata
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: blob_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Blob'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /nodes/{node_id}/download:
+    get:
+      operationId: getNodesNodeIdDownload
+      tags:
+      - Blobs
+      summary: Download file by node id (supports Range requests)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - name: Range
+        in: header
+        required: false
+        schema:
+          type: string
+        description: RFC 9110 Range, e.g., bytes=0-1023
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: Full content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '206':
+          description: Partial content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '416':
+          description: Range Not Satisfiable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /media/{node_id}/thumbnail:
+    get:
+      operationId: getMediaNodeIdThumbnail
+      tags:
+      - Blobs
+      summary: Get thumbnail (may be generated asynchronously)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: Thumbnail image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '202':
+          description: Accepted (thumbnail generation started)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /nodes/{node_id}/share-links:
+    post:
+      operationId: postNodesNodeIdShareLinks
+      tags:
+      - Shares
+      summary: Create share link for node (optional expiry/password)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShareLinkCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareLink'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /s/{token}:
+    get:
+      operationId: getSToken
+      tags:
+      - Shares
+      summary: Get shared node metadata (public)
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: X-Share-Password
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /s/{token}/download:
+    get:
+      operationId: getSTokenDownload
+      tags:
+      - Shares
+      summary: Download shared file (public; supports Range)
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: X-Share-Password
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: Range
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Full content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '206':
+          description: Partial content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '416':
+          description: Range Not Satisfiable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /nodes/{node_id}/acl:
+    get:
+      operationId: getNodesNodeIdAcl
+      tags:
+      - ACL
+      summary: List ACL entries for node
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListAclResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      operationId: putNodesNodeIdAcl
+      tags:
+      - ACL
+      summary: Set ACL entries for node (replaces existing). Admin or owner only.
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetAclRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListAclResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /nodes/{node_id}/access:
+    get:
+      operationId: getNodesNodeIdAccess
+      tags:
+      - ACL
+      summary: Check effective access for current user (READ/WRITE/DELETE/SHARE)
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessCheckResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /jobs:
+    get:
+      operationId: getJobs
+      tags:
+      - Jobs
+      summary: List jobs
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: [string, 'null']
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: [string, 'null']
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: [string, 'null']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListJobsResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /jobs/{job_id}:
+    get:
+      operationId: getJobsJobId
+      tags:
+      - Jobs
+      summary: Get job status
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+x-constants:
+  locales_supported:
+  - ko-KR
+  - en-US
+  default_locale: ko-KR
+  auth:
+    access_token_ttl_seconds: 900
+    refresh_token_ttl_seconds: 1209600
+    refresh_token_rotation: true
+    password_hash:
+      algorithm: argon2id
+      parameters_default:
+        memory_kib: 32768
+        iterations: 2
+        parallelism: 1
+      fallback:
+        algorithm: bcrypt
+        cost: 12
+  uploads:
+    chunk_size_bytes_default: 8388608
+    chunk_size_bytes_min: 1048576
+    chunk_size_bytes_max: 33554432
+    session_ttl_seconds: 172800
+    max_parallel_chunks_default: 2
+    max_file_size_bytes_default: 2199023255552
+  trash:
+    retention_days_default: 30
+  shares:
+    default_expires_in_seconds: 604800
+    max_expires_in_seconds: 31536000
+    password_min_length: 6
+  system:
+    api_timeout_seconds_default: 10
+    download_timeout_seconds_default: 60
+    hdd_spinup_grace_seconds: 30
+  qos:
+    policy: interactive-first
+    pressure_thresholds_default:
+      cpu_percent_soft: 50.0
+      cpu_percent_hard: 70.0
+      iowait_percent_soft: 5.0
+      iowait_percent_hard: 10.0
+      api_p95_ms_soft: 300.0
+      api_p95_ms_hard: 800.0
+      mem_available_bytes_soft: 536870912
+    background:
+      bg_worker_concurrency_min: 0
+      bg_worker_concurrency_default: 1
+      bg_worker_concurrency_cap_max: 4
+    thumbnail:
+      enqueue_rps_default: 1.0
+      enqueue_rps_cap_max: 5.0
+      worker_concurrency_default: 1
+  security:
+    uploads:
+      allowlist_extensions_default:
+      - jpg
+      - jpeg
+      - png
+      - gif
+      - webp
+      - heic
+      - mp4
+      - mov
+      - pdf
+      - txt
+      - zip
+      deny_executable_extensions:
+      - php
+      - jsp
+      - asp
+      - aspx
+      - exe
+      - dll
+      - sh
+      - bat
+      - cmd
+      content_type_trust: never
+x-state-machines:
+  UploadSession:
+    states:
+    - INIT
+    - UPLOADING
+    - MERGING
+    - COMPLETED
+    - ABORTED
+    - FAILED
+    terminal_states:
+    - COMPLETED
+    - ABORTED
+    - FAILED
+    transitions:
+    - from: INIT
+      event: chunk_received
+      to: UPLOADING
+    - from: UPLOADING
+      event: chunk_received
+      to: UPLOADING
+    - from: UPLOADING
+      event: complete_requested(all_chunks_received && !read_only)
+      to: MERGING
+    - from: MERGING
+      event: merge_succeeded
+      to: COMPLETED
+    - from: MERGING
+      event: merge_failed
+      to: FAILED
+    - from: INIT
+      event: abort
+      to: ABORTED
+    - from: UPLOADING
+      event: abort
+      to: ABORTED
+    - from: MERGING
+      event: abort
+      to: FAILED
+    - from: '*'
+      event: internal_error
+      to: FAILED
+    startup_reconciler:
+      scan_interval_on_boot: once
+      stuck_threshold_minutes: 30
+      rules:
+      - status in (UPLOADING, MERGING) and updated_at < now()-threshold => mark FAILED
+        and cleanup temp chunks
+      - status INIT and created_at < now()-session_ttl => mark ABORTED and cleanup
+  Job:
+    states:
+    - QUEUED
+    - RUNNING
+    - SUCCEEDED
+    - FAILED
+    - CANCELLED
+    terminal_states:
+    - SUCCEEDED
+    - FAILED
+    - CANCELLED
+    transitions:
+    - from: QUEUED
+      event: picked_by_worker
+      to: RUNNING
+    - from: RUNNING
+      event: success
+      to: SUCCEEDED
+    - from: RUNNING
+      event: error
+      to: FAILED
+    - from: QUEUED
+      event: cancel
+      to: CANCELLED
+  SystemMode:
+    states:
+    - NORMAL
+    - READ_ONLY
+    transition_rule: READ_ONLY blocks all mutating endpoints (POST/PUT/PATCH/DELETE)
+      except admin-only toggles and safe operations.
+x-db:
+  dialect: PostgreSQL 16+
+  extensions_required:
+  - ltree
+  - pg_trgm
+  tables:
+    users:
+      pk: id
+      columns:
+      - name: id
+        type: uuid
+      - name: username
+        type: citext
+        unique: true
+      - name: display_name
+        type: text
+      - name: role
+        type: text
+        check: role in ('ADMIN','USER')
+      - name: password_hash
+        type: text
+      - name: locale
+        type: text
+        default: '''ko-KR'''
+      - name: created_at
+        type: timestamptz
+        default: now()
+      - name: updated_at
+        type: timestamptz
+        default: now()
+      - name: last_login_at
+        type: [timestamptz, 'null']
+      indexes:
+      - name: idx_users_created_at
+        using: btree
+        columns:
+        - created_at
+    refresh_tokens:
+      pk: id
+      columns:
+      - name: id
+        type: uuid
+      - name: user_id
+        type: uuid
+        fk: users.id
+      - name: token_hash
+        type: bytea
+        unique: true
+      - name: created_at
+        type: timestamptz
+        default: now()
+      - name: expires_at
+        type: timestamptz
+      - name: revoked_at
+        type: [timestamptz, 'null']
+      - name: replaced_by_id
+        type: [uuid, 'null']
+      indexes:
+      - name: idx_refresh_tokens_user
+        using: btree
+        columns:
+        - user_id
+      - name: idx_refresh_tokens_expires
+        using: btree
+        columns:
+        - expires_at
+    invites:
+      pk: id
+      columns:
+      - name: id
+        type: uuid
+      - name: token_hash
+        type: bytea
+        unique: true
+      - name: role
+        type: text
+        default: '''USER'''
+      - name: locale
+        type: text
+        default: '''ko-KR'''
+      - name: created_by
+        type: uuid
+        fk: users.id
+      - name: created_at
+        type: timestamptz
+        default: now()
+      - name: expires_at
+        type: timestamptz
+      - name: used_at
+        type: [timestamptz, 'null']
+      - name: used_by
+        type: [uuid, 'null']
+      indexes:
+      - name: idx_invites_expires
+        using: btree
+        columns:
+        - expires_at
+    system_settings:
+      pk: key
+      columns:
+      - name: key
+        type: text
+      - name: value
+        type: jsonb
+      - name: updated_at
+        type: timestamptz
+        default: now()
+      notes:
+      - 'keys: ACTIVE_VOLUME_ID, READ_ONLY_MODE, TRASH_RETENTION_DAYS, PERF_PROFILE,
+        DEFAULT_LOCALE'
+    volumes:
+      pk: id
+      columns:
+      - name: id
+        type: uuid
+      - name: name
+        type: text
+      - name: base_path
+        type: text
+      - name: is_active
+        type: boolean
+        default: 'false'
+      - name: status
+        type: text
+        default: '''OK'''
+      - name: fs_type
+        type: [text, 'null']
+      - name: free_bytes
+        type: [bigint, 'null']
+      - name: total_bytes
+        type: [bigint, 'null']
+      - name: created_at
+        type: timestamptz
+        default: now()
+      indexes:
+      - name: idx_volumes_active_unique
+        using: btree
+        columns:
+        - is_active
+        where: is_active=true
+    blobs:
+      pk: id
+      columns:
+      - name: id
+        type: uuid
+      - name: volume_id
+        type: uuid
+        fk: volumes.id
+      - name: storage_key
+        type: text
+        description: relative path under volume
+      - name: sha256
+        type: char(64)
+        unique: true
+      - name: size_bytes
+        type: bigint
+      - name: content_type
+        type: [text, 'null']
+      - name: ref_count
+        type: integer
+        default: '0'
+        check: ref_count>=0
+      - name: created_at
+        type: timestamptz
+        default: now()
+      - name: deleted_at
+        type: [timestamptz, 'null']
+      indexes:
+      - name: idx_blobs_volume
+        using: btree
+        columns:
+        - volume_id
+      - name: idx_blobs_deleted_at
+        using: btree
+        columns:
+        - deleted_at
+    nodes:
+      pk: id
+      columns:
+      - name: id
+        type: uuid
+      - name: type
+        type: text
+        check: type in ('FOLDER','FILE')
+      - name: parent_id
+        type: uuid
+        fk: nodes.id
+        # nullable: true (removed by fix_openapi_nullable.py; please model null via type union)
+      - name: name
+        type: text
+      - name: path
+        type: ltree
+        description: root.n<uuidhex>... labels; no hyphens
+      - name: owner_user_id
+        type: uuid
+        fk: users.id
+      - name: blob_id
+        type: uuid
+        fk: blobs.id
+        # nullable: true (removed by fix_openapi_nullable.py; please model null via type union)
+      - name: size_bytes
+        type: bigint
+        default: '0'
+      - name: mime_type
+        type: [text, 'null']
+      - name: metadata
+        type: jsonb
+        default: '''{}''::jsonb'
+      - name: nearest_acl_node_id
+        type: [uuid, 'null']
+      - name: created_at
+        type: timestamptz
+        default: now()
+      - name: updated_at
+        type: timestamptz
+        default: now()
+      - name: deleted_at
+        type: [timestamptz, 'null']
+      constraints:
+      - unique (parent_id, name) where deleted_at is null
+      - if type='FILE' then blob_id is not null
+      indexes:
+      - name: idx_nodes_parent
+        using: btree
+        columns:
+        - parent_id
+        where: deleted_at is null
+      - name: idx_nodes_path_gist
+        using: gist
+        columns:
+        - path
+      - name: idx_nodes_name_trgm
+        using: gin
+        columns:
+        - name
+        opclass: gin_trgm_ops
+        where: deleted_at is null
+      - name: idx_nodes_metadata_gin
+        using: gin
+        columns:
+        - metadata
+      - name: idx_nodes_deleted_at
+        using: btree
+        columns:
+        - deleted_at
+    acl_entries:
+      pk: id
+      columns:
+      - name: id
+        type: uuid
+      - name: node_id
+        type: uuid
+        fk: nodes.id
+      - name: principal_type
+        type: text
+        check: principal_type in ('USER','GROUP','SHARE_LINK')
+      - name: principal_id
+        type: text
+      - name: effect
+        type: text
+        check: effect in ('ALLOW','DENY')
+      - name: permissions
+        type: text[]
+      - name: inheritable
+        type: boolean
+        default: 'true'
+      - name: created_at
+        type: timestamptz
+        default: now()
+      indexes:
+      - name: idx_acl_node
+        using: btree
+        columns:
+        - node_id
+      - name: idx_acl_principal
+        using: btree
+        columns:
+        - principal_type
+        - principal_id
+    share_links:
+      pk: id
+      columns:
+      - name: id
+        type: uuid
+      - name: node_id
+        type: uuid
+        fk: nodes.id
+      - name: token_hash
+        type: bytea
+        unique: true
+      - name: password_hash
+        type: [text, 'null']
+      - name: permission
+        type: text
+        default: '''READ'''
+      - name: created_at
+        type: timestamptz
+        default: now()
+      - name: expires_at
+        type: timestamptz
+      - name: revoked_at
+        type: [timestamptz, 'null']
+      indexes:
+      - name: idx_share_links_node
+        using: btree
+        columns:
+        - node_id
+      - name: idx_share_links_expires
+        using: btree
+        columns:
+        - expires_at
+    upload_sessions:
+      pk: id
+      columns:
+      - name: id
+        type: uuid
+      - name: user_id
+        type: uuid
+        fk: users.id
+      - name: parent_id
+        type: uuid
+        fk: nodes.id
+      - name: filename
+        type: text
+      - name: size_bytes
+        type: bigint
+      - name: sha256
+        type: char(64)
+        # nullable: true (removed by fix_openapi_nullable.py; please model null via type union)
+      - name: mime_type
+        type: [text, 'null']
+      - name: status
+        type: text
+        check: status in ('INIT','UPLOADING','MERGING','COMPLETED','ABORTED','FAILED')
+      - name: chunk_size_bytes
+        type: integer
+      - name: total_chunks
+        type: integer
+      - name: received_chunks
+        type: integer[]
+        default: '''{}''::int[]'
+      - name: temp_dir
+        type: text
+      - name: created_at
+        type: timestamptz
+        default: now()
+      - name: updated_at
+        type: timestamptz
+        default: now()
+      - name: expires_at
+        type: timestamptz
+      indexes:
+      - name: idx_upload_sessions_user
+        using: btree
+        columns:
+        - user_id
+      - name: idx_upload_sessions_status
+        using: btree
+        columns:
+        - status
+      - name: idx_upload_sessions_expires
+        using: btree
+        columns:
+        - expires_at
+    upload_chunks:
+      pk: (upload_id, chunk_index)
+      columns:
+      - name: upload_id
+        type: uuid
+        fk: upload_sessions.id
+      - name: chunk_index
+        type: integer
+      - name: checksum_sha256
+        type: char(64)
+      - name: size_bytes
+        type: integer
+      - name: stored_path
+        type: text
+        description: relative path under temp_dir
+      - name: created_at
+        type: timestamptz
+        default: now()
+      indexes:
+      - name: idx_upload_chunks_upload
+        using: btree
+        columns:
+        - upload_id
+    jobs:
+      pk: id
+      columns:
+      - name: id
+        type: uuid
+      - name: type
+        type: text
+      - name: status
+        type: text
+      - name: progress
+        type: [numeric, 'null']
+      - name: payload
+        type: jsonb
+        default: '''{}''::jsonb'
+      - name: result
+        type: [jsonb, 'null']
+      - name: error
+        type: [jsonb, 'null']
+      - name: created_at
+        type: timestamptz
+        default: now()
+      - name: started_at
+        type: [timestamptz, 'null']
+      - name: finished_at
+        type: [timestamptz, 'null']
+      indexes:
+      - name: idx_jobs_status
+        using: btree
+        columns:
+        - status
+      - name: idx_jobs_type_created
+        using: btree
+        columns:
+        - type
+        - created_at
+    outbox_events:
+      pk: id
+      columns:
+      - name: id
+        type: uuid
+      - name: aggregate_type
+        type: text
+      - name: aggregate_id
+        type: uuid
+      - name: event_type
+        type: text
+      - name: payload
+        type: jsonb
+      - name: created_at
+        type: timestamptz
+        default: now()
+      - name: processed_at
+        type: [timestamptz, 'null']
+      indexes:
+      - name: idx_outbox_unprocessed
+        using: btree
+        columns:
+        - processed_at
+        where: processed_at is null
+      - name: idx_outbox_aggregate
+        using: btree
+        columns:
+        - aggregate_type
+        - aggregate_id
+      notes:
+      - 'Used for projections: search index sync, activity feed, media pipeline.'
+security:
+- bearerAuth: []
+externalDocs:
+  description: Design docs entrypoint
+  url: ./docs/NAS_SelfHosted_DDD_Spec_FINAL.md
+x-ui-policy:
+  nav_ssot_path: "docs/ui/IA_NAV_SSOT.md"
+  copy_ssot_path: "docs/ui/COPY_KEYS_SSOT.md"
+  default_locale: "ko-KR"
+  supported_locales: ["ko-KR", "en-US"]
+  source_of_truth_path: design/stitch/ko-kr_final/
+  inventory_board_path: design/stitch/ko-kr_final/inventory/
+x-openclaw:
+  mandatory_skill: clean-code-enforcer
+  mandatory_skill_path: .openclaw/skills/clean-code-enforcer/INSTRUCTIONS.md

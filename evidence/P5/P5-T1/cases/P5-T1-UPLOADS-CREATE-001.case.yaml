@@ -1,0 +1,26 @@
+# P5-T1-UPLOADS-CREATE-001
+# Goal: POST /uploads creates an upload session (201) and returns CreateUploadResponse.
+# NOTE: This case is executed by evidence/P5/P5-T1/run.sh.
+
+name: P5-T1-UPLOADS-CREATE-001
+request:
+  method: POST
+  path: /uploads
+  headers:
+    Content-Type: application/json
+  body:
+    parent_id: "${PARENT_ID}"
+    filename: "hello.txt"
+    size_bytes: 12
+    sha256: null
+    mime_type: "text/plain"
+    modified_at: null
+expect:
+  status: 201
+  json:
+    has_fields:
+      - upload_id
+      - status
+      - chunk_size_bytes
+      - total_chunks
+      - dedup_hit

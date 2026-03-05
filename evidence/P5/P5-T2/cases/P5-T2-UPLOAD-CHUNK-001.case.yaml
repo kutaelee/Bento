@@ -1,0 +1,17 @@
+id: P5-T2-UPLOAD-CHUNK-001
+name: Upload chunk 0 success (idempotent)
+depends_on:
+  - P5-T1-UPLOADS-CREATE-001
+request:
+  method: PUT
+  url: /uploads/{{upload_id}}/chunks/0
+  headers:
+    Accept-Language: ko-KR
+    Content-Type: application/octet-stream
+    X-Chunk-SHA256: "{{chunk0_sha256}}"
+  body_from_file: actual/fs/chunk0.bin
+expect:
+  status: 200
+  assertions:
+    - type: jq
+      expr: '.id == "'"'"'{{upload_id}}'"'"'"'

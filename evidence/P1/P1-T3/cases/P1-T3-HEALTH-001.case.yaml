@@ -1,0 +1,15 @@
+id: P1-T3-HEALTH-001
+name: Health check returns SuccessResponse
+depends_on: []
+request:
+  method: GET
+  url: /health
+  headers:
+    Accept-Language: ko-KR
+expect:
+  status: 200
+  assertions:
+    - type: jq
+      expr: '.ok == true'
+    - type: jq
+      expr: '((keys | length) == 1) and (. | has("ok"))'

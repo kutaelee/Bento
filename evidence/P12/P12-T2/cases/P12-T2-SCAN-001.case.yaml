@@ -1,0 +1,16 @@
+id: P12-T2-SCAN-001
+name: 스토리지 스캔 orphan 보고
+depends_on: []
+request:
+  method: POST
+  url: /admin/storage/scan
+  headers:
+    Content-Type: application/json
+  body:
+    delete_orphan_files: false
+    delete_orphan_db_rows: false
+expect:
+  status: 202
+  assertions:
+    - type: jq
+      expr: '.type == "SCAN_CLEANUP"'

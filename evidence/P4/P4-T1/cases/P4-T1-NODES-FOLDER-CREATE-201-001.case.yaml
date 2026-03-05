@@ -1,0 +1,6 @@
+case_id: P4-T1-NODES-FOLDER-CREATE-201-001
+operation: POST /nodes/folders
+assertions:
+  - when valid parent and name: status 201
+  - returns Node with type=FOLDER and parent_id
+  - duplicate name at same parent returns 409

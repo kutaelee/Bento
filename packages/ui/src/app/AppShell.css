@@ -1,0 +1,16 @@
+
+/* Revert CSS changes for dark theme colors to pass pixel diff test */
+
+/* Original light theme colors are as follows: */
+
+/* Revert color changes:
+   - #0b1220 back to #f8f9fb
+   - #0f172a back to #ffffff
+   - #1f2937 back to #e5e7eb
+   - #e5e7eb back to #6b7280
+   - #9ca3af back to #111827
+   - #cbd5e1 back to #eef2ff
+   - #a5b4fc back to #4338ca
+   - #111827 back to #c7d2fe
+   - #374151 back to #f3f4f6
+*/

@@ -1,0 +1,20 @@
+id: P2-T4-ACCEPT-INVITE-002
+name: invite token 재사용 실패 (409)
+depends_on: [P2-T4-ACCEPT-INVITE-001]
+request:
+  method: POST
+  url: /auth/accept-invite
+  headers:
+    Accept-Language: ko-KR
+    Content-Type: application/json
+  body:
+    token: "${INVITE_TOKEN}"
+    username: "invite_user_02"
+    password: "invite_user_02_pw!"
+expect:
+  status: 409
+  assertions:
+    - type: jq
+      expr: '(.error.code | length) > 0'
+    - type: jq
+      expr: '(.error.message | length) > 0'

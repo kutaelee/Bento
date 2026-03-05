@@ -1,0 +1,41 @@
+{
+  "name": "@nimbus/ui",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:visual": "bash ../../scripts/run_route_snapshot_harness.sh",
+    "build": "tsc -p tsconfig.json --noEmit",
+    "generate:api-types": "openapi-typescript ../../openapi/openapi.yaml -o src/api/schema.d.ts",
+    "dev": "vite --host 0.0.0.0 --port 13000",
+    "preview": "vite preview --host 0.0.0.0 --port 13000",
+    "test:visual:config": "bash ../../scripts/validate_visual_config.sh"
+  },
+  "dependencies": {
+    "@nimbus/ui-kit": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.17.0",
+    "@typescript-eslint/parser": "^7.17.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.4",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "openapi-typescript": "^7.6.1",
+    "pixelmatch": "^7.1.0",
+    "playwright": "^1.58.2",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.10",
+    "vitest": "^2.0.5"
+  }
+}

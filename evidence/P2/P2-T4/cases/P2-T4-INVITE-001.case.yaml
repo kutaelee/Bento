@@ -1,0 +1,25 @@
+id: P2-T4-INVITE-001
+name: admin invite 생성 성공 (201)
+depends_on: []
+request:
+  method: POST
+  url: /admin/invites
+  headers:
+    Accept-Language: ko-KR
+    Content-Type: application/json
+    # Authorization: Bearer <ADMIN_ACCESS_TOKEN>  # run.sh에서 주입
+  body:
+    expires_in_seconds: 604800
+    role: USER
+    locale: ko-KR
+expect:
+  status: 201
+  assertions:
+    - type: jq
+      expr: '(.id | length) > 0'
+    - type: jq
+      expr: '(.token | length) > 10'
+    - type: jq
+      expr: '(.expires_at | length) > 0'
+    - type: jq
+      expr: '(.created_at | length) > 0'

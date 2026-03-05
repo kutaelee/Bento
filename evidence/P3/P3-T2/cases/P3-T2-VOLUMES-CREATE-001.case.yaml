@@ -1,0 +1,26 @@
+id: P3-T2-VOLUMES-CREATE-001
+name: Create volume (admin)
+depends_on: []
+request:
+  method: POST
+  url: /admin/volumes
+  headers:
+    Accept-Language: en-US
+    Content-Type: application/json
+    Authorization: Bearer ${ADMIN_ACCESS_TOKEN}
+  body:
+    name: data
+    base_path: ${TMP_VOLUME_PATH}
+expect:
+  status: 201
+  assertions:
+    - type: jq
+      expr: '.id and (.id | length) > 20'
+    - type: jq
+      expr: '.name == "data"'
+    - type: jq
+      expr: '.base_path and (.base_path | length) > 1'
+    - type: jq
+      expr: '.is_active == false'
+    - type: jq
+      expr: '.status == "OK"'

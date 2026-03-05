@@ -1,0 +1,11 @@
+id: P3-T3-READONLY-BLOCKS-MUTATION-001
+name: Read-only blocks mutating endpoints
+request:
+  method: POST
+  path: /admin/volumes
+  auth: bearer
+  json:
+    name: blocked
+    base_path: /tmp
+expect:
+  status: 409

@@ -1,0 +1,39 @@
+.admin-appearance {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-appearance__message {
+  margin: 0;
+  color: var(--nd-color-text);
+  font-size: 0.9rem;
+}
+
+.admin-appearance__section {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-appearance__section h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--nd-color-text);
+}
+
+.admin-appearance__section p {
+  margin: 0;
+  color: color-mix(in srgb, var(--nd-color-text) 72%, transparent);
+  font-size: 0.9rem;
+}
+
+.admin-appearance__segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-appearance__hint {
+  margin: 0;
+  color: color-mix(in srgb, var(--nd-color-text) 70%, transparent);
+  font-size: 0.9rem;
+}

@@ -1,0 +1,4 @@
+case_id: P4-T2-NODE-GET-404-001
+operation: GET /nodes/{node_id}
+assertions:
+  - when missing node: status 404

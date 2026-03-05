@@ -1,0 +1,14 @@
+id: P11-T1-THUMBNAIL-001
+name: Thumbnail request returns 202 job
+request:
+  method: GET
+  url: /media/{node_id}/thumbnail
+  headers:
+    Accept: image/png
+expect:
+  status: 202
+  assertions:
+    - type: jq
+      expr: '.type == "THUMBNAIL"'
+    - type: jq
+      expr: '.status == "QUEUED"'
