@@ -94,8 +94,9 @@ export default function AdminAppearancePage() {
 
   const onReset = useCallback(() => {
     setDraft(current);
+    toggleTheme(current.theme);
     setMessageKey("admin.appearance.reset");
-  }, [current]);
+  }, [current, toggleTheme]);
 
   React.useEffect(() => {
     void loadProfile();
