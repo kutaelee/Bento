@@ -83,6 +83,7 @@ export default function AdminAppearancePage() {
 
     try {
       await api.setPreferences({ locale: draft.locale });
+      toggleTheme(draft.theme);
       setCurrent(draft);
       setMessageKey("admin.appearance.saved");
     } catch {
@@ -90,7 +91,7 @@ export default function AdminAppearancePage() {
     } finally {
       setSaving(false);
     }
-  }, [api, draft]);
+  }, [api, draft, toggleTheme]);
 
   const onReset = useCallback(() => {
     setDraft(current);
@@ -159,7 +160,7 @@ export default function AdminAppearancePage() {
               <Button
                 key={option.value}
                 variant={isSelected ? "primary" : "ghost"}
-                onClick={() => { setDraft((prev) => ({ ...prev, theme: option.value })); toggleTheme(option.value); }}
+                onClick={() => setDraft((prev) => ({ ...prev, theme: option.value }))}
                 aria-checked={isSelected}
                 role="radio"
               >
