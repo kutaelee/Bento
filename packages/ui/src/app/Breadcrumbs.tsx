@@ -12,6 +12,7 @@ const breadcrumbStyles: {
   link: React.CSSProperties;
   current: React.CSSProperties;
   ellipsis: React.CSSProperties;
+  ellipsisButton: React.CSSProperties;
   dropdown: React.CSSProperties;
   dropdownLink: React.CSSProperties;
   error: React.CSSProperties;
@@ -35,9 +36,17 @@ const breadcrumbStyles: {
     fontWeight: 600,
   },
   ellipsis: {
-    cursor: "pointer",
     padding: "0 4px",
     position: "relative",
+  },
+  ellipsisButton: {
+    border: "none",
+    background: "transparent",
+    padding: 0,
+    cursor: "pointer",
+    color: "var(--nd-color-text-primary)",
+    fontSize: "inherit",
+    lineHeight: "inherit",
   },
   dropdown: {
     position: "absolute",
@@ -93,13 +102,15 @@ export function BreadcrumbTrail({ items, rootId = ROOT_NODE_ID }: BreadcrumbTrai
         if (item.id === "ellipsis") {
           return (
             <React.Fragment key="ellipsis">
-              <button
-                type="button"
-                style={breadcrumbStyles.ellipsis}
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
-              >
-                {item.name}
+              <div style={breadcrumbStyles.ellipsis}>
+                <button
+                  type="button"
+                  style={breadcrumbStyles.ellipsisButton}
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+                >
+                  {item.name}
+                </button>
                 {isDropdownOpen && (
                   <div style={breadcrumbStyles.dropdown}>
                     {collapsedItems.map((cItem) => (
@@ -113,7 +124,7 @@ export function BreadcrumbTrail({ items, rootId = ROOT_NODE_ID }: BreadcrumbTrai
                     ))}
                   </div>
                 )}
-              </button>
+              </div>
               <span style={breadcrumbStyles.separator}>/</span>
             </React.Fragment>
           );

@@ -302,6 +302,7 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
 
   useEffect(() => {
     let active = true;
+    void refreshToken;
 
     setSelectedNode(null);
     setSelectedIds(new Set());
@@ -404,6 +405,7 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
     };
   }, [
     nodesApi,
+    refreshToken,
     resolvedNodeId,
     isTrashRoute,
     shouldLoadChildren,
