@@ -32,7 +32,7 @@ const layoutStyles: Record<string, React.CSSProperties> = {
   },
   headCell: {
     fontWeight: 600,
-    color: "#6b7280",
+    color: "var(--nd-color-text-secondary)",
     fontSize: 12,
   },
   nameCell: {
@@ -93,7 +93,8 @@ export function TrashPage() {
 
   useEffect(() => {
     let active = true;
-    const listVersion = (listVersionRef.current += 1);
+    const listVersion = refreshToken + 1;
+    listVersionRef.current = listVersion;
     setSelectedNode(null);
 
     const load = async () => {
@@ -208,7 +209,7 @@ export function TrashPage() {
       </header>
       {actionErrorKey ? <div style={layoutStyles.error}>{t(actionErrorKey)}</div> : null}
       <div style={layoutStyles.table}>
-        <div style={{ ...layoutStyles.row, background: "#f9fafb" }}>
+        <div style={{ ...layoutStyles.row, background: "var(--nd-color-surface-secondary)" }}>
           <div style={{ ...layoutStyles.cell, ...layoutStyles.headCell }}>{t("field.name")}</div>
           <div style={{ ...layoutStyles.cell, ...layoutStyles.headCell }}>{t("field.modifiedAt")}</div>
           <div style={{ ...layoutStyles.cell, ...layoutStyles.headCell }}>{t("field.size")}</div>

@@ -1,8 +1,10 @@
 .simple-page {
-  padding: 24px;
+  padding: var(--nd-space-6, 24px);
 }
 
 .simple-page__title {
   margin: 0;
+  margin-bottom: var(--nd-space-6, 24px);
   font-size: 20px;
+  color: var(--nd-color-text-primary);
 }
