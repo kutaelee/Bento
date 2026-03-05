@@ -107,7 +107,7 @@ export function MediaPage() {
     return (
         <div style={{ padding: "var(--nd-space-4, 16px)", height: "100%", overflowY: "auto" }}>
             <header style={{ marginBottom: "var(--nd-space-4, 16px)" }}>
-                <h1 style={{ fontSize: "1.5rem", fontWeight: 600, color: "var(--nd-color-text-primary, #111827)" }}>
+                <h1 style={{ fontSize: "1.5rem", fontWeight: 600, color: "var(--nd-color-text-primary)" }}>
                     {t("nav.media")}
                 </h1>
             </header>
@@ -167,7 +167,7 @@ export function MediaPage() {
                     {nextCursor && (
                         <div style={{ display: "flex", justifyContent: "center", marginTop: "var(--nd-space-6, 24px)" }}>
                             <Button onClick={loadMore} loading={loadingMore} variant="secondary">
-                                {t("action.loadMore" as any) || "Load More"}
+                                {t("action.loadMore")}
                             </Button>
                         </div>
                     )}

@@ -1,8 +1,8 @@
 .trash-page {
-  padding: 24px;
+  padding: var(--nd-space-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--nd-space-4, 16px);
 }
 
 .trash-page__header {
@@ -14,12 +14,13 @@
 .trash-page__title {
   font-size: 20px;
   font-weight: 600;
+  color: var(--nd-color-text-primary);
 }
 
 .trash-page__table {
   display: flex;
   flex-direction: column;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--nd-color-border-default);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -33,18 +34,18 @@
 }
 
 .trash-page__row--head {
-  background: #f9fafb;
+  background: var(--nd-color-surface-secondary);
 }
 
 .trash-page__cell {
   font-size: 14px;
-  color: #111827;
+  color: var(--nd-color-text-primary);
 }
 
 .trash-page__head-cell {
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--nd-color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -57,25 +58,25 @@
 
 .trash-page__meta {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--nd-color-text-secondary);
 }
 
 .trash-page__empty {
   padding: 24px 16px;
-  color: #6b7280;
+  color: var(--nd-color-text-secondary);
 }
 
 .trash-page__error {
   padding: 12px 16px;
-  color: #b91c1c;
+  color: var(--nd-color-status-danger);
 }
 
 .trash-page__load-more {
   align-self: flex-start;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--nd-color-border-default);
   padding: 8px 12px;
-  background: #ffffff;
+  background: var(--nd-color-surface-primary);
 }
 
 .trash-page__actions {
@@ -86,17 +87,18 @@
 
 .trash-page__button {
   border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--nd-color-border-default);
+  background: var(--nd-color-surface-primary);
   padding: 6px 10px;
   font-size: 13px;
+  color: var(--nd-color-text-primary);
 }
 
 .trash-page__button--danger {
   border-radius: 6px;
-  border: 1px solid #fecaca;
-  background: #fee2e2;
-  color: #991b1b;
+  border: 1px solid color-mix(in srgb, var(--nd-color-status-danger) 30%, transparent);
+  background: color-mix(in srgb, var(--nd-color-status-danger) 12%, var(--nd-color-surface-primary));
+  color: var(--nd-color-status-danger);
   padding: 6px 10px;
   font-size: 13px;
 }
