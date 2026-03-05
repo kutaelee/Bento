@@ -17,7 +17,8 @@ const variantDefaults: Record<NonNullable<SkeletonBlockProps["variant"]>, { widt
 };
 
 export function SkeletonBlock({ width, height, radius, variant = "line", className, style, ...props }: SkeletonBlockProps) {
-    const defaults = variantDefaults[variant];
+    const safeVariant = Object.prototype.hasOwnProperty.call(variantDefaults, variant) ? variant : "line";
+    const defaults = variantDefaults[safeVariant];
     const inlineStyle: React.CSSProperties = {
         width: width ?? defaults.width,
         height: height ?? defaults.height,
