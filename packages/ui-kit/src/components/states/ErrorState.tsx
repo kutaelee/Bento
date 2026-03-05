@@ -2,13 +2,17 @@ import React from "react";
 import { Button } from "../Button";
 
 export type ErrorStateProps = {
+  icon?: React.ReactNode;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+
   titleKey?: React.ReactNode;
   descKey?: React.ReactNode;
   retryLabelKey?: React.ReactNode;
   onRetry?: () => void;
 
   // Back-compat shims
-  title?: React.ReactNode;
   detail?: React.ReactNode;
   message?: React.ReactNode;
   actionVariant?: string;
@@ -21,9 +25,22 @@ export function ErrorState({
   retryLabelKey,
   onRetry,
   title,
+  description,
   detail,
   message,
+  action,
+  icon,
 }: ErrorStateProps) {
+    const resolvedTitle = title ?? titleKey ?? message;
+    const resolvedDescription = description ?? descKey ?? detail;
+    const resolvedAction = action ?? (
+      retryLabelKey && onRetry ? (
+        <Button variant="outline" onClick={onRetry}>
+          {retryLabelKey}
+        </Button>
+      ) : null
+    );
+
     return (
         <div style={{
             display: "flex",
@@ -34,30 +51,26 @@ export function ErrorState({
             textAlign: "center",
             color: "var(--nd-color-status-danger)"
         }}>
-            <div style={{ fontSize: "40px", marginBottom: "var(--nd-space-4)" }}>⚠️</div>
+            <div style={{ fontSize: "40px", marginBottom: "var(--nd-space-4)" }}>{icon ?? "⚠️"}</div>
             <h3 style={{
                 marginTop: 0,
-                marginBottom: (descKey ?? detail) ? "var(--nd-space-2)" : "var(--nd-space-4)",
+                marginBottom: resolvedDescription ? "var(--nd-space-2)" : "var(--nd-space-4)",
                 color: "var(--nd-color-text-primary)",
                 fontSize: "var(--nd-font-size-base)"
             }}>
-                {titleKey ?? title ?? message}
+                {resolvedTitle}
             </h3>
-            {(descKey ?? detail) && (
+            {resolvedDescription && (
                 <p style={{
                     marginTop: 0,
-                    marginBottom: retryLabelKey ? "var(--nd-space-6)" : 0,
+                    marginBottom: resolvedAction ? "var(--nd-space-6)" : 0,
                     color: "var(--nd-color-text-secondary)",
                     fontSize: "var(--nd-font-size-sm)"
                 }}>
-                    {descKey ?? detail}
+                    {resolvedDescription}
                 </p>
             )}
-            {retryLabelKey && onRetry && (
-                <Button variant="outline" onClick={onRetry}>
-                    {retryLabelKey}
-                </Button>
-            )}
+            {resolvedAction}
         </div>
     );
 }
