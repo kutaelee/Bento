@@ -3,16 +3,8 @@ packages/ui/src/app/AdminPage.tsx
 packages/ui/src/app/AdminShell.css
 packages/ui/src/app/AdminUsersPage.css
 packages/ui/src/app/AppShell.css
-packages/ui/src/app/Breadcrumbs.css
-packages/ui/src/app/Breadcrumbs.tsx
-packages/ui/src/app/FilesPage.css
-packages/ui/src/app/FilesPage.tsx
-packages/ui/src/app/GridView.tsx
-packages/ui/src/app/InspectorPanel.css
 packages/ui/src/app/JobDetailsCard.css
 packages/ui/src/app/MediaPage.tsx
-packages/ui/src/app/SelectionActionBar.tsx
-packages/ui/src/app/ShareDialog.css
 packages/ui/src/app/TrashPage.css
 packages/ui/src/app/TrashPage.tsx
 packages/ui/src/app/UploadQueue.css

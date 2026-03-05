@@ -86,7 +86,7 @@ const layoutStyles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
   },
   meta: {
-    color: "#6b7280",
+    color: "var(--nd-color-text-secondary)",
     fontSize: 12,
   },
   table: {
@@ -106,7 +106,7 @@ const layoutStyles: Record<string, React.CSSProperties> = {
   },
   headCell: {
     fontWeight: 600,
-    color: "#6b7280",
+    color: "var(--nd-color-text-secondary)",
     fontSize: 12,
   },
   nameCell: {
@@ -115,7 +115,7 @@ const layoutStyles: Record<string, React.CSSProperties> = {
     gap: 4,
   },
   selectedRow: {
-    background: "#eef2ff",
+    background: "color-mix(in srgb, var(--nd-color-accent-default) 12%, var(--nd-color-surface-current))",
   },
 };
 
@@ -174,7 +174,7 @@ export function FolderView({
         />
       ) : (
         <div style={layoutStyles.table}>
-          <div style={{ ...layoutStyles.row, background: "#f9fafb" }}>
+          <div style={{ ...layoutStyles.row, background: "var(--nd-color-surface-secondary)" }}>
             <div style={{ ...layoutStyles.cell, ...layoutStyles.headCell }}>{t("field.name")}</div>
             <div style={{ ...layoutStyles.cell, ...layoutStyles.headCell, display: getColDisplay("modifiedAt") }}>{t("field.modifiedAt")}</div>
             <div style={{ ...layoutStyles.cell, ...layoutStyles.headCell, display: getColDisplay("size") }}>{t("field.size")}</div>
@@ -194,18 +194,11 @@ export function FolderView({
           ) : items.map((item) => {
             const isSelected = selectedIds?.has(item.id) ?? false;
             return (
-              <div
+              <button
+                type="button"
                 key={item.id}
-                role="button"
-                tabIndex={0}
                 style={{ ...layoutStyles.row, ...(isSelected ? layoutStyles.selectedRow : null) }}
                 onClick={(event: React.MouseEvent) => onToggleSelect?.(item, event.metaKey || event.ctrlKey || event.shiftKey)}
-                onKeyDown={(event: React.KeyboardEvent) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onToggleSelect?.(item, event.metaKey || event.ctrlKey || event.shiftKey);
-                  }
-                }}
               >
                 <div style={{ ...layoutStyles.cell, ...layoutStyles.nameCell }}>
                   <span>{item.name}</span>
@@ -216,7 +209,7 @@ export function FolderView({
                 <div style={{ ...layoutStyles.cell, display: getColDisplay("modifiedAt") }}>{formatDate(item.updated_at)}</div>
                 <div style={{ ...layoutStyles.cell, display: getColDisplay("size") }}>{formatSize(item.size_bytes)}</div>
                 <div style={{ ...layoutStyles.cell, display: getColDisplay("owner") }}>{item.owner_user_id ?? "-"}</div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -411,11 +404,10 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
     };
   }, [
     nodesApi,
-    refreshToken,
     resolvedNodeId,
-    isSharedRoute,
     isTrashRoute,
     shouldLoadChildren,
+    isRootRoute,
     setSelectedNode,
     listChildrenSort,
     listChildrenOrder,
@@ -430,7 +422,8 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
 
   const loadMore = useCallback(async () => {
     if (!nextCursor) return;
-    const requestToken = (loadMoreGeneration.current += 1);
+    loadMoreGeneration.current += 1;
+    const requestToken = loadMoreGeneration.current;
     setLoadingMore(true);
     setErrorKey(null);
     try {
@@ -455,10 +448,7 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
   }, [
     nextCursor,
     nodesApi,
-    isTrashRoute,
     resolvedNodeId,
-    listChildrenSort,
-    listChildrenOrder,
   ]);
 
   const handleRestore = useCallback(

@@ -48,6 +48,12 @@ jobs:
       - name: Run Gate A - i18n Key Sync
         run: node scripts/check-i18n-sync.js
 
+      - name: Run Gate B - UI Vitest
+        run: pnpm -C packages/ui test
+
+      - name: Run Gate B - UI Kit Storybook Build
+        run: pnpm -C packages/ui-kit storybook:build
+
   ci-heavy:
     name: ci-heavy (manual/label only)
     runs-on: ubuntu-latest
