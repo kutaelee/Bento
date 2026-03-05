@@ -1,69 +1,19 @@
 :root {
   --nd-font-family-display: "Inter", "Noto Sans KR", sans-serif;
-
-  --nd-color-primary: #137fec;
-  /* legacy */
-  --nd-color-primary-hover: #2563eb;
-  /* legacy */
-  --nd-color-primary-light: #60a5fa;
-  /* legacy */
-  --nd-color-success: #10b981;
-  /* legacy */
-  --nd-color-warning: #f59e0b;
-  /* legacy */
-  --nd-color-danger: #f43f5e;
-  /* legacy */
-
-  /* Semantic Light mode */
-  --nd-color-surface-primary: #ffffff;
-  --nd-color-surface-secondary: #f8f9fb;
-  --nd-color-surface-tertiary: #f3f4f6;
-  --nd-color-text-primary: #111827;
-  --nd-color-text-secondary: #6b7280;
-  --nd-color-text-disabled: #9ca3af;
-  --nd-color-border-default: #e5e7eb;
-  --nd-color-border-subtle: #f3f4f6;
-  --nd-color-border-strong: #d1d5db;
-  --nd-color-accent-default: #137fec;
-  --nd-color-accent-hover: #2563eb;
-  --nd-color-accent-pressed: #1d4ed8;
-  --nd-color-status-success: #10b981;
-  --nd-color-status-warning: #f59e0b;
-  --nd-color-status-danger: #f43f5e;
-  --nd-color-status-info: #137fec;
-
-  /* Elevation Light mode */
-  --nd-elevation-0: none;
-  --nd-elevation-1: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --nd-elevation-2: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --nd-elevation-3: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --nd-elevation-4: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-
-  --nd-radius-base: 0.25rem;
-  --nd-radius-lg: 0.5rem;
-  --nd-radius-xl: 0.75rem;
-  --nd-radius-full: 9999px;
-
-
-  --nd-space-0: 0px;
-  --nd-space-1: 0.25rem;
-  --nd-space-2: 0.5rem;
-  --nd-space-3: 0.75rem;
-  --nd-space-4: 1rem;
-  --nd-space-5: 1.25rem;
-  --nd-space-6: 1.5rem;
-  --nd-space-8: 2rem;
-  --nd-space-10: 2.5rem;
-  --nd-space-12: 3rem;
-  --nd-space-16: 4rem;
-
-  --nd-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.08);
-  --nd-shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
-  --nd-shadow-lg: 0 12px 24px -8px rgba(15, 23, 42, 0.18);
-
-  --nd-font-size-base: 1rem;
-  --nd-font-size-sm: 0.875rem;
-  --nd-font-size-xs: 0.75rem;
+  --nd-font-size-display: 36px;
+  --nd-font-size-h1: 24px;
+  --nd-font-size-h2: 20px;
+  --nd-font-size-h3: 18px;
+  --nd-font-size-base: 16px;
+  --nd-font-size-sm: 14px;
+  --nd-font-size-xs: 12px;
+  --nd-line-height-normal: 1.5;
+  --nd-line-height-tight: 1.2;
+  --nd-font-weight-regular: 400;
+  --nd-font-weight-medium: 500;
+  --nd-font-weight-semibold: 600;
+  --nd-font-weight-bold: 700;
+  --nd-font-weight-black: 900;
 
   --nd-space-1: 4px;
   --nd-space-2: 8px;
@@ -76,6 +26,17 @@
   --nd-space-12: 48px;
   --nd-space-16: 64px;
 
+  --nd-radius-base: 4px;
+  --nd-radius-lg: 8px;
+  --nd-radius-xl: 12px;
+  --nd-radius-full: 9999px;
+
+  --nd-elevation-0: none;
+  --nd-elevation-1: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --nd-elevation-2: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --nd-elevation-3: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --nd-elevation-4: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
   /* Layout */
   --nd-sidebar-width: 260px;
   --nd-topbar-height: 56px;
@@ -84,18 +45,22 @@
 
 .dark {
   /* Semantic Dark mode */
-  --nd-color-surface-primary: #1e2936;
-  --nd-color-surface-secondary: #101922;
-  --nd-color-surface-tertiary: #1f2937;
-  --nd-color-text-primary: #f9fafb;
-  --nd-color-text-secondary: #9ca3af;
-  --nd-color-text-disabled: #4b5563;
-  --nd-color-border-default: #374151;
-  --nd-color-border-subtle: #1f2937;
-  --nd-color-border-strong: #4b5563;
-  --nd-color-accent-default: #137fec;
-  --nd-color-accent-hover: #60a5fa;
-  --nd-color-accent-pressed: #3b82f6;
+  --nd-color-surface-primary: var(--nd-color-slate-800);
+  --nd-color-surface-secondary: var(--nd-color-slate-900);
+  --nd-color-surface-tertiary: var(--nd-color-gray-800);
+  --nd-color-text-primary: var(--nd-color-gray-50);
+  --nd-color-text-secondary: var(--nd-color-gray-400);
+  --nd-color-text-disabled: var(--nd-color-gray-600);
+  --nd-color-border-default: var(--nd-color-gray-700);
+  --nd-color-border-subtle: var(--nd-color-gray-800);
+  --nd-color-border-strong: var(--nd-color-gray-600);
+  --nd-color-accent-default: var(--nd-color-blue-500);
+  --nd-color-accent-hover: var(--nd-color-blue-400);
+  --nd-color-accent-pressed: var(--nd-color-blue-400);
+  --nd-color-status-success: var(--nd-color-green-500);
+  --nd-color-status-warning: var(--nd-color-amber-500);
+  --nd-color-status-danger: var(--nd-color-rose-500);
+  --nd-color-status-info: var(--nd-color-blue-500);
 
   /* Elevation Dark mode */
   --nd-elevation-1: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
