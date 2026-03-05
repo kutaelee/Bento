@@ -75,7 +75,7 @@ const formatDate = (value?: string | null) => {
 };
 
 export function TrashPage() {
-  const { triggerRefresh } = useFolderRefresh();
+  const { refreshToken, triggerRefresh } = useFolderRefresh();
   const { setSelectedNode } = useInspectorState();
 
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
@@ -93,8 +93,8 @@ export function TrashPage() {
 
   useEffect(() => {
     let active = true;
-    listVersionRef.current += 1;
-    const listVersion = listVersionRef.current;
+    const listVersion = refreshToken + 1;
+    listVersionRef.current = listVersion;
     setSelectedNode(null);
 
     const load = async () => {
@@ -128,7 +128,7 @@ export function TrashPage() {
     return () => {
       active = false;
     };
-  }, [nodesApi, setSelectedNode]);
+  }, [nodesApi, refreshToken, setSelectedNode]);
 
   useEffect(() => {
     return () => {
