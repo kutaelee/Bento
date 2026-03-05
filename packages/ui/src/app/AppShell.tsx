@@ -15,22 +15,7 @@ import { adminSettingsLink, quickLinks } from "../nav";
 import { Button, Dialog, DetailInspector, TextField } from "@nimbus/ui-kit";
 import { t, type I18nKey } from "../i18n/t";
 
-const layoutStyles: {
-  root: React.CSSProperties;
-  sidebar: React.CSSProperties;
-  main: React.CSSProperties;
-  topbar: React.CSSProperties;
-  topbarLeft: React.CSSProperties;
-  content: React.CSSProperties;
-  canvas: React.CSSProperties;
-  inspector: React.CSSProperties;
-  sectionTitle: React.CSSProperties;
-  navList: React.CSSProperties;
-  navLink: React.CSSProperties;
-  navLinkActive: React.CSSProperties;
-  actionRow: React.CSSProperties;
-  actionButton: React.CSSProperties;
-} = {
+const layoutStyles = {
   root: {
     display: "flex",
     minHeight: "100vh",
@@ -202,7 +187,13 @@ export function AppShell() {
         </aside>
         <header className="app-shell__topbar">
           <div className="app-shell__topbar-left">
-            <Breadcrumbs />
+
+            <div className="app-shell__brand">Nimbus Drive</div>
+            <input
+              aria-label={t("field.search")}
+              placeholder={t("field.search")}
+              className="app-shell__search"
+            />
             <nav className="app-shell__topbar-tabs">
               {quickLinks.map((item) => (
                 <NavLink
@@ -220,11 +211,7 @@ export function AppShell() {
             </nav>
           </div>
           <div className="app-shell__topbar-right">
-            <input
-              aria-label={t("field.search")}
-              placeholder={t("field.search")}
-              className="app-shell__search"
-            />
+            
             <div className="app-shell__action-row">
               <button type="button" className="app-shell__action-button" onClick={handleOpenCreate} disabled={!canCreateFolder}>
                 {t("action.newFolder")}

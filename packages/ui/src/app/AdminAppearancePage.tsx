@@ -6,6 +6,7 @@ import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import { createMePreferencesApi } from "../api/mePreferences";
 import type { components } from "../api/schema";
 import "./AdminAppearancePage.css";
+import { useTheme } from "../hooks/useTheme";
 
 type ThemeMode = "system" | "light" | "dark";
 type LocaleCode = components["schemas"]["Locale"];
@@ -14,8 +15,6 @@ type AppearanceConfig = {
   locale: LocaleCode;
   theme: ThemeMode;
 };
-
-const THEME_KEY = "ui.appearance.theme";
 
 const LANG_OPTIONS: Array<{ value: LocaleCode; labelKey: I18nKey }> = [
   { value: "ko-KR", labelKey: "admin.appearance.languageKo" },
@@ -28,33 +27,15 @@ const THEME_OPTIONS: Array<{ value: ThemeMode; labelKey: I18nKey }> = [
   { value: "dark", labelKey: "admin.appearance.themeDark" },
 ];
 
-function loadThemePreference(): ThemeMode {
-  if (typeof window === "undefined") {
-    return "system";
-  }
-
-  const value = window.localStorage.getItem(THEME_KEY);
-  return value === "light" || value === "dark" || value === "system" ? value : "system";
-}
-
-function applyTheme(theme: ThemeMode) {
-  if (typeof document === "undefined") {
-    return;
-  }
-
-  const root = document.documentElement;
-  if (theme === "dark") {
-    root.classList.add("dark");
-  } else {
-    root.classList.remove("dark");
-  }
-
-  root.dataset.theme = theme;
-}
-
 export default function AdminAppearancePage() {
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const api = useMemo(() => createMePreferencesApi(apiClient), [apiClient]);
+  const { theme, toggleTheme } = useTheme();
+  const themeRef = React.useRef<ThemeMode>(theme);
+
+  React.useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -81,24 +62,19 @@ export default function AdminAppearancePage() {
 
     try {
       const me = await api.getPreferences();
-      const nextTheme = loadThemePreference();
+
       const profile: AppearanceConfig = {
         locale: me.locale,
-        theme: nextTheme,
+        theme: themeRef.current,
       };
       setCurrent(profile);
       setDraft(profile);
-      applyTheme(profile.theme);
     } catch {
       setErrorKey("admin.appearance.reload");
     } finally {
       setLoading(false);
     }
   }, [api]);
-
-  const reloadTheme = useCallback(() => {
-    void loadProfile();
-  }, [loadProfile]);
 
   const onSave = useCallback(async () => {
     setSaving(true);
@@ -107,10 +83,7 @@ export default function AdminAppearancePage() {
 
     try {
       await api.setPreferences({ locale: draft.locale });
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(THEME_KEY, draft.theme);
-      }
-      applyTheme(draft.theme);
+      toggleTheme(draft.theme);
       setCurrent(draft);
       setMessageKey("admin.appearance.saved");
     } catch {
@@ -118,13 +91,13 @@ export default function AdminAppearancePage() {
     } finally {
       setSaving(false);
     }
-  }, [api, draft]);
+  }, [api, draft, toggleTheme]);
 
   const onReset = useCallback(() => {
     setDraft(current);
-    applyTheme(current.theme);
+    toggleTheme(current.theme);
     setMessageKey("admin.appearance.reset");
-  }, [current]);
+  }, [current, toggleTheme]);
 
   React.useEffect(() => {
     void loadProfile();
@@ -144,9 +117,6 @@ export default function AdminAppearancePage() {
         title={t("admin.appearance.title")}
         actions={
           <Toolbar>
-            <Button variant="ghost" onClick={reloadTheme}>
-              {t("admin.appearance.reload")}
-            </Button>
             <Button disabled={!hasChanges || saving} onClick={onReset}>
               {t("admin.appearance.reset")}
             </Button>

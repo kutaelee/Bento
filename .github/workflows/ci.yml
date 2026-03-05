@@ -36,8 +36,17 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      - name: Run light gate (short)
-        run: bash scripts/run_evidence.sh --scope ui_light
+      - name: Run Gate A - TypeScript Compile
+        run: pnpm --filter @nimbus/ui-kit --filter @nimbus/ui run typecheck
+
+      - name: Run Gate A - ESLint
+        run: pnpm -C packages/ui lint
+
+      - name: Run Gate A - Enforce Tokens
+        run: bash scripts/enforce-tokens.sh
+
+      - name: Run Gate A - i18n Key Sync
+        run: node scripts/check-i18n-sync.js
 
   ci-heavy:
     name: ci-heavy (manual/label only)

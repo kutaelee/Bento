@@ -1,10 +1,10 @@
-<!-- [SUSPENDED] UI 레퍼런스(=Stitch) 기반 작업/규칙은 현재 중단 상태입니다. -->
-<!-- [SUSPENDED] 본 문서 내 UI 레퍼런스/픽셀 diff/시각회귀 관련 문장은 주석 처리되었습니다. -->
+
+
 
 # IA_NAV_SSOT — Nimbus Drive Navigation & IA (SSOT)
 
 이 문서는 **메뉴/내비게이션/설정 섹션 구조의 단일 진실 원천(SSOT)** 입니다.  
-<!-- [SUSPENDED:UI_REFERENCE] Stitch 보드의 메뉴가 흔들리더라도, **구현은 항상 이 문서를 우선**합니다. -->
+
 
 - P13부터 UI 구현이 시작되며, `docs/NAS_OpenClaw_Evidence_Playbook_P13_UI_Refactor.md`를 따른다.
 - UI 재구축 실행 SSOT는 `docs/ui/UI_REBUILD_EXECUTION_PLAYBOOK.md`를 따른다. (Stitch 기준 비활성)
@@ -15,11 +15,11 @@
 ---
 
 ## Before/After 요약(SSOT 변경점, 10줄 이내)
-<!-- [SUSPENDED:UI_REFERENCE] - BEFORE: 좌측 사이드바에 Quick Links + Admin 진입이 섞여 구현되어 레퍼런스(AppShell)와 불일치 가능성이 있었다. -->
+
 - AFTER: 1차 내비(탭/Quick Links)는 **Topbar 고정**, 좌측은 **Folder Tree 중심**, 우측은 **Inspector 고정**으로 SSOT를 확정한다.
 - Admin 진입은 Topbar의 **⚙️ 버튼**으로 고정하고, /admin/* 하위 메뉴는 Admin Shell 내부에서 제공한다.
 - 기본 테마는 **다크 우선(dark-first)** 이며, 토글/저장 규칙을 SSOT로 명시한다.
-<!-- [SUSPENDED:UI_REFERENCE] - Stitch 산출물(code.html/screen.png)은 ‘정답 레이아웃/간격 스펙’이며, 구현은 ui-kit 조합으로 재현한다(HTML 복붙 금지). -->
+
 
 ---
 
@@ -28,14 +28,14 @@
 우선순위(상위가 더 강함):
 1) `docs/ui/IA_NAV_SSOT.md`  ✅ (이 문서)
 2) `docs/ui/COPY_KEYS_SSOT.md` (카피/i18n 키)
-<!-- [SUSPENDED:UI_REFERENCE] 3) `design/stitch/ko-kr_final/inventory/` (완성도 체크) -->
-<!-- [SUSPENDED:UI_REFERENCE] 4) `design/stitch/ko-kr_final/pages|modals|states|mobile|ui-kit_tokens/` (UI 레퍼런스) -->
+
+
 
 ---
 
 ## 1) Web (Desktop 1440) 전역 레이아웃(AppShell) SSOT
 
-<!-- [SUSPENDED:UI_REFERENCE] > Stitch 레퍼런스(특히 `design/stitch/ko-kr_final/pages/*/code.html`)의 AppShell 특징을 SSOT로 고정한다. -->
+
 > **레퍼런스 = 정답(레이아웃/컴포넌트/간격)** 이며, 구현은 ui-kit 조합으로 재현한다(HTML 복붙 금지).
 
 ### 1.1 Topbar(상단바, 항상 존재/고정)
@@ -96,8 +96,8 @@
 
 ### 1.6 데모 데이터/빈 화면 차이 원칙(SSOT)
 
-<!-- [SUSPENDED:UI_REFERENCE] - Stitch 레퍼런스 화면은 데모 데이터가 있을 수 있다. -->
-<!-- [SUSPENDED:UI_REFERENCE] - 따라서 visual regression/QA는 “빈 화면”이 아니라 **고정된 fixture(seed 데이터 또는 mock 응답)** 로 렌더링해야 한다. -->
+
+
 - 구현에서 이미지/HTML을 하드코딩하는 것은 금지. 레퍼런스는 레이아웃/컴포넌트/간격 기준이다.
 
 ## 2) Web 페이지 라우팅(정규 경로)
