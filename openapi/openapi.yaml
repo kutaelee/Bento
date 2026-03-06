@@ -2170,7 +2170,7 @@ paths:
       operationId: postAdminVolumes
       tags:
       - Storage
-      summary: Create volume
+      summary: Create volume and enqueue background auto-scan
       security:
       - bearerAuth: []
       parameters:
@@ -2465,7 +2465,7 @@ paths:
       operationId: postAdminVolumesVolumeIdScan
       tags:
       - Storage
-      summary: Enqueue volume file tree scan
+      summary: Enqueue volume file tree scan (manual retry supported)
       security:
       - bearerAuth: []
       parameters:
