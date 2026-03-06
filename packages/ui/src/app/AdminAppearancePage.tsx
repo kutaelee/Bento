@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Button, ErrorState, LoadingSkeleton, PageHeader, Toolbar } from "@nimbus/ui-kit";
 import type { I18nKey } from "../i18n/t";
-import { t } from "../i18n/t";
+import { setLocale, t } from "../i18n/t";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import { createMePreferencesApi } from "../api/mePreferences";
 import type { components } from "../api/schema";
@@ -63,6 +63,7 @@ export default function AdminAppearancePage() {
     try {
       const me = await api.getPreferences();
 
+      setLocale(me.locale);
       const profile: AppearanceConfig = {
         locale: me.locale,
         theme: themeRef.current,
@@ -83,9 +84,13 @@ export default function AdminAppearancePage() {
 
     try {
       await api.setPreferences({ locale: draft.locale });
+      setLocale(draft.locale);
       toggleTheme(draft.theme);
       setCurrent(draft);
       setMessageKey("admin.appearance.saved");
+      if (typeof window !== "undefined") {
+        window.setTimeout(() => window.location.reload(), 120);
+      }
     } catch {
       setErrorKey("admin.appearance.saveError");
     } finally {
