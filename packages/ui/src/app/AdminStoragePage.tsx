@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, DataTable, SkeletonBlock, EmptyState, ErrorState, ForbiddenState, PageHeader, Toolbar } from "@nimbus/ui-kit";
 import { createAdminMaintenanceApi } from "../api/adminMaintenance";
 import { ApiError } from "../api/errors";
@@ -19,6 +19,13 @@ const statusKeyMap: Record<Volume["status"], I18nKey> = {
   OK: "status.volumeOk",
   DEGRADED: "status.volumeDegraded",
   OFFLINE: "status.volumeOffline",
+};
+
+const scanStatusKeyMap: Record<"queued" | "running" | "succeeded" | "failed", I18nKey> = {
+  queued: "status.jobQueued",
+  running: "status.jobRunning",
+  succeeded: "status.jobDone",
+  failed: "status.jobFailed",
 };
 
 const formatBytes = (value?: number) => {
@@ -80,6 +87,7 @@ export default function AdminStoragePage() {
   const [scanJob, setScanJob] = useState<Job | null>(null);
   const [scanJobLoading, setScanJobLoading] = useState(false);
   const [scanJobErrorKey, setScanJobErrorKey] = useState<I18nKey | null>(null);
+  const [scanRetrying, setScanRetrying] = useState(false);
 
   const loadVolumes = useCallback(async () => {
     setLoading(true);
@@ -104,6 +112,38 @@ export default function AdminStoragePage() {
     () => volumes.find((volume) => volume.id === selectedVolumeId) ?? null,
     [selectedVolumeId, volumes],
   );
+
+  const fetchScanJob = useCallback(
+    async (jobId: string) => {
+      setScanJobLoading(true);
+      setScanJobErrorKey(null);
+
+      try {
+        const job = await jobsApi.getJob(jobId);
+        setScanJob(job);
+      } catch (error) {
+        setScanJobErrorKey(error instanceof ApiError ? error.key : "err.network");
+      } finally {
+        setScanJobLoading(false);
+      }
+    },
+    [jobsApi],
+  );
+
+  useEffect(() => {
+    if (!activeVolume?.scan_job_id) return;
+    void fetchScanJob(activeVolume.scan_job_id);
+  }, [activeVolume?.scan_job_id, fetchScanJob]);
+
+  useEffect(() => {
+    if (!activeVolume) return;
+    if (activeVolume.scan_state !== "queued" && activeVolume.scan_state !== "running") return;
+
+    const timer = window.setTimeout(() => {
+      void loadVolumes();
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [activeVolume, loadVolumes]);
 
   const handleValidate = async () => {
     if (!validatePath || validating) return;
@@ -160,20 +200,6 @@ export default function AdminStoragePage() {
     }
   };
 
-  const fetchScanJob = async (jobId: string) => {
-    setScanJobLoading(true);
-    setScanJobErrorKey(null);
-
-    try {
-      const job = await jobsApi.getJob(jobId);
-      setScanJob(job);
-    } catch (error) {
-      setScanJobErrorKey(error instanceof ApiError ? error.key : "err.network");
-    } finally {
-      setScanJobLoading(false);
-    }
-  };
-
   const handleStartScan = async () => {
     if (scanSubmitting) return;
 
@@ -196,6 +222,23 @@ export default function AdminStoragePage() {
       setScanErrorKey(error instanceof ApiError ? error.key : "err.network");
     } finally {
       setScanSubmitting(false);
+    }
+  };
+
+  const handleRetryAutoScan = async () => {
+    if (!activeVolume || scanRetrying) return;
+
+    setScanRetrying(true);
+    setScanErrorKey(null);
+    try {
+      const job = await volumesApi.scanVolume(activeVolume.id, { dry_run: false });
+      setScanJob(job);
+      await loadVolumes();
+      await fetchScanJob(job.id);
+    } catch (error) {
+      setScanErrorKey(error instanceof ApiError ? error.key : "err.network");
+    } finally {
+      setScanRetrying(false);
     }
   };
 
@@ -251,7 +294,14 @@ export default function AdminStoragePage() {
         }
       />
 
-      <ActiveVolumeSection loading={loading} activeVolume={activeVolume} statusKeyMap={statusKeyMap} />
+      <ActiveVolumeSection
+        loading={loading}
+        activeVolume={activeVolume}
+        statusKeyMap={statusKeyMap}
+        scanStatusKeyMap={scanStatusKeyMap}
+        scanRetrying={scanRetrying}
+        onRetryScan={handleRetryAutoScan}
+      />
 
       <div className="admin-storage__section">
         <div className="admin-storage__row">
