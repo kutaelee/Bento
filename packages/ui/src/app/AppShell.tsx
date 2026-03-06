@@ -105,7 +105,9 @@ export function AppShell() {
         <header className="app-shell__topbar">
           <div className="app-shell__topbar-left">
 
-            <div className="app-shell__brand">{t("app.brand")}</div>
+            <NavLink to="/files" className="app-shell__brand" aria-label={t("nav.files")}>
+              {t("app.brand")}
+            </NavLink>
             <input
               aria-label={t("field.search")}
               placeholder={t("field.search")}
