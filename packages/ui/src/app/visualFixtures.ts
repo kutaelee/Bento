@@ -293,6 +293,10 @@ const getFixtureResponse = (path: string, method: string, searchParams: URLSearc
     return jsonResponse(SAMPLE_USER);
   }
 
+  if (path === "/me/preferences" && method === "GET") {
+    return jsonResponse(SAMPLE_USER);
+  }
+
   if (path === "/me/preferences" && method === "PATCH") {
     const parsed = parseBody(body);
     return jsonResponse({ ...SAMPLE_USER, locale: parsed?.locale ?? SAMPLE_USER.locale });
