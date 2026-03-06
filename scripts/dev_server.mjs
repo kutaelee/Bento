@@ -2839,7 +2839,7 @@ const server = http.createServer(async (req, res) => {
       execPsql("begin;");
       try {
         execPsql(
-          "update volumes set is_active=(id='" + quoteSqlLiteral(volumeId) + "'::uuid), updated_at=now();"
+          "update volumes set is_active=(id='" + quoteSqlLiteral(volumeId) + "'::uuid);"
         );
         const activeCountText = execPsql("select count(*)::bigint from volumes where is_active=true;").trim();
         const activeCount = Number(activeCountText || 0);
