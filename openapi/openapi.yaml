@@ -260,6 +260,7 @@ components:
       - base_path
       - is_active
       - status
+      - scan_state
       - created_at
       properties:
         id:
@@ -279,6 +280,28 @@ components:
           - OK
           - DEGRADED
           - OFFLINE
+        scan_state:
+          type: string
+          description: Volume auto-scan state.
+          enum:
+          - queued
+          - running
+          - succeeded
+          - failed
+        scan_job_id:
+          anyOf:
+          - $ref: '#/components/schemas/UUID'
+          - type: 'null'
+        scan_progress:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 1
+        scan_error:
+          type: [string, 'null']
+        scan_updated_at:
+          anyOf:
+          - $ref: '#/components/schemas/ISODateTime'
+          - type: 'null'
         fs_type:
           type: string
         free_bytes:
@@ -2370,7 +2393,7 @@ paths:
       operationId: postAdminVolumesVolumeIdActivate
       tags:
       - Storage
-      summary: Activate volume (no data migration; expects empty or already-synced)
+      summary: Activate volume and enqueue background auto-scan
       security:
       - bearerAuth: []
       parameters:
@@ -4878,6 +4901,18 @@ x-db:
       - name: status
         type: text
         default: '''OK'''
+      - name: scan_state
+        type: text
+        default: '''queued'''
+        check: scan_state in ('queued','running','succeeded','failed')
+      - name: scan_job_id
+        type: [uuid, 'null']
+      - name: scan_progress
+        type: [numeric, 'null']
+      - name: scan_error
+        type: [text, 'null']
+      - name: scan_updated_at
+        type: [timestamptz, 'null']
       - name: fs_type
         type: [text, 'null']
       - name: free_bytes
@@ -4893,6 +4928,10 @@ x-db:
         columns:
         - is_active
         where: is_active=true
+      - name: idx_volumes_scan_state
+        using: btree
+        columns:
+        - scan_state
     blobs:
       pk: id
       columns:
