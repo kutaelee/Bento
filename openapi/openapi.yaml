@@ -162,6 +162,44 @@ components:
           type: string
         updated_at:
           $ref: '#/components/schemas/ISODateTime'
+    AdminAppearance:
+      type: object
+      required:
+      - locale
+      - theme
+      - time_format
+      properties:
+        locale:
+          $ref: '#/components/schemas/Locale'
+        theme:
+          type: string
+          enum:
+          - system
+          - light
+          - dark
+          default: system
+        time_format:
+          type: string
+          enum:
+          - 24h
+          - 12h
+          default: 24h
+    PatchAdminAppearanceRequest:
+      type: object
+      properties:
+        locale:
+          $ref: '#/components/schemas/Locale'
+        theme:
+          type: string
+          enum:
+          - system
+          - light
+          - dark
+        time_format:
+          type: string
+          enum:
+          - 24h
+          - 12h
     Capabilities:
       type: object
       required:
@@ -2153,6 +2191,105 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '429':
           description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/appearance:
+    get:
+      operationId: getAdminAppearance
+      tags:
+      - Users
+      summary: Get admin appearance settings
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAppearance'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      operationId: patchAdminAppearance
+      tags:
+      - Users
+      summary: Update admin appearance settings
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchAdminAppearanceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAppearance'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
           content:
             application/json:
               schema:
