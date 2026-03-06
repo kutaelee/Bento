@@ -18,9 +18,28 @@ type ActiveVolumeSectionProps = {
   loading: boolean;
   activeVolume: Volume | undefined;
   statusKeyMap: Record<Volume["status"], I18nKey>;
+  scanStatusKeyMap: Record<"queued" | "running" | "succeeded" | "failed", I18nKey>;
+  scanRetrying: boolean;
+  onRetryScan: () => void;
 };
 
-export function ActiveVolumeSection({ loading, activeVolume, statusKeyMap }: ActiveVolumeSectionProps) {
+const formatProgress = (value: number | null | undefined) => {
+  if (value === null || value === undefined) return "-";
+  return `${Math.round(value * 100)}%`;
+};
+
+export function ActiveVolumeSection({
+  loading,
+  activeVolume,
+  statusKeyMap,
+  scanStatusKeyMap,
+  scanRetrying,
+  onRetryScan,
+}: ActiveVolumeSectionProps) {
+  const scanState = activeVolume?.scan_state;
+  const scanStateKey = scanState ? scanStatusKeyMap[scanState] : null;
+  const showRetry = scanState === "failed";
+
   return (
     <section className="admin-storage__section">
       <h2 className="admin-storage__section-title">{t("admin.storage.activeTitle")}</h2>
@@ -31,6 +50,20 @@ export function ActiveVolumeSection({ loading, activeVolume, statusKeyMap }: Act
           <strong>{activeVolume.name}</strong>
           <p className="admin-storage__muted">{activeVolume.base_path}</p>
           <p className="admin-storage__muted">{t(statusKeyMap[activeVolume.status])}</p>
+          <p className="admin-storage__muted">
+            {t("field.jobStatus")}: {scanStateKey ? t(scanStateKey) : "-"}
+          </p>
+          <p className="admin-storage__muted">
+            {t("field.jobProgress")}: {formatProgress(activeVolume.scan_progress)}
+          </p>
+          {activeVolume.scan_error ? <p className="admin-storage__muted">{activeVolume.scan_error}</p> : null}
+          {showRetry ? (
+            <div className="admin-storage__actions">
+              <Button variant="secondary" onClick={onRetryScan} loading={scanRetrying}>
+                {t("action.retry")}
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : (
         <p className="admin-storage__muted">{t("msg.noActiveVolume")}</p>

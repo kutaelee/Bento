@@ -104,4 +104,28 @@ describe("volumes api", () => {
     expect(url).toBe("http://localhost:1234/admin/volumes/22222222-2222-2222-2222-222222222222/activate");
     expect(init?.method).toBe("POST");
   });
+
+  it("enqueues volume scan", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse(202, {
+        id: "33333333-3333-3333-3333-333333333333",
+        type: "VOLUME_AUTO_SCAN",
+        status: "QUEUED",
+        created_at: "2026-03-01T00:00:00Z",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    const client = createApiClient({ baseUrl: "http://localhost:1234" });
+    const api = createVolumesApi(client);
+
+    const result = await api.scanVolume("22222222-2222-2222-2222-222222222222", { dry_run: false });
+
+    expect(result.type).toBe("VOLUME_AUTO_SCAN");
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("http://localhost:1234/admin/volumes/22222222-2222-2222-2222-222222222222/scan");
+    expect(init?.method).toBe("POST");
+    const body = JSON.parse(String(init?.body));
+    expect(body).toEqual({ dry_run: false });
+  });
 });
