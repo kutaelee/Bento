@@ -672,6 +672,7 @@ components:
           - TRASH_GC
           - SCAN_CLEANUP
           - MOVE_TREE
+          - VOLUME_AUTO_SCAN
         status:
           $ref: '#/components/schemas/JobStatus'
         progress:
@@ -1021,6 +1022,12 @@ components:
           type: boolean
           default: false
         delete_orphan_db_rows:
+          type: boolean
+          default: false
+    ScanVolumeRequest:
+      type: object
+      properties:
+        dry_run:
           type: boolean
           default: false
     ListJobsResponse:
@@ -2411,6 +2418,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Volume'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/volumes/{volume_id}/scan:
+    post:
+      operationId: postAdminVolumesVolumeIdScan
+      tags:
+      - Storage
+      summary: Enqueue volume file tree scan
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - name: volume_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanVolumeRequest'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
         '400':
           description: Bad Request
           content:
