@@ -815,6 +815,20 @@ function validateLocale(locale) {
   return null;
 }
 
+function validateTheme(theme) {
+  if (theme !== 'system' && theme !== 'light' && theme !== 'dark') {
+    return 'theme must be one of: system,light,dark';
+  }
+  return null;
+}
+
+function validateTimeFormat(timeFormat) {
+  if (timeFormat !== '24h' && timeFormat !== '12h') {
+    return 'time_format must be one of: 24h,12h';
+  }
+  return null;
+}
+
 function hashPassword(password) {
   // NOTE: openapi SSOT specifies argon2id preferred. This minimal dev server uses
   // SHA-256 with per-user salt to avoid storing plaintext, as a scaffold.
@@ -846,6 +860,7 @@ const refreshTokenStore = new Map();
 // access_token -> { user_id, refresh_token, issued_at_ms }
 // NOTE: This is a minimal scaffold to support bearerAuth + logout behavior.
 const accessTokenStore = new Map();
+const adminAppearanceStore = new Map();
 
 function rememberRefreshToken(refreshToken, userId) {
   refreshTokenStore.set(refreshToken, { user_id: userId, issued_at_ms: Date.now() });
@@ -1563,6 +1578,120 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
       return;
     }
+  }
+
+  if (method === 'GET' && pathname === '/admin/appearance') {
+    const auth = requireBearerAuth(req);
+    if (!auth.ok) {
+      sendJson(res, auth.status, auth.body);
+      return;
+    }
+
+    const user = loadUserById(auth.user_id);
+    if (!user) {
+      sendJson(res, 404, errorResponse('NOT_FOUND', 'User not found'));
+      return;
+    }
+    if (user.role !== 'ADMIN') {
+      sendJson(res, 403, errorResponse('FORBIDDEN', 'Admin role required'));
+      return;
+    }
+
+    const appearance = adminAppearanceStore.get(user.id) || { theme: 'system', time_format: '24h' };
+    sendJson(res, 200, {
+      locale: user.locale,
+      theme: appearance.theme,
+      time_format: appearance.time_format,
+    });
+    return;
+  }
+
+  if (method === 'PATCH' && pathname === '/admin/appearance') {
+    const auth = requireBearerAuth(req);
+    if (!auth.ok) {
+      sendJson(res, auth.status, auth.body);
+      return;
+    }
+
+    const user = loadUserById(auth.user_id);
+    if (!user) {
+      sendJson(res, 404, errorResponse('NOT_FOUND', 'User not found'));
+      return;
+    }
+    if (user.role !== 'ADMIN') {
+      sendJson(res, 403, errorResponse('FORBIDDEN', 'Admin role required'));
+      return;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', String(err)));
+      return;
+    }
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'Request body is required'));
+      return;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, 'locale')) {
+      if (typeof body.locale !== 'string') {
+        sendJson(res, 400, errorResponse('BAD_REQUEST', 'locale must be a string'));
+        return;
+      }
+      const localeError = validateLocale(body.locale);
+      if (localeError) {
+        sendJson(res, 400, errorResponse('BAD_REQUEST', localeError));
+        return;
+      }
+      updateUserLocale(auth.user_id, body.locale);
+    }
+
+    const current = adminAppearanceStore.get(user.id) || { theme: 'system', time_format: '24h' };
+    const next = { ...current };
+
+    if (Object.prototype.hasOwnProperty.call(body, 'theme')) {
+      if (typeof body.theme !== 'string') {
+        sendJson(res, 400, errorResponse('BAD_REQUEST', 'theme must be a string'));
+        return;
+      }
+      const themeError = validateTheme(body.theme);
+      if (themeError) {
+        sendJson(res, 400, errorResponse('BAD_REQUEST', themeError));
+        return;
+      }
+      next.theme = body.theme;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, 'time_format')) {
+      if (typeof body.time_format !== 'string') {
+        sendJson(res, 400, errorResponse('BAD_REQUEST', 'time_format must be a string'));
+        return;
+      }
+      const timeFormatError = validateTimeFormat(body.time_format);
+      if (timeFormatError) {
+        sendJson(res, 400, errorResponse('BAD_REQUEST', timeFormatError));
+        return;
+      }
+      next.time_format = body.time_format;
+    }
+
+    adminAppearanceStore.set(user.id, next);
+
+    const updatedUser = loadUserById(auth.user_id);
+    if (!updatedUser) {
+      sendJson(res, 404, errorResponse('NOT_FOUND', 'User not found'));
+      return;
+    }
+
+    sendJson(res, 200, {
+      locale: updatedUser.locale,
+      theme: next.theme,
+      time_format: next.time_format,
+    });
+    return;
   }
 
   if (method === 'POST' && url === '/admin/invites') {
