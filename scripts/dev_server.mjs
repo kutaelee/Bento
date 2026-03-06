@@ -4428,7 +4428,8 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (caller.role !== 'ADMIN' && String(parent.owner_user_id) !== String(auth.user_id)) {
+    const isGlobalRootNode = nodeId === '00000000-0000-0000-0000-000000000001';
+    if (!isGlobalRootNode && caller.role !== 'ADMIN' && String(parent.owner_user_id) !== String(auth.user_id)) {
       sendJson(res, 403, errorResponse('FORBIDDEN', 'No read permission for node'));
       return;
     }
