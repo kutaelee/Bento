@@ -432,6 +432,10 @@ function runVolumeAutoScanBatch(runState) {
     }
   }
 
+  if (Date.now() > runState.deadlineAtMs) {
+    throw new Error('volume auto-scan timed out');
+  }
+
   const MAX_BATCH_DIRS = 24;
   let processedDirs = 0;
 
@@ -629,6 +633,8 @@ function createOrReuseVolumeAutoScanJob({ volumeId, ownerUserId, dryRun, trigger
     ownerUserId,
     basePath,
     dryRun: Boolean(dryRun),
+    startedAtMs: Date.now(),
+    deadlineAtMs: Date.now() + 5 * 60 * 1000,
     pendingDirs: [{ relativeDir: '', parentNode: root }],
     seenStorageKeys: new Set(),
     scannedDirs: 0,
@@ -3217,8 +3223,26 @@ const server = http.createServer(async (req, res) => {
         sendJson(res, 500, errorResponse('INTERNAL', 'Failed to load created volume'));
         return;
       }
+      const createdVolume = JSON.parse(rowJson);
+      try {
+        createOrReuseVolumeAutoScanJob({
+          volumeId,
+          ownerUserId: caller.id,
+          dryRun: false,
+          trigger: 'create',
+        });
+      } catch (err) {
+        updateVolumeScanState({
+          volumeId,
+          state: 'failed',
+          jobId: null,
+          progress: 1,
+          errorMessage: String(err && err.message ? err.message : err),
+        });
+      }
 
-      sendJson(res, 201, JSON.parse(rowJson));
+      const refreshed = loadVolumeById(volumeId);
+      sendJson(res, 201, refreshed || createdVolume);
     } catch (err) {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
     }
@@ -3271,13 +3295,43 @@ const server = http.createServer(async (req, res) => {
         throw err;
       }
 
+      let scanJob = null;
+      try {
+        scanJob = createOrReuseVolumeAutoScanJob({
+          volumeId,
+          ownerUserId: caller.id,
+          dryRun: false,
+          trigger: 'activate',
+        });
+      } catch (scanErr) {
+        try {
+          updateVolumeScanState({
+            volumeId,
+            state: 'failed',
+            jobId: null,
+            progress: 1,
+            errorMessage: String(scanErr && scanErr.message ? scanErr.message : scanErr),
+          });
+        } catch {
+          // ignore scan-state update failure for activation response
+        }
+      }
+
       const updated = loadVolumeById(volumeId);
       if (!updated) {
         sendJson(res, 500, errorResponse('INTERNAL', 'Failed to load activated volume'));
         return;
       }
 
-      sendJson(res, 200, updated);
+      const responseBody = scanJob
+        ? {
+            ...updated,
+            scan_job_id: scanJob.id,
+            scan_state: 'queued',
+            scan_progress: 0,
+          }
+        : updated;
+      sendJson(res, 200, responseBody);
       return;
     } catch (err) {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
