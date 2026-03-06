@@ -1,7 +1,7 @@
 
 
 
-# IA_NAV_SSOT — Nimbus Drive Navigation & IA (SSOT)
+# IA_NAV_SSOT — Bento Navigation & IA (SSOT)
 
 이 문서는 **메뉴/내비게이션/설정 섹션 구조의 단일 진실 원천(SSOT)** 입니다.  
 

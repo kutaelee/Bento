@@ -86,3 +86,50 @@
 - `/files`, `/search`, `/trash`, `/admin*` 포함 전체 점검 라우트에서 `200 text/html` 확인
 - 인증 API 재검증: `/nodes/{root}/children`, `/search`, `/trash` = 200
 - 체크리스트의 기존 `NOT_FOUND`/`UNAUTHORIZED` 노출 이슈 재현되지 않음
+
+---
+
+## F. 기능 실QA 재검증 (2026-03-06 추가 실행)
+아래 백엔드 실동작 검증 스크립트를 실제 실행해 PASS 확인:
+
+- [x] `evidence/P3/P3-T2/run.sh` (볼륨 생성/조회)
+- [x] `evidence/P4/P4-T1/run.sh` (폴더 생성/조회)
+- [x] `evidence/P4/P4-T3/run.sh` (이름변경/이동/복사)
+- [x] `evidence/P5/P5-T1/run.sh` (업로드 세션 생성)
+- [x] `evidence/P5/P5-T2/run.sh` (청크 업로드)
+- [x] `evidence/P5/P5-T3/run.sh` (업로드 완료)
+- [x] `evidence/P6/P6-T1/run.sh` (다운로드)
+- [x] `evidence/P7/P7-T1/run.sh` (휴지통 이동)
+- [x] `evidence/P7/P7-T2/run.sh` (복원)
+- [x] `evidence/P7/P7-T3/run.sh` (영구 삭제)
+
+결론:
+- 디스크(볼륨) 연결/인식, 파일 업로드/다운로드, CRUD(생성/변경/삭제/복원/영구삭제) 경로는 스크립트 기준 PASS.
+- 프론트 페이지 버튼 단위 E2E(클릭 플로우)는 후속 브라우저 시나리오로 추가 점검 권장.
+
+---
+
+## G. 긴급 안정화 미션 재검증 (2026-03-06)
+
+### API 핵심 복구
+- [x] `GET /me/preferences` = 200
+- [x] `PATCH /me/preferences` = 200 (locale 반영 확인)
+- [x] `GET /admin/volumes` = 200
+- [x] `POST /admin/volumes/{volume_id}/activate` = 200 (활성 볼륨 단일 postcondition)
+- [x] `GET /nodes/{root}/children` = 200
+- [x] `GET /nodes/{root}/breadcrumb` = 200
+
+### 원인-수정 매핑
+- `/me`/`/me/preferences` 핸들러 누락으로 설정 저장/불러오기가 404이던 문제를 백엔드 라우트 추가로 복구
+- `/admin/volumes/{id}/activate` 누락으로 활성 볼륨 전환이 불가하던 문제를 계약대로 복구
+- `children`/`breadcrumb` 조회에서 UUID/권한 검증이 느슨하던 지점을 보강(400/403 경계 복구)
+- root node 미존재 시 조회 경로에서 자동 보강하여 `/files` 계열 본문 오류를 재발하지 않게 보강
+
+### 실행 검증
+- [x] `pnpm -C packages/ui typecheck`
+- [x] `pnpm -C packages/ui test`
+- [x] `bash scripts/run_evidence.sh --scope ui_light`
+- [x] 관련 evidence 재실행: P3-T2, P4-T1, P4-T3, P5-T1/T2/T3, P6-T1, P7-T1/T2/T3
+
+판정:
+- 설정 저장/불러오기 + 볼륨/파일 조회 + 업로드/다운로드/CRUD(휴지통/복원 포함) 경로를 API/증거 스크립트 기준으로 복구 확인.

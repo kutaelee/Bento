@@ -1,4 +1,4 @@
-# Nimbus Drive — UI/UX 고도화 플레이북 (Part 2: Phase 4-7 + 우선 Task + 체크리스트)
+# Bento — UI/UX 고도화 플레이북 (Part 2: Phase 4-7 + 우선 Task + 체크리스트)
 
 ---
 

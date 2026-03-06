@@ -4,7 +4,7 @@
 NAS UI-Kit Design Fidelity Playbook
 
 PLAYBOOK_VERSION: 2026-03-02.v1
-<!-- [SUSPENDED:UI_REFERENCE] Goal: Nimbus Drive Web 전체 라우트(/files, /admin 등)에서 ui-kit 적용률 100% + Stitch 최종안 fidelity 확보. -->
+<!-- [SUSPENDED:UI_REFERENCE] Goal: Bento Web 전체 라우트(/files, /admin 등)에서 ui-kit 적용률 100% + Stitch 최종안 fidelity 확보. -->
 <!-- [SUSPENDED:UI_REFERENCE] Approach: “페이지별 임시 UI 제거 → ui-kit 조합으로 통일 → 시안 누락분은 ‘파생(derived) 디자인 스펙’ 생성 → CLI 기반 시각 회귀(visual regression) 증거로 닫기” -->
 
 0) SSOT 우선순위(강 → 약)

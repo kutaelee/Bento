@@ -1,4 +1,4 @@
-# Nimbus Drive — Unified Playbook Pack (Merged, Conflict-Free)
+# Bento — Unified Playbook Pack (Merged, Conflict-Free)
 
 > Generated: 2026-03-02T00:00:00+09:00 (Asia/Seoul)
 > Sources: Evidence Playbook (P0–P12), Evidence Playbook (P13+ UI/Refactor), TDD Addendum, IA_NAV SSOT, COPY_KEYS SSOT, UI-Kit Design Fidelity Playbook (P20–P23)
@@ -1239,7 +1239,7 @@ Evidence(권장)
 NAS UI-Kit Design Fidelity Playbook (P20~P23)
 
 PLAYBOOK_VERSION: 2026-03-02.v1
-Goal: Nimbus Drive Web 전체 라우트(/files, /admin 등)에서 ui-kit 적용률 100% + Stitch 최종안 fidelity 확보.
+Goal: Bento Web 전체 라우트(/files, /admin 등)에서 ui-kit 적용률 100% + Stitch 최종안 fidelity 확보.
 Approach: “페이지별 임시 UI 제거 → ui-kit 조합으로 통일 → 시안 누락분은 ‘파생(derived) 디자인 스펙’ 생성 → CLI 기반 시각 회귀(visual regression) 증거로 닫기”
 
 0) SSOT 우선순위(강 → 약)
@@ -1518,7 +1518,7 @@ Admin 10 routes 중 5+
 
 ## 7. UI SSOT: Navigation & IA (IA_NAV_SSOT)
 
-# IA_NAV_SSOT — Nimbus Drive Navigation & IA (SSOT)
+# IA_NAV_SSOT — Bento Navigation & IA (SSOT)
 
 이 문서는 **메뉴/내비게이션/설정 섹션 구조의 단일 진실 원천(SSOT)** 입니다.  
 Stitch 보드의 메뉴가 흔들리더라도, **구현은 항상 이 문서를 우선**합니다.
@@ -1701,7 +1701,7 @@ Mobile 경로 개념:
 
 ## 8. UI SSOT: Copy & i18n Keys (COPY_KEYS_SSOT)
 
-# COPY_KEYS_SSOT — Nimbus Drive Copy & i18n Keys (SSOT)
+# COPY_KEYS_SSOT — Bento Copy & i18n Keys (SSOT)
 
 이 문서는 **UI 마이크로카피의 단일 진실 원천(SSOT)** 입니다.  
 - 기본 언어: **ko-KR**
@@ -1725,7 +1725,7 @@ Mobile 경로 개념:
 
 | key | ko-KR | en-US |
 |---|---|---|
-| app.greeting | 안녕하세요, Nimbus Drive | Hello Nimbus Drive |
+| app.greeting | 안녕하세요, Bento | Hello Bento |
 
 ## 2) Navigation (nav.*)
 

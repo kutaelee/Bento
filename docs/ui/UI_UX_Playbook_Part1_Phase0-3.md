@@ -1,4 +1,4 @@
-# Nimbus Drive — UI/UX 고도화 페이즈별 플레이북
+# Bento — UI/UX 고도화 페이즈별 플레이북
 
 > Generated: 2026-03-03 · Design-only (구현 코드 금지)
 > SSOT 기준: `IA_NAV_SSOT.md` rev HEAD, `COPY_KEYS_SSOT.md` rev HEAD

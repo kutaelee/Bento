@@ -5,6 +5,6 @@ describe("HelloShell", () => {
   it("sets the default title", () => {
     const element = HelloShell({});
     expect(element.props["data-testid"]).toBe("hello-shell");
-    expect(element.props.children).toBe("Nimbus Drive UI");
+    expect(element.props.children).toBe("Bento UI");
   });
 });

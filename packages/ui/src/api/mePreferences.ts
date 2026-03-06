@@ -7,7 +7,7 @@ export type UserPreferencesPatch = components["schemas"]["UserPreferencesPatch"]
 export const createMePreferencesApi = (client: ReturnType<typeof createApiClient>) => {
   return {
     getPreferences: async (): Promise<User> => {
-      return client.request<User>({ path: "/me" });
+      return client.request<User>({ path: "/me/preferences" });
     },
     setPreferences: async (payload: UserPreferencesPatch): Promise<User> => {
       return client.request<User>({
