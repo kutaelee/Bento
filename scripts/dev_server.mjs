@@ -58,8 +58,9 @@ const thumbnailCache = new Map();
 
 const jobStore = new Map();
 const jobOrder = [];
-const JOB_TYPES = new Set(['THUMBNAIL', 'TRANSCODE', 'MIGRATION', 'TRASH_GC', 'SCAN_CLEANUP', 'MOVE_TREE']);
+const JOB_TYPES = new Set(['THUMBNAIL', 'TRANSCODE', 'MIGRATION', 'TRASH_GC', 'SCAN_CLEANUP', 'MOVE_TREE', 'VOLUME_AUTO_SCAN']);
 const JOB_STATUSES = new Set(['QUEUED', 'RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED']);
+const volumeScanRuns = new Map();
 
 function registerJob(job) {
   jobStore.set(job.id, job);
@@ -111,6 +112,173 @@ function createMigrationJob(payload) {
   registerJob(job);
   scheduleMigrationJob(job);
   return job;
+}
+
+function normalizeStorageRelativePath(input) {
+  const raw = String(input || '');
+  return raw.split(path.sep).join(path.posix.sep);
+}
+
+function loadNodeByParentAndName(parentId, name) {
+  const escapedParent = quoteSqlLiteral(parentId);
+  const escapedName = String(name).replace(/'/g, "''");
+  const rowJson = execPsql(
+    "select row_to_json(n) from (" +
+      "select id::text as id, type, name, parent_id::text as parent_id, path::text as path, " +
+        "owner_user_id::text as owner_user_id, blob_id::text as blob_id, size_bytes, mime_type, metadata, " +
+        "to_char(created_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as created_at, " +
+        "to_char(updated_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as updated_at, " +
+        "to_char(deleted_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as deleted_at " +
+      "from nodes where parent_id='" + escapedParent + "'::uuid and name='" + escapedName + "' and deleted_at is null limit 1" +
+    ") n;"
+  ).trim();
+  if (!rowJson) return null;
+  const node = JSON.parse(rowJson);
+  if (node && node.deleted_at === null) delete node.deleted_at;
+  return node;
+}
+
+function ensureScannedFolderNode({ parentNode, name, ownerUserId, volumeId, relativeDir }) {
+  const existing = loadNodeByParentAndName(parentNode.id, name);
+  if (existing) {
+    if (existing.type !== 'FOLDER') {
+      throw new Error(`Node type conflict at ${relativeDir || name}`);
+    }
+    return existing;
+  }
+  return createFolderNode({
+    parent: parentNode,
+    name,
+    owner_user_id: ownerUserId,
+  });
+}
+
+function upsertScannedBlob({ volumeId, storageKey, stat, dryRun }) {
+  const escapedVolumeId = quoteSqlLiteral(volumeId);
+  const escapedStorageKey = quoteSqlLiteral(storageKey);
+  const pseudoSha = crypto
+    .createHash('sha256')
+    .update(`${volumeId}:${storageKey}:${Number(stat.size || 0)}:${Number(stat.mtimeMs || 0)}`)
+    .digest('hex');
+  if (dryRun) {
+    return {
+      id: `dryrun-blob-${pseudoSha.slice(0, 16)}`,
+      volume_id: volumeId,
+      storage_key: storageKey,
+      sha256: pseudoSha,
+      size_bytes: Number(stat.size || 0),
+      content_type: null,
+      ref_count: 1,
+      base_path: '',
+    };
+  }
+
+  execPsql(
+    "insert into blobs (id, volume_id, storage_key, sha256, size_bytes, content_type, ref_count, created_at, deleted_at) values (" +
+      "gen_random_uuid(), '" + escapedVolumeId + "'::uuid, '" + escapedStorageKey + "', '" + pseudoSha + "'::char(64), " + Number(stat.size || 0) + ", NULL, 1, now(), NULL" +
+    ") on conflict (volume_id, storage_key) do update set " +
+      "size_bytes=excluded.size_bytes, sha256=excluded.sha256, content_type=excluded.content_type, deleted_at=NULL;"
+  );
+
+  const rowJson = execPsql(
+    "select row_to_json(b) from (" +
+      "select id::text as id, volume_id::text as volume_id, storage_key, sha256::text as sha256, " +
+        "size_bytes, content_type, ref_count, ''::text as base_path " +
+      "from blobs where volume_id='" + escapedVolumeId + "'::uuid and storage_key='" + escapedStorageKey + "' and deleted_at is null limit 1" +
+    ") b;"
+  ).trim();
+
+  if (!rowJson) {
+    throw new Error(`Failed to load blob row for ${storageKey}`);
+  }
+  return JSON.parse(rowJson);
+}
+
+function upsertScannedFileNode({ parentNode, fileName, ownerUserId, blobId, stat, dryRun }) {
+  const existing = loadNodeByParentAndName(parentNode.id, fileName);
+  if (dryRun) {
+    return {
+      id: existing ? existing.id : `dryrun-node-${parentNode.id}-${fileName}`,
+      type: 'FILE',
+      name: fileName,
+      parent_id: parentNode.id,
+      owner_user_id: ownerUserId,
+      blob_id: blobId,
+      size_bytes: Number(stat.size || 0),
+    };
+  }
+
+  if (existing) {
+    if (existing.type !== 'FILE') {
+      throw new Error(`Node type conflict for file ${fileName}`);
+    }
+    execPsql(
+      "update nodes set blob_id='" + quoteSqlLiteral(blobId) + "'::uuid, size_bytes=" + Number(stat.size || 0) + ", mime_type=NULL, updated_at=now(), deleted_at=NULL " +
+      "where id='" + quoteSqlLiteral(existing.id) + "'::uuid;"
+    );
+    const reloaded = loadNodeById(existing.id);
+    if (!reloaded) {
+      throw new Error(`Failed to load updated node for ${fileName}`);
+    }
+    return reloaded;
+  }
+
+  return createFileNode({
+    parent: parentNode,
+    name: fileName,
+    owner_user_id: ownerUserId,
+    blob_id: blobId,
+    size_bytes: Number(stat.size || 0),
+    mime_type: null,
+  });
+}
+
+function updateVolumeScanState({ volumeId, state, jobId = null, progress = null, errorMessage = null }) {
+  const escapedState = quoteSqlLiteral(state);
+  const escapedJobId = jobId ? quoteSqlLiteral(jobId) : null;
+  const escapedError = errorMessage ? quoteSqlLiteral(String(errorMessage).slice(0, 2000)) : null;
+  execPsql(
+    "update volumes set " +
+      "scan_state='" + escapedState + "', " +
+      "scan_job_id=" + (escapedJobId ? "'" + escapedJobId + "'::uuid" : 'NULL') + ", " +
+      "scan_progress=" + (progress === null || progress === undefined ? 'NULL' : String(progress)) + ", " +
+      "scan_error=" + (escapedError ? "'" + escapedError + "'" : 'NULL') + ", " +
+      "scan_updated_at=now() " +
+    "where id='" + quoteSqlLiteral(volumeId) + "'::uuid;"
+  );
+}
+
+function listScannedVolumeArtifacts(volumeId) {
+  const escapedVolumeId = quoteSqlLiteral(volumeId);
+  const rowsJson = execPsql(
+    "select coalesce(json_agg(row_to_json(x)), '[]'::json) from (" +
+      "select b.id::text as blob_id, b.storage_key, n.id::text as node_id " +
+      "from blobs b left join nodes n on n.blob_id=b.id and n.deleted_at is null " +
+      "where b.volume_id='" + escapedVolumeId + "'::uuid and b.deleted_at is null" +
+    ") x;"
+  ).trim();
+  return rowsJson ? JSON.parse(rowsJson) : [];
+}
+
+function cleanupMissingScannedArtifacts({ volumeId, seenStorageKeys, dryRun }) {
+  const artifacts = listScannedVolumeArtifacts(volumeId);
+  const missing = artifacts.filter((row) => !seenStorageKeys.has(String(row.storage_key)));
+  if (!dryRun) {
+    for (const row of missing) {
+      if (row.node_id) {
+        execPsql(
+          "update nodes set deleted_at=now(), updated_at=now() where id='" + quoteSqlLiteral(row.node_id) + "'::uuid and deleted_at is null;"
+        );
+      }
+      execPsql(
+        "update blobs set deleted_at=now() where id='" + quoteSqlLiteral(row.blob_id) + "'::uuid and deleted_at is null;"
+      );
+    }
+  }
+  return {
+    removed_nodes: missing.filter((row) => Boolean(row.node_id)).length,
+    removed_blobs: missing.length,
+  };
 }
 
 function listFilesRecursive(rootDir) {
@@ -245,6 +413,251 @@ function createScanCleanupJob(payload) {
   };
   registerJob(job);
   scheduleScanCleanupJob(job);
+  return job;
+}
+
+function runVolumeAutoScanBatch(runState) {
+  const { job, volumeId, ownerUserId, basePath, dryRun } = runState;
+  if (!jobStore.has(job.id)) {
+    volumeScanRuns.delete(volumeId);
+    return;
+  }
+
+  if (job.status === 'QUEUED') {
+    setJobStatus(job, 'RUNNING', 0.01);
+    try {
+      updateVolumeScanState({ volumeId, state: 'running', jobId: job.id, progress: 0.01 });
+    } catch {
+      // do not fail job only because metadata update failed
+    }
+  }
+
+  const MAX_BATCH_DIRS = 24;
+  let processedDirs = 0;
+
+  while (runState.pendingDirs.length > 0 && processedDirs < MAX_BATCH_DIRS) {
+    const current = runState.pendingDirs.shift();
+    if (!current) break;
+    processedDirs += 1;
+
+    const absoluteDir = path.resolve(basePath, current.relativeDir);
+    const basePrefix = basePath.endsWith(path.sep) ? basePath : `${basePath}${path.sep}`;
+    if (absoluteDir !== basePath && !absoluteDir.startsWith(basePrefix)) {
+      continue;
+    }
+
+    let entries;
+    try {
+      entries = fs.readdirSync(absoluteDir, { withFileTypes: true });
+    } catch (err) {
+      runState.warnings.push({
+        path: current.relativeDir,
+        code: String(err && err.code ? err.code : 'UNKNOWN'),
+        message: String(err && err.message ? err.message : err),
+      });
+      continue;
+    }
+
+    for (const entry of entries) {
+      const childRelative = current.relativeDir
+        ? path.posix.join(current.relativeDir, entry.name)
+        : entry.name;
+      if (entry.isSymbolicLink()) {
+        runState.warnings.push({
+          path: childRelative,
+          code: 'SYMLINK_SKIPPED',
+          message: 'Symbolic link skipped',
+        });
+        continue;
+      }
+
+      if (entry.isDirectory()) {
+        try {
+          const folderNode = ensureScannedFolderNode({
+            parentNode: current.parentNode,
+            name: entry.name,
+            ownerUserId,
+            volumeId,
+            relativeDir: childRelative,
+          });
+          runState.pendingDirs.push({
+            relativeDir: childRelative,
+            parentNode: folderNode,
+          });
+          runState.scannedDirs += 1;
+        } catch (err) {
+          runState.warnings.push({
+            path: childRelative,
+            code: 'FOLDER_UPSERT_FAILED',
+            message: String(err && err.message ? err.message : err),
+          });
+        }
+        continue;
+      }
+
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      const absoluteFile = path.resolve(basePath, childRelative);
+      let st;
+      try {
+        st = fs.statSync(absoluteFile);
+      } catch (err) {
+        runState.warnings.push({
+          path: childRelative,
+          code: String(err && err.code ? err.code : 'STAT_FAILED'),
+          message: String(err && err.message ? err.message : err),
+        });
+        continue;
+      }
+
+      const storageKey = normalizeStorageRelativePath(childRelative);
+      runState.seenStorageKeys.add(storageKey);
+      runState.scannedFiles += 1;
+
+      try {
+        const blob = upsertScannedBlob({
+          volumeId,
+          storageKey,
+          stat: st,
+          dryRun,
+        });
+        upsertScannedFileNode({
+          parentNode: current.parentNode,
+          fileName: entry.name,
+          ownerUserId,
+          blobId: blob.id,
+          stat: st,
+          dryRun,
+        });
+      } catch (err) {
+        runState.warnings.push({
+          path: childRelative,
+          code: 'FILE_UPSERT_FAILED',
+          message: String(err && err.message ? err.message : err),
+        });
+      }
+    }
+  }
+
+  const processedUnits = runState.scannedDirs + runState.scannedFiles;
+  const remainingUnits = runState.pendingDirs.length;
+  const progress = Math.min(0.95, processedUnits / Math.max(1, processedUnits + remainingUnits));
+  setJobStatus(job, 'RUNNING', progress);
+  try {
+    updateVolumeScanState({ volumeId, state: 'running', jobId: job.id, progress });
+  } catch {
+    // ignore volume state update failure for scan continuity
+  }
+
+  if (runState.pendingDirs.length > 0) {
+    setTimeout(() => runVolumeAutoScanBatch(runState), 0);
+    return;
+  }
+
+  const cleanup = cleanupMissingScannedArtifacts({
+    volumeId,
+    seenStorageKeys: runState.seenStorageKeys,
+    dryRun,
+  });
+  job.result = {
+    volume_id: volumeId,
+    dry_run: dryRun,
+    scanned_directories: runState.scannedDirs,
+    scanned_files: runState.scannedFiles,
+    skipped_or_failed: runState.warnings.length,
+    removed_nodes: cleanup.removed_nodes,
+    removed_blobs: cleanup.removed_blobs,
+    warnings: runState.warnings,
+    scanned_at: new Date().toISOString(),
+  };
+  setJobStatus(job, 'SUCCEEDED', 1);
+  volumeScanRuns.delete(volumeId);
+  try {
+    updateVolumeScanState({ volumeId, state: 'succeeded', jobId: job.id, progress: 1, errorMessage: null });
+  } catch {
+    // ignore volume state update failure for successful completion
+  }
+}
+
+function createOrReuseVolumeAutoScanJob({ volumeId, ownerUserId, dryRun, trigger }) {
+  const currentRun = volumeScanRuns.get(volumeId);
+  if (currentRun && jobStore.has(currentRun.job.id) && (currentRun.job.status === 'QUEUED' || currentRun.job.status === 'RUNNING')) {
+    return currentRun.job;
+  }
+
+  const volume = loadVolumeById(volumeId);
+  if (!volume) {
+    throw new Error('Volume not found');
+  }
+  const basePath = path.resolve(String(volume.base_path));
+  if (!fs.existsSync(basePath)) {
+    throw new Error('volume base path not found');
+  }
+  if (!fs.statSync(basePath).isDirectory()) {
+    throw new Error('volume base path must be a directory');
+  }
+
+  const root = ensureRootFolderForUser(ownerUserId);
+  if (!root) {
+    throw new Error('Root folder not available for scan owner');
+  }
+
+  const job = {
+    id: crypto.randomUUID(),
+    type: 'VOLUME_AUTO_SCAN',
+    status: 'QUEUED',
+    progress: 0,
+    payload: {
+      volume_id: volumeId,
+      dry_run: Boolean(dryRun),
+      trigger: trigger || 'manual',
+      owner_user_id: ownerUserId,
+    },
+    result: null,
+    error: null,
+    created_at: new Date().toISOString(),
+    started_at: null,
+    finished_at: null,
+  };
+  registerJob(job);
+
+  const runState = {
+    job,
+    volumeId,
+    ownerUserId,
+    basePath,
+    dryRun: Boolean(dryRun),
+    pendingDirs: [{ relativeDir: '', parentNode: root }],
+    seenStorageKeys: new Set(),
+    scannedDirs: 0,
+    scannedFiles: 0,
+    warnings: [],
+  };
+  volumeScanRuns.set(volumeId, runState);
+
+  try {
+    updateVolumeScanState({ volumeId, state: 'queued', jobId: job.id, progress: 0 });
+  } catch {
+    // ignore metadata update failure at enqueue time
+  }
+
+  setTimeout(() => {
+    try {
+      runVolumeAutoScanBatch(runState);
+    } catch (err) {
+      job.error = { message: String(err && err.message ? err.message : err) };
+      setJobStatus(job, 'FAILED', 1);
+      volumeScanRuns.delete(volumeId);
+      try {
+        updateVolumeScanState({ volumeId, state: 'failed', jobId: job.id, progress: 1, errorMessage: job.error.message });
+      } catch {
+        // ignore
+      }
+    }
+  }, 20);
+
   return job;
 }
 
@@ -1043,7 +1456,9 @@ function loadVolumeById(volumeId) {
   const escaped = quoteSqlLiteral(volumeId);
   const rowJson = execPsql(
     "select row_to_json(v) from (" +
-      "select id::text as id, name, base_path, is_active, status, fs_type, free_bytes, total_bytes, created_at " +
+      "select id::text as id, name, base_path, is_active, status, scan_state, scan_job_id::text as scan_job_id, scan_progress, scan_error, " +
+        "to_char(scan_updated_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as scan_updated_at, " +
+        "fs_type, free_bytes, total_bytes, created_at " +
       "from volumes where id='" + escaped + "'::uuid limit 1" +
     ") v;"
   ).trim();
@@ -2712,7 +3127,9 @@ const server = http.createServer(async (req, res) => {
     try {
       const rowsJson = execPsql(
         "select coalesce(json_agg(row_to_json(v)), '[]'::json) from (" +
-          "select id::text as id, name, base_path, is_active, status, fs_type, free_bytes, total_bytes, created_at " +
+          "select id::text as id, name, base_path, is_active, status, scan_state, scan_job_id::text as scan_job_id, scan_progress, scan_error, " +
+            "to_char(scan_updated_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as scan_updated_at, " +
+            "fs_type, free_bytes, total_bytes, created_at " +
           "from volumes order by created_at asc" +
         ") v;"
       ).trim();
@@ -2789,7 +3206,9 @@ const server = http.createServer(async (req, res) => {
 
       const rowJson = execPsql(
         "select row_to_json(v) from (" +
-          "select id::text as id, name, base_path, is_active, status, fs_type, free_bytes, total_bytes, created_at " +
+          "select id::text as id, name, base_path, is_active, status, scan_state, scan_job_id::text as scan_job_id, scan_progress, scan_error, " +
+            "to_char(scan_updated_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as scan_updated_at, " +
+            "fs_type, free_bytes, total_bytes, created_at " +
           `from volumes where id='${volumeId}' limit 1` +
         ") v;"
       ).trim();
@@ -2864,6 +3283,65 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
       return;
     }
+  }
+
+  if (method === 'POST' && pathname.startsWith('/admin/volumes/') && pathname.endsWith('/scan')) {
+    const authResult = requireBearerAuth(req);
+    if (!authResult.ok) {
+      sendJson(res, authResult.status, authResult.body);
+      return;
+    }
+
+    const caller = loadUserById(authResult.user_id);
+    if (!caller) {
+      sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
+      return;
+    }
+    if (caller.role !== 'ADMIN') {
+      sendJson(res, 403, errorResponse('FORBIDDEN', 'Admin role required'));
+      return;
+    }
+
+    const volumeId = pathname.slice('/admin/volumes/'.length, -('/scan'.length));
+    if (!isValidUuid(volumeId)) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'volume_id must be a UUID'));
+      return;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', String(err)));
+      return;
+    }
+
+    if (body === null) {
+      body = {};
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'Request body must be an object'));
+      return;
+    }
+
+    const dryRun = body.dry_run === undefined ? false : body.dry_run;
+    if (typeof dryRun !== 'boolean') {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'dry_run must be a boolean'));
+      return;
+    }
+
+    try {
+      const job = createOrReuseVolumeAutoScanJob({
+        volumeId,
+        ownerUserId: caller.id,
+        dryRun,
+        trigger: 'manual',
+      });
+      sendJson(res, 202, job);
+    } catch (err) {
+      sendJson(res, 500, errorResponse('INTERNAL', String(err)));
+    }
+    return;
   }
 
   if (method === 'POST' && url === '/admin/volumes/validate-path') {
