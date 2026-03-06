@@ -3358,7 +3358,7 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
       return;
     }
-    if (caller.role !== 'ADMIN' && String(node.owner_user_id) != String(caller.id)) {
+    if (caller.role !== 'ADMIN' && String(node.owner_user_id) !== String(caller.id)) {
       sendJson(res, 403, errorResponse('FORBIDDEN', 'No share permission for node'));
       return;
     }
@@ -4261,6 +4261,9 @@ const server = http.createServer(async (req, res) => {
     let parent;
     try {
       parent = loadNodeById(nodeId);
+      if (!parent && nodeId === '00000000-0000-0000-0000-000000000001') {
+        parent = ensureRootFolderForUser(auth.user_id);
+      }
     } catch (err) {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
       return;
