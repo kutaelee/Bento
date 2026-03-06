@@ -526,7 +526,7 @@ function loadNodeAncestorsByPath(nodePath) {
   const escaped = quoteSqlLiteral(nodePath);
   const rowsJson = execPsql(
     "select coalesce(json_agg(row_to_json(t) order by nlevel(t.path::ltree) asc), '[]'::json) from (" +
-      "select id::text as id, parent_id::text as parent_id, path::text as path, owner_user_id::text as owner_user_id " +
+      "select id::text as id, parent_id::text as parent_id, path::text as path, name, owner_user_id::text as owner_user_id " +
       "from nodes where path @> '" + escaped + "'::ltree and deleted_at is null" +
     ") t"
   ).trim();
@@ -536,6 +536,14 @@ function loadNodeAncestorsByPath(nodePath) {
   }
   const rows = JSON.parse(rowsJson);
   return Array.isArray(rows) ? rows : [];
+}
+
+function updateUserLocale(userId, locale) {
+  const escapedUserId = quoteSqlLiteral(userId);
+  const escapedLocale = String(locale).replace(/'/g, "''");
+  execPsql(
+    "update users set locale='" + escapedLocale + "', updated_at=now() where id='" + escapedUserId + "'::uuid;"
+  );
 }
 
 function updateNodePath(nodeId, nextParentId, nextName, nextPath) {
@@ -1475,6 +1483,86 @@ const server = http.createServer(async (req, res) => {
 
     sendJson(res, 200, tokens);
     return;
+  }
+
+  if (method === 'GET' && pathname === '/me') {
+    const auth = requireBearerAuth(req);
+    if (!auth.ok) {
+      sendJson(res, auth.status, auth.body);
+      return;
+    }
+
+    const user = loadUserById(auth.user_id);
+    if (!user) {
+      sendJson(res, 404, errorResponse('NOT_FOUND', 'User not found'));
+      return;
+    }
+
+    sendJson(res, 200, user);
+    return;
+  }
+
+  if (method === 'GET' && pathname === '/me/preferences') {
+    const auth = requireBearerAuth(req);
+    if (!auth.ok) {
+      sendJson(res, auth.status, auth.body);
+      return;
+    }
+
+    const user = loadUserById(auth.user_id);
+    if (!user) {
+      sendJson(res, 404, errorResponse('NOT_FOUND', 'User not found'));
+      return;
+    }
+
+    sendJson(res, 200, user);
+    return;
+  }
+
+  if (method === 'PATCH' && pathname === '/me/preferences') {
+    const auth = requireBearerAuth(req);
+    if (!auth.ok) {
+      sendJson(res, auth.status, auth.body);
+      return;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', String(err)));
+      return;
+    }
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'Request body is required'));
+      return;
+    }
+
+    if (typeof body.locale !== 'string') {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'locale must be a string'));
+      return;
+    }
+
+    const localeError = validateLocale(body.locale);
+    if (localeError) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', localeError));
+      return;
+    }
+
+    try {
+      updateUserLocale(auth.user_id, body.locale);
+      const user = loadUserById(auth.user_id);
+      if (!user) {
+        sendJson(res, 404, errorResponse('NOT_FOUND', 'User not found'));
+        return;
+      }
+      sendJson(res, 200, user);
+      return;
+    } catch (err) {
+      sendJson(res, 500, errorResponse('INTERNAL', String(err)));
+      return;
+    }
   }
 
   if (method === 'POST' && url === '/admin/invites') {
@@ -2587,6 +2675,66 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
     }
     return;
+  }
+
+  if (method === 'POST' && pathname.startsWith('/admin/volumes/') && pathname.endsWith('/activate')) {
+    const authResult = requireBearerAuth(req);
+    if (!authResult.ok) {
+      sendJson(res, authResult.status, authResult.body);
+      return;
+    }
+
+    const caller = loadUserById(authResult.user_id);
+    if (!caller) {
+      sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
+      return;
+    }
+    if (caller.role !== 'ADMIN') {
+      sendJson(res, 403, errorResponse('FORBIDDEN', 'Admin role required'));
+      return;
+    }
+
+    const volumeId = pathname.slice('/admin/volumes/'.length, -('/activate'.length));
+    if (!isValidUuid(volumeId)) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'volume_id must be a UUID'));
+      return;
+    }
+
+    try {
+      const volume = loadVolumeById(volumeId);
+      if (!volume) {
+        sendJson(res, 404, errorResponse('NOT_FOUND', 'Volume not found'));
+        return;
+      }
+
+      execPsql("begin;");
+      try {
+        execPsql(
+          "update volumes set is_active=(id='" + quoteSqlLiteral(volumeId) + "'::uuid), updated_at=now();"
+        );
+        const activeCountText = execPsql("select count(*)::bigint from volumes where is_active=true;").trim();
+        const activeCount = Number(activeCountText || 0);
+        if (!Number.isFinite(activeCount) || activeCount !== 1) {
+          throw new Error('active volume postcondition failed');
+        }
+        execPsql("commit;");
+      } catch (err) {
+        try { execPsql("rollback;"); } catch (_) {}
+        throw err;
+      }
+
+      const updated = loadVolumeById(volumeId);
+      if (!updated) {
+        sendJson(res, 500, errorResponse('INTERNAL', 'Failed to load activated volume'));
+        return;
+      }
+
+      sendJson(res, 200, updated);
+      return;
+    } catch (err) {
+      sendJson(res, 500, errorResponse('INTERNAL', String(err)));
+      return;
+    }
   }
 
   if (method === 'POST' && url === '/admin/volumes/validate-path') {
@@ -4253,8 +4401,14 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (!/^[0-9a-fA-F-]{36}$/.test(nodeId)) {
+    if (!isValidUuid(nodeId)) {
       sendJson(res, 400, errorResponse('BAD_REQUEST', 'node_id must be a UUID'));
+      return;
+    }
+
+    const caller = loadUserById(auth.user_id);
+    if (!caller) {
+      sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
       return;
     }
 
@@ -4271,6 +4425,11 @@ const server = http.createServer(async (req, res) => {
 
     if (!parent) {
       sendJson(res, 404, errorResponse('NOT_FOUND', 'Node not found'));
+      return;
+    }
+
+    if (caller.role !== 'ADMIN' && String(parent.owner_user_id) !== String(auth.user_id)) {
+      sendJson(res, 403, errorResponse('FORBIDDEN', 'No read permission for node'));
       return;
     }
 
@@ -4314,6 +4473,59 @@ const server = http.createServer(async (req, res) => {
         cursor: cursorResult.value,
       });
       sendJson(res, 200, result);
+      return;
+    } catch (err) {
+      sendJson(res, 500, errorResponse('INTERNAL', String(err)));
+      return;
+    }
+  }
+
+  if (method === 'GET' && pathname.startsWith('/nodes/') && pathname.endsWith('/breadcrumb')) {
+    const auth = requireBearerAuth(req);
+    if (!auth.ok) {
+      sendJson(res, auth.status, auth.body);
+      return;
+    }
+
+    const nodeId = pathname.slice('/nodes/'.length, -('/breadcrumb'.length));
+    if (!nodeId || nodeId.includes('/')) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'node_id must be a UUID'));
+      return;
+    }
+
+    if (!isValidUuid(nodeId)) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'node_id must be a UUID'));
+      return;
+    }
+
+    const caller = loadUserById(auth.user_id);
+    if (!caller) {
+      sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
+      return;
+    }
+
+    try {
+      let node = loadNodeById(nodeId);
+      if (!node && nodeId === '00000000-0000-0000-0000-000000000001') {
+        node = ensureRootFolderForUser(auth.user_id);
+      }
+
+      if (!node) {
+        sendJson(res, 404, errorResponse('NOT_FOUND', 'Node not found'));
+        return;
+      }
+
+      if (caller.role !== 'ADMIN' && String(node.owner_user_id) !== String(auth.user_id)) {
+        sendJson(res, 403, errorResponse('FORBIDDEN', 'No read permission for node'));
+        return;
+      }
+
+      const ancestors = loadNodeAncestorsByPath(node.path);
+      const items = ancestors.map((item) => ({
+        id: item.id,
+        name: item.name,
+      }));
+      sendJson(res, 200, { items });
       return;
     } catch (err) {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
@@ -4497,7 +4709,10 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      const node = loadNodeById(nodeId);
+      let node = loadNodeById(nodeId);
+      if (!node && nodeId === '00000000-0000-0000-0000-000000000001') {
+        node = ensureRootFolderForUser(auth.user_id);
+      }
       if (!node) {
         sendJson(res, 404, errorResponse('NOT_FOUND', 'Node not found'));
         return;

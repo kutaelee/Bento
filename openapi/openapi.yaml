@@ -3,7 +3,7 @@ info:
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
-  title: Nimbus Drive (Self-Hosted NAS) API
+  title: Bento (Self-Hosted NAS) API
   version: 1.0.0
   description: 'Self-hosted NAS for 1–5 users. Contracts are SSOT. Default locale:
     ko-KR; optional en-US.'
@@ -1523,6 +1523,64 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /me/preferences:
+    get:
+      operationId: getMePreferences
+      tags:
+      - Users
+      summary: Get current user preferences
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     patch:
       operationId: patchMePreferences
       tags:
