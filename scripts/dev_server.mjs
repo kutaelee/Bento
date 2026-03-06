@@ -162,15 +162,32 @@ function upsertScannedBlob({ volumeId, storageKey, stat, dryRun }) {
     .digest('hex');
   if (dryRun) {
     return {
-      id: `dryrun-blob-${pseudoSha.slice(0, 16)}`,
-      volume_id: volumeId,
-      storage_key: storageKey,
-      sha256: pseudoSha,
-      size_bytes: Number(stat.size || 0),
-      content_type: null,
-      ref_count: 1,
-      base_path: '',
+      blob: {
+        id: `dryrun-blob-${pseudoSha.slice(0, 16)}`,
+        volume_id: volumeId,
+        storage_key: storageKey,
+        sha256: pseudoSha,
+        size_bytes: Number(stat.size || 0),
+        content_type: null,
+        ref_count: 1,
+        base_path: '',
+      },
+      changed: true,
     };
+  }
+
+  const existingJson = execPsql(
+    "select row_to_json(b) from (" +
+      "select id::text as id, volume_id::text as volume_id, storage_key, sha256::text as sha256, " +
+        "size_bytes, content_type, ref_count, ''::text as base_path " +
+      "from blobs where volume_id='" + escapedVolumeId + "'::uuid and storage_key='" + escapedStorageKey + "' and deleted_at is null limit 1" +
+    ") b;"
+  ).trim();
+  if (existingJson) {
+    const existing = JSON.parse(existingJson);
+    if (String(existing.sha256) === pseudoSha && Number(existing.size_bytes || 0) === Number(stat.size || 0)) {
+      return { blob: existing, changed: false };
+    }
   }
 
   execPsql(
@@ -191,26 +208,32 @@ function upsertScannedBlob({ volumeId, storageKey, stat, dryRun }) {
   if (!rowJson) {
     throw new Error(`Failed to load blob row for ${storageKey}`);
   }
-  return JSON.parse(rowJson);
+  return { blob: JSON.parse(rowJson), changed: true };
 }
 
 function upsertScannedFileNode({ parentNode, fileName, ownerUserId, blobId, stat, dryRun }) {
   const existing = loadNodeByParentAndName(parentNode.id, fileName);
   if (dryRun) {
     return {
-      id: existing ? existing.id : `dryrun-node-${parentNode.id}-${fileName}`,
-      type: 'FILE',
-      name: fileName,
-      parent_id: parentNode.id,
-      owner_user_id: ownerUserId,
-      blob_id: blobId,
-      size_bytes: Number(stat.size || 0),
+      node: {
+        id: existing ? existing.id : `dryrun-node-${parentNode.id}-${fileName}`,
+        type: 'FILE',
+        name: fileName,
+        parent_id: parentNode.id,
+        owner_user_id: ownerUserId,
+        blob_id: blobId,
+        size_bytes: Number(stat.size || 0),
+      },
+      changed: true,
     };
   }
 
   if (existing) {
     if (existing.type !== 'FILE') {
       throw new Error(`Node type conflict for file ${fileName}`);
+    }
+    if (String(existing.blob_id || '') === String(blobId) && Number(existing.size_bytes || 0) === Number(stat.size || 0)) {
+      return { node: existing, changed: false };
     }
     execPsql(
       "update nodes set blob_id='" + quoteSqlLiteral(blobId) + "'::uuid, size_bytes=" + Number(stat.size || 0) + ", mime_type=NULL, updated_at=now(), deleted_at=NULL " +
@@ -220,10 +243,10 @@ function upsertScannedFileNode({ parentNode, fileName, ownerUserId, blobId, stat
     if (!reloaded) {
       throw new Error(`Failed to load updated node for ${fileName}`);
     }
-    return reloaded;
+    return { node: reloaded, changed: true };
   }
 
-  return createFileNode({
+  const created = createFileNode({
     parent: parentNode,
     name: fileName,
     owner_user_id: ownerUserId,
@@ -231,6 +254,7 @@ function upsertScannedFileNode({ parentNode, fileName, ownerUserId, blobId, stat
     size_bytes: Number(stat.size || 0),
     mime_type: null,
   });
+  return { node: created, changed: true };
 }
 
 function updateVolumeScanState({ volumeId, state, jobId = null, progress = null, errorMessage = null }) {
@@ -521,20 +545,25 @@ function runVolumeAutoScanBatch(runState) {
       runState.scannedFiles += 1;
 
       try {
-        const blob = upsertScannedBlob({
+        const blobResult = upsertScannedBlob({
           volumeId,
           storageKey,
           stat: st,
           dryRun,
         });
-        upsertScannedFileNode({
+        const fileResult = upsertScannedFileNode({
           parentNode: current.parentNode,
           fileName: entry.name,
           ownerUserId,
-          blobId: blob.id,
+          blobId: blobResult.blob.id,
           stat: st,
           dryRun,
         });
+        if (blobResult.changed || fileResult.changed) {
+          runState.changedFiles += 1;
+        } else {
+          runState.unchangedFiles += 1;
+        }
       } catch (err) {
         runState.warnings.push({
           path: childRelative,
@@ -570,6 +599,8 @@ function runVolumeAutoScanBatch(runState) {
     dry_run: dryRun,
     scanned_directories: runState.scannedDirs,
     scanned_files: runState.scannedFiles,
+    changed_files: runState.changedFiles,
+    unchanged_files: runState.unchangedFiles,
     skipped_or_failed: runState.warnings.length,
     removed_nodes: cleanup.removed_nodes,
     removed_blobs: cleanup.removed_blobs,
@@ -639,6 +670,8 @@ function createOrReuseVolumeAutoScanJob({ volumeId, ownerUserId, dryRun, trigger
     seenStorageKeys: new Set(),
     scannedDirs: 0,
     scannedFiles: 0,
+    changedFiles: 0,
+    unchangedFiles: 0,
     warnings: [],
   };
   volumeScanRuns.set(volumeId, runState);

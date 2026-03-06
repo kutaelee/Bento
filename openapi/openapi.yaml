@@ -2465,7 +2465,7 @@ paths:
       operationId: postAdminVolumesVolumeIdScan
       tags:
       - Storage
-      summary: Enqueue volume file tree scan (manual retry supported)
+      summary: Enqueue incremental volume file tree scan (soft-delete on missing)
       security:
       - bearerAuth: []
       parameters:
