@@ -6,7 +6,8 @@ import { createAuthApi } from "../api/auth";
 import { t, type I18nKey } from "../i18n/t";
 import { Button, PasswordField, TextField } from "@nimbus/ui-kit";
 import { saveAuthTokens } from "./authTokens";
-import "./InviteAcceptPage.css";
+import { AuthLayout } from "./AuthLayout";
+import "./AuthForm.css";
 
 export type InviteAcceptFormState = {
   username: string;
@@ -38,52 +39,72 @@ export function InviteAcceptView({
   onSubmit,
 }: InviteAcceptViewProps) {
   const activeErrorKey: I18nKey | null = tokenMissing ? "msg.inviteMissingToken" : errorKey;
+  const statusBlock = (
+    <ul className="auth-form__status-list">
+      <li>{t("msg.inviteStatusWorkspace")}</li>
+      <li>{t("msg.inviteStatusPermissions")}</li>
+      <li>{tokenMissing ? t("msg.inviteMissingToken") : t("msg.inviteStatusReady")}</li>
+    </ul>
+  );
 
   return (
-    <main className="invite-accept">
-      <form className="invite-accept__card" onSubmit={onSubmit}>
-        <h1 className="invite-accept__title">{t("msg.inviteAcceptTitle")}</h1>
-        <p className="invite-accept__subtitle">{t("msg.inviteAcceptSubtitle")}</p>
+    <AuthLayout
+      titleKey="msg.inviteAcceptTitle"
+      subtitleKey="msg.inviteAcceptSubtitle"
+      status={statusBlock}
+      sidebarTitleKey="msg.inviteHeroTitle"
+      sidebarBodyKey="msg.inviteHeroBody"
+      sidebarItems={[
+        { labelKey: "field.permissions", value: t("msg.inviteMetricPermission") },
+        { labelKey: "field.status", value: tokenMissing ? t("msg.inviteMissingToken") : t("status.active") },
+      ]}
+    >
+      <form className="auth-form" onSubmit={onSubmit}>
+        <div className="auth-form__fields">
+          <div className="auth-form__split">
+            <TextField
+              name="username"
+              autoComplete="username"
+              label={t("field.username")}
+              value={formState.username}
+              onChange={onFieldChange("username")}
+              disabled={submitting}
+              aria-label={t("field.username")}
+              error={errorKey === "err.validation" && !formState.username.trim() ? t(errorKey) : undefined}
+            />
 
-        {activeErrorKey ? <p className="invite-accept__error">{t(activeErrorKey)}</p> : null}
+            <TextField
+              name="displayName"
+              autoComplete="name"
+              label={t("field.displayName")}
+              value={formState.displayName}
+              onChange={onFieldChange("displayName")}
+              disabled={submitting}
+              aria-label={t("field.displayName")}
+            />
+          </div>
 
-        <TextField
-          name="username"
-          autoComplete="username"
-          label={t("field.username")}
-          value={formState.username}
-          onChange={onFieldChange("username")}
-          disabled={submitting}
-          aria-label={t("field.username")}
-        />
+          <PasswordField
+            name="password"
+            autoComplete="new-password"
+            label={t("field.password")}
+            value={formState.password}
+            onChange={onFieldChange("password")}
+            disabled={submitting}
+            aria-label={t("field.password")}
+            error={errorKey === "err.validation" && !formState.password ? t(errorKey) : undefined}
+          />
+        </div>
 
-        <PasswordField
-          name="password"
-          autoComplete="new-password"
-          label={t("field.password")}
-          value={formState.password}
-          onChange={onFieldChange("password")}
-          disabled={submitting}
-          aria-label={t("field.password")}
-        />
+        {activeErrorKey && activeErrorKey !== "err.validation" ? <p className="auth-form__error">{t(activeErrorKey)}</p> : null}
 
-        <TextField
-          name="displayName"
-          autoComplete="name"
-          label={t("field.displayName")}
-          value={formState.displayName}
-          onChange={onFieldChange("displayName")}
-          disabled={submitting}
-          aria-label={t("field.displayName")}
-        />
-
-        <div className="invite-accept__actions">
-          <Button type="submit" variant="primary" loading={submitting} disabled={tokenMissing || submitting}>
+        <div className="auth-form__actions">
+          <Button type="submit" variant="primary" loading={submitting} disabled={tokenMissing || submitting || !formState.username.trim() || !formState.password}>
             {t("action.acceptInvite")}
           </Button>
         </div>
       </form>
-    </main>
+    </AuthLayout>
   );
 }
 
@@ -119,7 +140,7 @@ export function InviteAcceptPage() {
       return;
     }
 
-    if (!formState.username || !formState.password) {
+    if (!formState.username.trim() || !formState.password) {
       setErrorKey("err.validation");
       return;
     }
@@ -130,9 +151,9 @@ export function InviteAcceptPage() {
     try {
       const response = await authApi.acceptInvite({
         token,
-        username: formState.username,
+        username: formState.username.trim(),
         password: formState.password,
-        display_name: formState.displayName || undefined,
+        display_name: formState.displayName.trim() || undefined,
       });
       saveAuthTokens(response.tokens);
       navigate("/files", { replace: true });

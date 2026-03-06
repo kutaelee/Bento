@@ -2,7 +2,7 @@
   padding: var(--nd-space-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--nd-space-4, 16px);
+  gap: var(--nd-space-5, 20px);
 }
 
 .admin-home__header {

@@ -1,13 +1,6 @@
 .admin-migration {
   display: grid;
-  gap: 12px;
-}
-
-.admin-migration__title {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--nd-color-text-primary);
+  gap: 16px;
 }
 
 .admin-migration__section {
@@ -19,6 +12,11 @@
   background: var(--nd-color-surface-primary);
 }
 
+.admin-migration__section--dense {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--nd-color-surface-primary) 94%, white), var(--nd-color-surface-primary));
+}
+
 .admin-migration__section-title {
   margin: 0;
   font-size: 1rem;
@@ -27,20 +25,22 @@
 }
 
 .admin-migration__muted {
-  margin: 0;
+  margin: 4px 0 0;
   font-size: 0.9rem;
   color: var(--nd-color-text-secondary);
 }
 
-.admin-migration__alert {
+.admin-migration__alert,
+.admin-migration__warning {
   margin: 0;
   font-size: 0.9rem;
   color: var(--nd-color-status-danger);
 }
 
-.admin-migration__row {
-  display: flex;
-  align-items: center;
+.admin-migration__success {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--nd-color-status-success);
 }
 
 .admin-migration__checkbox {
@@ -59,15 +59,5 @@
 
 .admin-migration__column {
   display: grid;
-  gap: 8px;
-}
-
-.admin-migration__loading {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.admin-migration__save-skeleton {
-  align-self: flex-end;
+  gap: 10px;
 }

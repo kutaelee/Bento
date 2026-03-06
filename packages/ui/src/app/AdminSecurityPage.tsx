@@ -4,7 +4,6 @@ import {
   DataTable,
   EmptyState,
   ErrorState,
-  ForbiddenState,
   LoadingSkeleton,
   PageHeader,
   TextField,
@@ -84,7 +83,6 @@ export default function AdminSecurityPage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
-  const [forbidden, setForbidden] = useState(false);
   const [rows, setRows] = useState<PolicyRow[]>([]);
 
   const columns = useMemo(() => makeColumns(), []);
@@ -118,14 +116,8 @@ export default function AdminSecurityPage() {
     });
   }, [queryValue, rows]);
 
-  const sharedPolicies = useMemo(
-    () => filteredRows.filter((row) => row.scope === "sharing"),
-    [filteredRows],
-  );
-  const securePolicies = useMemo(
-    () => filteredRows.filter((row) => row.scope === "security"),
-    [filteredRows],
-  );
+  const sharedPolicies = useMemo(() => filteredRows.filter((row) => row.scope === "sharing"), [filteredRows]);
+  const securePolicies = useMemo(() => filteredRows.filter((row) => row.scope === "security"), [filteredRows]);
 
   return (
     <section className="admin-security">
@@ -138,34 +130,29 @@ export default function AdminSecurityPage() {
               onChange={(event) => setQuery(event.currentTarget.value)}
               placeholder={t("admin.security.searchPlaceholder")}
             />
-            <Button
-              variant="ghost"
-              onClick={() => {
-                if (forbidden) {
-                  setForbidden(false);
-                }
-                void loadRows();
-              }}
-            >
+            <Button variant="ghost" onClick={() => void loadRows()}>
               {t("action.refresh")}
             </Button>
           </Toolbar>
         }
       />
 
+      <section className="admin-security__summary">
+        <div className="admin-security__summary-card">
+          <span>{t("admin.security.section.share.title")}</span>
+          <strong>{sharedPolicies.length}</strong>
+        </div>
+        <div className="admin-security__summary-card">
+          <span>{t("admin.security.section.security.title")}</span>
+          <strong>{securePolicies.length}</strong>
+        </div>
+      </section>
+
       {loading ? <LoadingSkeleton lines={6} /> : null}
+      {errorKey ? <ErrorState title={t("admin.security.error")} detail={t(errorKey)} /> : null}
+      {!loading && !errorKey && filteredRows.length === 0 ? <EmptyState title={t("admin.security.empty")} /> : null}
 
-      {forbidden ? <ForbiddenState title={t("admin.security.forbidden")} /> : null}
-
-      {errorKey && !forbidden ? (
-        <ErrorState title={t("admin.security.error")} detail={t(errorKey)} />
-      ) : null}
-
-      {!loading && !errorKey && !forbidden && filteredRows.length === 0 ? (
-        <EmptyState title={t("admin.security.empty")} />
-      ) : null}
-
-      {!loading && !errorKey && !forbidden && filteredRows.length > 0 ? (
+      {!loading && !errorKey && filteredRows.length > 0 ? (
         <>
           <section className="admin-security__section">
             <h2>{t("admin.security.section.share.title")}</h2>
@@ -196,14 +183,6 @@ export default function AdminSecurityPage() {
           </section>
         </>
       ) : null}
-
-      <button
-        className="admin-security__toggle-forbidden"
-        type="button"
-        onClick={() => setForbidden((value) => !value)}
-      >
-        {t("admin.security.forbiddenToggle")}
-      </button>
     </section>
   );
 }

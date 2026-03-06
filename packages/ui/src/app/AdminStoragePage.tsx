@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button, DataTable, SkeletonBlock, EmptyState, ErrorState, ForbiddenState, PageHeader, Toolbar } from "@nimbus/ui-kit";
 import { createAdminMaintenanceApi } from "../api/adminMaintenance";
 import { ApiError } from "../api/errors";
@@ -45,6 +46,7 @@ const formatBytes = (value?: number) => {
 };
 
 export default function AdminStoragePage() {
+  const navigate = useNavigate();
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const maintenanceApi = useMemo(() => createAdminMaintenanceApi(apiClient), [apiClient]);
   const jobsApi = useMemo(() => createJobsApi(apiClient), [apiClient]);
@@ -311,7 +313,7 @@ export default function AdminStoragePage() {
           </Button>
         </div>
         {loadErrorKey === "err.forbidden" ? (
-          <ForbiddenState titleKey="err.forbidden" descKey="msg.forbiddenAdmin" actionLabelKey="action.goHome" onAction={() => window.location.href = "/"} />
+          <ForbiddenState titleKey="err.forbidden" descKey="msg.forbiddenAdmin" actionLabelKey="action.goHome" onAction={() => navigate("/files")} />
         ) : loadErrorKey ? (
           <ErrorState titleKey="err.unknown" descKey={loadErrorKey} retryLabelKey="action.retry" onRetry={loadVolumes} />
         ) : loading ? (

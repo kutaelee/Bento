@@ -85,6 +85,7 @@ export type DeleteTrashParams = {
 };
 
 export type TrashDeleteResponse = SuccessResponse | Job;
+export type DeleteNodeResponse = SuccessResponse | Job;
 
 export type ShareLink = components["schemas"]["ShareLink"];
 
@@ -154,6 +155,13 @@ export const createNodesApi = (client: ReturnType<typeof createApiClient>) => {
     deleteTrash: async ({ nodeId, idempotencyKey }: DeleteTrashParams): Promise<TrashDeleteResponse> => {
       return client.request<TrashDeleteResponse>({
         path: `/trash/${nodeId}`,
+        method: "DELETE",
+        headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+      });
+    },
+    deleteNode: async ({ nodeId, idempotencyKey }: DeleteTrashParams): Promise<DeleteNodeResponse> => {
+      return client.request<DeleteNodeResponse>({
+        path: `/nodes/${nodeId}`,
         method: "DELETE",
         headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
       });

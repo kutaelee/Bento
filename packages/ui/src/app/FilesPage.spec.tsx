@@ -1,6 +1,7 @@
 import React from "react";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { FolderView } from "./FilesPage";
 import { t } from "../i18n/t";
 import type { NodeItem } from "../api/nodes";
@@ -17,16 +18,18 @@ const baseItem: NodeItem = {
 
 const renderView = (overrides: Partial<React.ComponentProps<typeof FolderView>> = {}) =>
   renderToStaticMarkup(
-    <FolderView
-      title="Files"
-      items={[baseItem]}
-      nextCursor={null}
-      loading={false}
-      loadingMore={false}
-      errorKey={null}
-      onLoadMore={() => undefined}
-      {...overrides}
-    />,
+    <MemoryRouter>
+      <FolderView
+        title="Files"
+        items={[baseItem]}
+        nextCursor={null}
+        loading={false}
+        loadingMore={false}
+        errorKey={null}
+        onLoadMore={() => undefined}
+        {...overrides}
+      />
+    </MemoryRouter>,
   );
 
 describe("FolderView", () => {

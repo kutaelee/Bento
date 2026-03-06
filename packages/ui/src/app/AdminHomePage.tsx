@@ -3,51 +3,48 @@ import { SectionCard } from "@nimbus/ui-kit";
 import { t } from "../i18n/t";
 import "./AdminHomePage.css";
 
-export function AdminHomePage() {
-  const sections = [
-    {
-      to: "/admin/users",
-      icon: "👥",
-      title: t("admin.users.title"),
-      description: t("admin.home.card.users"),
-    },
-    {
-      to: "/admin/storage",
-      icon: "💾",
-      title: t("admin.storage.title"),
-      description: t("admin.home.card.storage"),
-    },
-    {
-      to: "/admin/performance",
-      icon: "⚡",
-      title: t("admin.performance.title"),
-      description: t("admin.home.card.performance"),
-    },
-    {
-      to: "/admin/jobs",
-      icon: "⚙️",
-      title: t("admin.jobs.title"),
-      description: t("admin.home.card.jobs"),
-    },
-    {
-      to: "/admin/security",
-      icon: "🛡️",
-      title: t("admin.security.title"),
-      description: t("admin.home.card.security"),
-    },
-    {
-      to: "/admin/appearance",
-      icon: "🎨",
-      title: t("admin.appearance.title"),
-      description: t("admin.home.card.appearance"),
-    },
-  ];
+type AdminSection = {
+  to: string;
+  icon: string;
+  titleKey:
+    | "admin.users.title"
+    | "admin.storage.title"
+    | "admin.migration.title"
+    | "admin.performance.title"
+    | "admin.jobs.title"
+    | "admin.audit.title"
+    | "admin.security.title"
+    | "admin.appearance.title";
+  descriptionKey:
+    | "admin.home.card.users"
+    | "admin.home.card.storage"
+    | "admin.home.card.performance"
+    | "admin.home.card.jobs"
+    | "admin.home.card.security"
+    | "admin.home.card.appearance"
+    | "admin.storage.title"
+    | "admin.audit.title";
+};
 
+const sections: AdminSection[] = [
+  { to: "/admin/users", icon: "US", titleKey: "admin.users.title", descriptionKey: "admin.home.card.users" },
+  { to: "/admin/storage", icon: "ST", titleKey: "admin.storage.title", descriptionKey: "admin.home.card.storage" },
+  { to: "/admin/migration", icon: "MG", titleKey: "admin.migration.title", descriptionKey: "admin.storage.title" },
+  { to: "/admin/performance", icon: "PF", titleKey: "admin.performance.title", descriptionKey: "admin.home.card.performance" },
+  { to: "/admin/jobs", icon: "JB", titleKey: "admin.jobs.title", descriptionKey: "admin.home.card.jobs" },
+  { to: "/admin/audit", icon: "AU", titleKey: "admin.audit.title", descriptionKey: "admin.audit.title" },
+  { to: "/admin/security", icon: "SC", titleKey: "admin.security.title", descriptionKey: "admin.home.card.security" },
+  { to: "/admin/appearance", icon: "AP", titleKey: "admin.appearance.title", descriptionKey: "admin.home.card.appearance" },
+];
+
+export function AdminHomePage() {
   return (
     <section className="admin-home">
       <header className="admin-home__header">
-        <h1 className="admin-home__title">{t("admin.home.title")}</h1>
-        <p className="admin-home__subtitle">{t("admin.home.subtitle")}</p>
+        <div>
+          <h1 className="admin-home__title">{t("admin.home.title")}</h1>
+          <p className="admin-home__subtitle">{t("admin.home.subtitle")}</p>
+        </div>
       </header>
 
       <section className="admin-home__cards" aria-label={t("admin.home.quickLinksTitle")}>
@@ -56,8 +53,8 @@ export function AdminHomePage() {
             key={section.to}
             to={section.to}
             icon={section.icon}
-            title={section.title}
-            description={section.description}
+            title={t(section.titleKey)}
+            description={t(section.descriptionKey)}
           />
         ))}
       </section>
