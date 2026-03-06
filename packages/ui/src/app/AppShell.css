@@ -176,7 +176,8 @@
   }
 
   .app-shell__topbar-tabs {
-    display: none;
+    display: inline-flex;
+    max-width: 42vw;
   }
 
   .app-shell__action-row {
