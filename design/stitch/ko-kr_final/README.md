@@ -1,4 +1,4 @@
-# Stitch UI SSOT (Nimbus Drive)
+# Stitch UI SSOT (Bento)
 
 - 이 폴더는 **UI 구현의 참조 원천**입니다.
 - 기본 마이크로카피는 **한국어(ko-KR)** 입니다.

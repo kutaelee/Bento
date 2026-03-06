@@ -1,4 +1,4 @@
-# Nimbus Drive
+# Bento
 
 Self-hosted NAS web application for 1–5 users (personal/family). Upload, browse, download, and share files from any device with automatic performance tuning that keeps your PC responsive.
 

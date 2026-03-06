@@ -1,4 +1,4 @@
-# COPY_KEYS_SSOT — Nimbus Drive Copy & i18n Keys (SSOT)
+# COPY_KEYS_SSOT — Bento Copy & i18n Keys (SSOT)
 
 이 문서는 **UI 마이크로카피의 단일 진실 원천(SSOT)** 입니다.  
 - 기본 언어: **ko-KR**
@@ -22,8 +22,8 @@
 
 | key | ko-KR | en-US |
 |---|---|---|
-| app.brand | Nimbus Drive | Nimbus Drive |
-| app.greeting | 안녕하세요, Nimbus Drive | Hello Nimbus Drive |
+| app.brand | Bento | Bento |
+| app.greeting | 안녕하세요, Bento | Hello Bento |
 
 ## 2) Navigation (nav.*)
 
