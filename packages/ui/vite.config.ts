@@ -19,6 +19,7 @@ const proxy = disableProxy
       "^/setup/status$": proxyTarget,
       "^/setup/admin$": proxyTarget,
       "/auth": proxyTarget,
+      "/me": proxyTarget,
       "/admin": {
         target: proxyTarget,
         bypass: (req) => (shouldBypassForSpaNavigation(req) ? req.url : undefined),
