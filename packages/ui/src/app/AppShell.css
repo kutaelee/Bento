@@ -1,25 +1,58 @@
+.app-shell {
+  min-height: 100vh;
+  background: var(--nd-color-surface-secondary);
+  color: var(--nd-color-text-primary);
+}
 
-/* Revert CSS changes for dark theme colors to pass pixel diff test */
+.app-shell__main {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: var(--nd-sidebar-width) minmax(0, 1fr);
+  grid-template-rows: var(--nd-topbar-height) minmax(0, 1fr);
+  grid-template-areas:
+    "sidebar topbar"
+    "sidebar content";
+}
 
-/* Original light theme colors are as follows: */
+.app-shell__sidebar {
+  grid-area: sidebar;
+  min-width: 0;
+  padding: var(--nd-space-5) var(--nd-space-4);
+  background: var(--nd-color-surface-primary);
+  border-right: 1px solid var(--nd-color-border-default);
+  overflow: auto;
+}
 
-/* Revert color changes:
-   - #0b1220 back to #f8f9fb
-   - #0f172a back to #ffffff
-   - #1f2937 back to #e5e7eb
-   - #e5e7eb back to #6b7280
-   - #9ca3af back to #111827
-   - #cbd5e1 back to #eef2ff
-   - #a5b4fc back to #4338ca
-   - #111827 back to #c7d2fe
-   - #374151 back to #f3f4f6
-*/
+.app-shell__topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nd-space-4);
+  padding: 0 var(--nd-space-6);
+  border-bottom: 1px solid var(--nd-color-border-default);
+  background: var(--nd-color-surface-primary);
+  min-width: 0;
+}
+
+.app-shell__topbar-left,
+.app-shell__topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--nd-space-3);
+  min-width: 0;
+}
+
+.app-shell__topbar-left {
+  flex: 1;
+}
 
 .app-shell__brand {
   font-size: var(--nd-font-size-h3);
   font-weight: var(--nd-font-weight-bold);
   color: var(--nd-color-text-primary);
   margin-right: var(--nd-space-4);
+  white-space: nowrap;
 }
 
 .app-shell__search {
@@ -28,10 +61,131 @@
   border-radius: var(--nd-radius-lg);
   background: var(--nd-color-surface-secondary);
   color: var(--nd-color-text-primary);
-  flex-grow: 1;
-  max-width: 300px; /* Limit max width for better aesthetics */
+  flex: 1;
+  min-width: 180px;
+  max-width: 320px;
 }
 
 .app-shell__search::placeholder {
   color: var(--nd-color-text-secondary);
+}
+
+.app-shell__topbar-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nd-space-1);
+  min-width: 0;
+  overflow: auto;
+}
+
+.app-shell__topbar-tab {
+  text-decoration: none;
+  color: var(--nd-color-text-secondary);
+  padding: var(--nd-space-2) var(--nd-space-3);
+  border-radius: var(--nd-radius-lg);
+  white-space: nowrap;
+}
+
+.app-shell__topbar-tab--active,
+.app-shell__topbar-tab:hover {
+  color: var(--nd-color-accent-default);
+  background: color-mix(in srgb, var(--nd-color-accent-default) 10%, transparent);
+}
+
+.app-shell__action-row {
+  display: inline-flex;
+  gap: var(--nd-space-2);
+}
+
+.app-shell__action-button,
+.app-shell__icon-button {
+  border-radius: var(--nd-radius-lg);
+  border: 1px solid var(--nd-color-border-default);
+  background: var(--nd-color-surface-primary);
+  color: var(--nd-color-text-primary);
+  padding: var(--nd-space-2) var(--nd-space-3);
+  text-decoration: none;
+  line-height: 1;
+}
+
+.app-shell__icon-button--active {
+  color: var(--nd-color-accent-default);
+  border-color: color-mix(in srgb, var(--nd-color-accent-default) 35%, var(--nd-color-border-default));
+}
+
+.app-shell__hidden-input {
+  display: none;
+}
+
+.app-shell__content {
+  grid-area: content;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--nd-inspector-width);
+  min-height: 0;
+}
+
+.app-shell__canvas {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--nd-color-surface-primary);
+  border-right: 1px solid var(--nd-color-border-default);
+}
+
+.app-shell__inspector {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--nd-color-surface-tertiary);
+}
+
+@media (max-width: 1024px) {
+  .app-shell__main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "topbar"
+      "content";
+  }
+
+  .app-shell__sidebar {
+    display: none;
+  }
+
+  .app-shell__content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-shell__inspector {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell__topbar {
+    padding: 0 var(--nd-space-3);
+    gap: var(--nd-space-2);
+  }
+
+  .app-shell__brand {
+    margin-right: var(--nd-space-2);
+    font-size: var(--nd-font-size-base);
+  }
+
+  .app-shell__search {
+    min-width: 120px;
+  }
+
+  .app-shell__topbar-tabs {
+    display: inline-flex;
+    max-width: 42vw;
+  }
+
+  .app-shell__action-row {
+    gap: var(--nd-space-1);
+  }
+
+  .app-shell__action-button {
+    padding: var(--nd-space-2);
+    font-size: var(--nd-font-size-xs);
+  }
 }

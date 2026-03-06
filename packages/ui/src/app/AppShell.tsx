@@ -14,90 +14,7 @@ import { ShareDialog } from "./ShareDialog";
 import { adminSettingsLink, quickLinks } from "../nav";
 import { Button, Dialog, DetailInspector, TextField } from "@nimbus/ui-kit";
 import { t, type I18nKey } from "../i18n/t";
-
-const layoutStyles = {
-  root: {
-    display: "flex",
-    minHeight: "100vh",
-    background: "var(--nd-color-surface-secondary)",
-    color: "var(--nd-color-text-primary)",
-  },
-  sidebar: {
-    width: "var(--nd-sidebar-width)",
-    padding: "var(--nd-space-5) var(--nd-space-4)",
-    background: "var(--nd-color-surface-primary)",
-    borderRight: "1px solid var(--nd-color-border-default)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "var(--nd-space-4)",
-  },
-  main: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-  },
-  topbar: {
-    height: "var(--nd-topbar-height)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "0 var(--nd-space-6)",
-    borderBottom: "1px solid var(--nd-color-border-default)",
-    background: "var(--nd-color-surface-primary)",
-    gap: "var(--nd-space-4)",
-  },
-  topbarLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: "var(--nd-space-4)",
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    display: "flex",
-  },
-  canvas: {
-    flex: 1,
-    background: "var(--nd-color-surface-primary)",
-    borderRight: "1px solid var(--nd-color-border-default)",
-  },
-  inspector: {
-    width: "var(--nd-inspector-width)",
-    background: "var(--nd-color-surface-tertiary)",
-  },
-  sectionTitle: {
-    fontSize: "var(--nd-font-size-xs)",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    color: "var(--nd-color-text-secondary)",
-  },
-  navList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "var(--nd-space-2)",
-  },
-  navLink: {
-    color: "var(--nd-color-text-primary)",
-    textDecoration: "none",
-    padding: "6px var(--nd-space-2)",
-    borderRadius: "var(--nd-radius-lg)",
-  },
-  navLinkActive: {
-    background: "color-mix(in srgb, var(--nd-color-accent-default) 10%, transparent)",
-    color: "var(--nd-color-accent-default)",
-  },
-  actionRow: {
-    display: "flex",
-    gap: "var(--nd-space-2)",
-  },
-  actionButton: {
-    borderRadius: "var(--nd-radius-lg)",
-    border: "1px solid var(--nd-color-border-default)",
-    background: "var(--nd-color-surface-primary)",
-    padding: "6px 10px",
-    fontSize: 13,
-  },
-};
+import "./AppShell.css";
 
 export function AppShell() {
   const { triggerRefresh } = useFolderRefresh();
@@ -188,7 +105,7 @@ export function AppShell() {
         <header className="app-shell__topbar">
           <div className="app-shell__topbar-left">
 
-            <div className="app-shell__brand">Nimbus Drive</div>
+            <div className="app-shell__brand">{t("app.brand")}</div>
             <input
               aria-label={t("field.search")}
               placeholder={t("field.search")}

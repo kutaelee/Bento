@@ -152,6 +152,7 @@
   "admin.users.status.pending": "Pending",
   "admin.users.tab.invites": "Invites",
   "admin.users.tab.users": "Users",
+  "app.brand": "Nimbus Drive",
   "app.greeting": "Hello Nimbus Drive",
   "err.conflict": "Name conflict occurred.",
   "err.forbidden": "You don't have permission.",

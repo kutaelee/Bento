@@ -11,7 +11,7 @@
 
 ## 0) 키 규칙
 
-- 네임스페이스: `app`, `nav`, `action`, `field`, `msg`, `err`, `status`, `modal`, `admin`
+- 네임스페이스: `app`, `nav`, `action`, `field`, `msg`, `err`, `status`, `modal`, `admin`, `setup`
 - 점 표기: `nav.files`, `action.upload`
 - UI에서 직접 문자열을 쓰지 말고 키만 참조
 - 신규 키는 반드시 여기와 `locales/ko-KR.json`, `locales/en-US.json`에 동시에 추가
@@ -22,6 +22,7 @@
 
 | key | ko-KR | en-US |
 |---|---|---|
+| app.brand | Nimbus Drive | Nimbus Drive |
 | app.greeting | 안녕하세요, Nimbus Drive | Hello Nimbus Drive |
 
 ## 2) Navigation (nav.*)
@@ -56,6 +57,7 @@
 | action.cancel | 취소 | Cancel |
 | action.close | 닫기 | Close |
 | action.save | 저장 | Save |
+| action.createAdmin | 관리자 생성 | Create admin |
 | action.apply | 적용 | Apply |
 | action.signIn | 로그인 | Sign in |
 | action.acceptInvite | 초대 수락 | Accept invite |
@@ -82,6 +84,7 @@
 | field.size | 크기 | Size |
 | field.permissions | 권한 | Permissions |
 | field.username | 사용자명 | Username |
+| setup.displayName | 표시 이름 | Display name |
 | field.password | 비밀번호 | Password |
 | field.displayName | 표시 이름 | Display name |
 | field.email | 이메일 | Email |
@@ -150,6 +153,9 @@
 | msg.dropToUpload | 여기에 파일을 끌어다 놓아 업로드하세요. | Drop files here to upload. |
 | msg.changesSaved | 변경사항이 저장되었습니다. | Changes saved. |
 | msg.loginTitle | 로그인 | Sign in |
+| setup.title | 초기 설정 | Initial setup |
+| setup.subtitle | 첫 번째 관리자 계정을 생성하세요. | Create the first admin account. |
+| setup.loading | 설정 상태 확인 중… | Checking setup status… |
 | msg.inviteAcceptTitle | 초대 수락 | Accept invite |
 | msg.inviteAcceptSubtitle | 계정을 생성해 초대를 완료하세요. | Create your account to finish the invite. |
 | msg.inviteMissingToken | 초대 토큰이 없습니다. | Missing invite token. |
