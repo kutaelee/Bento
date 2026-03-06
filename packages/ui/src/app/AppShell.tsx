@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState } from "react";
-import { NavLink, Outlet, useMatch } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { NavLink, Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { FolderTree } from "./FolderTree";
 import { ROOT_NODE_ID } from "./nodes";
@@ -17,14 +17,17 @@ import { t, type I18nKey } from "../i18n/t";
 import "./AppShell.css";
 
 export function AppShell() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { triggerRefresh } = useFolderRefresh();
-  const { enqueueFiles } = useUploadQueue();
+  const { enqueueFiles, items: uploadItems } = useUploadQueue();
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const filesMatch = useMatch("/files/:nodeId");
   const rootMatch = useMatch("/files");
   const activeFolderId = filesMatch?.params.nodeId ?? (rootMatch ? ROOT_NODE_ID : null);
   const canCreateFolder = Boolean(activeFolderId);
   const { selectedNode } = useInspectorState();
+  const [searchValue, setSearchValue] = useState("");
 
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const nodesApi = useMemo(() => createNodesApi(apiClient), [apiClient]);
@@ -34,6 +37,11 @@ export function AppShell() {
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setSearchValue(params.get("q") ?? "");
+  }, [location.search]);
 
   const handleOpenCreate = () => {
     if (!activeFolderId) return;
@@ -51,10 +59,6 @@ export function AppShell() {
   const handleOpenShare = () => {
     if (!selectedNode) return;
     setIsShareOpen(true);
-  };
-
-  const handleCloseShare = () => {
-    setIsShareOpen(false);
   };
 
   const handleTriggerUpload = () => {
@@ -96,32 +100,48 @@ export function AppShell() {
     }
   };
 
+  const handleSearchSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const nextQuery = searchValue.trim();
+    if (!nextQuery) {
+      navigate("/search", { replace: false });
+      return;
+    }
+    navigate(`/search?q=${encodeURIComponent(nextQuery)}`);
+  };
+
+  const pendingUploads = uploadItems.filter((item) => item.status !== "COMPLETED").length;
+
   return (
     <div className="app-shell">
       <div className="app-shell__main">
         <aside className="app-shell__sidebar">
+          <div className="app-shell__sidebar-header">
+            <div className="app-shell__sidebar-brand">{t("app.brand")}</div>
+            <div className="app-shell__sidebar-meta">{t("msg.shellSidebarBody")}</div>
+          </div>
           <FolderTree nodesApi={nodesApi} />
         </aside>
         <header className="app-shell__topbar">
           <div className="app-shell__topbar-left">
-
             <NavLink to="/files" className="app-shell__brand" aria-label={t("nav.files")}>
               {t("app.brand")}
             </NavLink>
-            <input
-              aria-label={t("field.search")}
-              placeholder={t("field.search")}
-              className="app-shell__search"
-            />
+            <form className="app-shell__search-form" onSubmit={handleSearchSubmit}>
+              <TextField
+                aria-label={t("field.search")}
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                placeholder={t("msg.searchPlaceholder")}
+              />
+            </form>
             <nav className="app-shell__topbar-tabs">
               {quickLinks.map((item) => (
                 <NavLink
                   key={item.id}
                   to={item.path}
                   className={({ isActive }: { isActive: boolean }) =>
-                    isActive
-                      ? "app-shell__topbar-tab app-shell__topbar-tab--active"
-                      : "app-shell__topbar-tab"
+                    isActive ? "app-shell__topbar-tab app-shell__topbar-tab--active" : "app-shell__topbar-tab"
                   }
                 >
                   {t(item.labelKey)}
@@ -130,17 +150,14 @@ export function AppShell() {
             </nav>
           </div>
           <div className="app-shell__topbar-right">
-            
+            <div className="app-shell__status-chip">
+              <span>{t("action.upload")}</span>
+              <strong>{pendingUploads}</strong>
+            </div>
             <div className="app-shell__action-row">
-              <button type="button" className="app-shell__action-button" onClick={handleOpenCreate} disabled={!canCreateFolder}>
-                {t("action.newFolder")}
-              </button>
-              <button type="button" className="app-shell__action-button" onClick={handleTriggerUpload} disabled={!canCreateFolder}>
-                {t("action.upload")}
-              </button>
-              <button type="button" className="app-shell__action-button" onClick={handleOpenShare} disabled={!selectedNode}>
-                {t("action.share")}
-              </button>
+              <Button variant="ghost" onClick={handleOpenCreate} disabled={!canCreateFolder}>{t("action.newFolder")}</Button>
+              <Button variant="primary" onClick={handleTriggerUpload} disabled={!canCreateFolder}>{t("action.upload")}</Button>
+              <Button variant="ghost" onClick={handleOpenShare} disabled={!selectedNode}>{t("action.share")}</Button>
             </div>
             <NavLink
               to={adminSettingsLink.path}
@@ -150,7 +167,7 @@ export function AppShell() {
                 isActive ? "app-shell__icon-button app-shell__icon-button--active" : "app-shell__icon-button"
               }
             >
-              ⚙️
+              {t("nav.settings")}
             </NavLink>
           </div>
           <input ref={uploadInputRef} type="file" multiple className="app-shell__hidden-input" onChange={handleUploadChange} />
@@ -177,7 +194,7 @@ export function AppShell() {
             />
           </form>
         </Dialog>
-        <ShareDialog open={isShareOpen} node={selectedNode} onClose={handleCloseShare} />
+        <ShareDialog open={isShareOpen} node={selectedNode} onClose={() => setIsShareOpen(false)} />
         <div className="app-shell__content">
           <main className="app-shell__canvas">
             <UploadQueuePanel />

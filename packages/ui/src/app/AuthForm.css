@@ -1,0 +1,52 @@
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nd-space-4);
+}
+
+.auth-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nd-space-4);
+}
+
+.auth-form__hint,
+.auth-form__error,
+.auth-form__status-list {
+  margin: 0;
+  font-size: var(--nd-font-size-sm);
+}
+
+.auth-form__hint {
+  color: var(--nd-color-text-secondary);
+}
+
+.auth-form__error {
+  color: var(--nd-color-danger);
+}
+
+.auth-form__status-list {
+  padding-left: 1rem;
+  color: var(--nd-color-text-secondary);
+}
+
+.auth-form__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.auth-form__split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--nd-space-3);
+}
+
+@media (max-width: 640px) {
+  .auth-form__split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .auth-form__actions .nd-btn {
+    width: 100%;
+  }
+}

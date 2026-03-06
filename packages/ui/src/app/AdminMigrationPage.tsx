@@ -1,5 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, TextField, SkeletonBlock, LoadingSkeleton, ErrorState, ForbiddenState, EmptyState } from "@nimbus/ui-kit";
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  ForbiddenState,
+  LoadingSkeleton,
+  PageHeader,
+  TextField,
+  Toolbar,
+} from "@nimbus/ui-kit";
+import { useNavigate } from "react-router-dom";
 import { createAdminMaintenanceApi } from "../api/adminMaintenance";
 import { ApiError } from "../api/errors";
 import { createJobsApi, type Job } from "../api/jobs";
@@ -10,6 +20,7 @@ import { JobDetailsCard } from "./JobDetailsCard";
 import "./AdminMigrationPage.css";
 
 export default function AdminMigrationPage() {
+  const navigate = useNavigate();
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const maintenanceApi = useMemo(() => createAdminMaintenanceApi(apiClient), [apiClient]);
   const jobsApi = useMemo(() => createJobsApi(apiClient), [apiClient]);
@@ -42,26 +53,15 @@ export default function AdminMigrationPage() {
       const status = await systemModeApi.getStatus();
       setReadOnly(Boolean(status.read_only));
       setInitialReadOnly(Boolean(status.read_only));
-      setLoading(false);
     } catch (error) {
       setLoadErrorKey(error instanceof ApiError ? error.key : "err.network");
+    } finally {
       setLoading(false);
     }
-  }, [systemModeApi, submitting]);
+  }, [submitting, systemModeApi]);
 
   useEffect(() => {
-    let active = true;
-
-    const run = async () => {
-      if (!active) return;
-      await loadStatus();
-    };
-
-    void run();
-
-    return () => {
-      active = false;
-    };
+    void loadStatus();
   }, [loadStatus]);
 
   const isDirty = readOnly !== initialReadOnly;
@@ -117,55 +117,79 @@ export default function AdminMigrationPage() {
     }
   };
 
+  if (loadErrorKey === "err.forbidden") {
+    return (
+      <ForbiddenState
+        titleKey="err.forbidden"
+        descKey="msg.forbiddenAdmin"
+        actionLabelKey="action.goHome"
+        onAction={() => navigate("/files")}
+      />
+    );
+  }
+
+  if (loadErrorKey) {
+    return (
+      <ErrorState
+        titleKey="err.unknown"
+        descKey={loadErrorKey}
+        retryLabelKey="action.retry"
+        onRetry={() => void loadStatus()}
+      />
+    );
+  }
+
   return (
     <section className="admin-migration">
-      <h1 className="admin-migration__title">{t("admin.migration.title")}</h1>
-      <div className="admin-migration__section">
-        {loadErrorKey === "err.forbidden" ? (
-          <ForbiddenState titleKey="err.forbidden" descKey="msg.forbiddenAdmin" actionLabelKey="action.goHome" onAction={() => window.location.href = "/"} />
-        ) : loadErrorKey ? (
-          <ErrorState titleKey="err.unknown" descKey={loadErrorKey} retryLabelKey="action.retry" onRetry={() => window.location.reload()} />
-        ) : loading ? (
-          <div className="admin-migration__loading">
-            <SkeletonBlock height={20} width="40%" />
-            <SkeletonBlock height={20} width="80%" />
-            <SkeletonBlock height={40} width="100px" className="admin-migration__save-skeleton" />
-          </div>
+      <PageHeader
+        title={t("admin.migration.title")}
+        actions={
+          <Toolbar>
+            <Button variant="ghost" onClick={() => void loadStatus()} disabled={loading || submitting}>
+              {t("action.refresh")}
+            </Button>
+          </Toolbar>
+        }
+      />
+
+      <section className="admin-migration__section admin-migration__section--dense">
+        <div>
+          <h2 className="admin-migration__section-title">{t("status.readOnly")}</h2>
+        </div>
+
+        {loading ? (
+          <LoadingSkeleton lines={4} />
         ) : (
           <>
-            <div className="admin-migration__row">
-              <label className="admin-migration__checkbox">
-                <input
-                  type="checkbox"
-                  checked={readOnly}
-                  disabled={submitting}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                    setReadOnly(event.target.checked);
-                    setSaved(false);
-                  }}
-                  aria-label={t("status.readOnly")}
-                />
-                <span>{t("status.readOnly")}</span>
-              </label>
-            </div>
-            <p className="admin-migration__muted">{t("status.migrating")}</p>
+            <label className="admin-migration__checkbox">
+              <input
+                type="checkbox"
+                checked={readOnly}
+                disabled={submitting}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  setReadOnly(event.target.checked);
+                  setSaved(false);
+                }}
+                aria-label={t("status.readOnly")}
+              />
+              <span>{t("status.readOnly")}</span>
+            </label>
             {submitErrorKey ? <p className="admin-migration__alert">{t(submitErrorKey)}</p> : null}
-            {saved ? <p className="admin-migration__muted">{t("msg.changesSaved")}</p> : null}
+            {saved ? <p className="admin-migration__success">{t("msg.changesSaved")}</p> : null}
             <div className="admin-migration__actions">
-              <Button
-                variant="primary"
-                onClick={handleSubmit}
-                disabled={!isDirty || submitting}
-                loading={submitting}
-              >
+              <Button variant="primary" onClick={handleSubmit} disabled={!isDirty || submitting} loading={submitting}>
                 {t("action.save")}
               </Button>
             </div>
           </>
         )}
-      </div>
-      <div className="admin-migration__section">
-        <h2 className="admin-migration__section-title">{t("modal.migrationStart.title")}</h2>
+      </section>
+
+      <section className="admin-migration__section">
+        <div>
+          <h2 className="admin-migration__section-title">{t("modal.migrationStart.title")}</h2>
+        </div>
+
         <div className="admin-migration__column">
           <TextField
             label={t("field.targetVolumeId")}
@@ -177,9 +201,7 @@ export default function AdminMigrationPage() {
             <input
               type="checkbox"
               checked={verifySha256}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                setVerifySha256(event.target.checked)
-              }
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setVerifySha256(event.target.checked)}
             />
             <span>{t("field.verifySha256")}</span>
           </label>
@@ -189,9 +211,7 @@ export default function AdminMigrationPage() {
           <input
             type="checkbox"
             checked={deleteSourceAfter}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              setDeleteSourceAfter(event.target.checked)
-            }
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setDeleteSourceAfter(event.target.checked)}
           />
           <span>{t("field.deleteSourceAfter")}</span>
         </label>
@@ -208,13 +228,14 @@ export default function AdminMigrationPage() {
             {t("action.startMigration")}
           </Button>
         </div>
-      </div>
+      </section>
 
       <section className="admin-migration__section">
-        <h2 className="admin-migration__section-title">{t("admin.jobs.title")}</h2>
+        <div>
+          <h2 className="admin-migration__section-title">{t("admin.jobs.title")}</h2>
+        </div>
 
         {migrationJobLoading ? <LoadingSkeleton lines={3} /> : null}
-
         {migrationJobErrorKey ? <ErrorState title={t(migrationJobErrorKey)} /> : null}
 
         {migrationJob ? (

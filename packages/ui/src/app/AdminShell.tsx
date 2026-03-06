@@ -14,10 +14,11 @@ type AdminShellProps = {
 export function AdminShell({ titleKey, children }: AdminShellProps) {
   const visualState = getVisualState();
   const body = visualState === "forbidden" ? (
-    <ForbiddenState title={t("err.forbidden")} />
+    <ForbiddenState title={t("err.forbidden")} descKey={t("msg.forbiddenAdmin")} />
   ) : (
     children
   );
+
   return (
     <div className="admin-shell">
       <aside className="admin-shell__sidebar">
@@ -27,9 +28,7 @@ export function AdminShell({ titleKey, children }: AdminShellProps) {
             <NavLink
               to={adminSettingsLink.path}
               end
-              className={({ isActive }) =>
-                `${"admin-shell__link"} ${isActive ? "admin-shell__link--active" : ""}`
-              }
+              className={({ isActive }) => `${"admin-shell__link"} ${isActive ? "admin-shell__link--active" : ""}`}
             >
               {t(adminSettingsLink.labelKey)}
             </NavLink>
@@ -37,15 +36,13 @@ export function AdminShell({ titleKey, children }: AdminShellProps) {
         </div>
 
         <div className="admin-shell__section">
-          <div className="admin-shell__subtitle">Settings</div>
+          <div className="admin-shell__subtitle">{t("admin.home.quickLinksTitle")}</div>
           <nav className="admin-shell__nav">
             {adminSections.map((item) => (
               <NavLink
                 key={item.id}
                 to={item.path}
-                className={({ isActive }) =>
-                  `${"admin-shell__link"} ${isActive ? "admin-shell__link--active" : ""}`
-                }
+                className={({ isActive }) => `${"admin-shell__link"} ${isActive ? "admin-shell__link--active" : ""}`}
               >
                 {t(item.labelKey)}
               </NavLink>

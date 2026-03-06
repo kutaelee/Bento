@@ -1,16 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
-import {
-  DataTableColumn,
-  PageHeader,
-  PatternDataTable,
-  Toolbar,
-  type PatternDataTableProps,
-} from "@nimbus/ui-kit";
+import { useNavigate, useParams } from "react-router-dom";
+import { Button, Dialog, EmptyState, ErrorState, ForbiddenState, SkeletonBlock } from "@nimbus/ui-kit";
 import { ROOT_NODE_ID } from "./nodes";
 import { ApiError } from "../api/errors";
 import { createNodesApi, type NodeItem } from "../api/nodes";
-import { SkeletonBlock, EmptyState, ErrorState, ForbiddenState } from "@nimbus/ui-kit";
 import { t, type I18nKey } from "../i18n/t";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import { useFolderRefresh } from "./folderRefresh";
@@ -19,35 +12,14 @@ import { getVisualState } from "./visualFixtures";
 import { useViewPreferences } from "./useViewPreferences";
 import { GridView } from "./GridView";
 import { SelectionActionBar } from "./SelectionActionBar";
-import { Button } from "@nimbus/ui-kit";
+import { useUploadQueue } from "./uploadQueue";
+import { downloadBlob, formatBytes, formatDate } from "./format";
+import "./FilesPage.css";
 
 type RouteMode = "files" | "recent" | "favorites" | "shared" | "media" | "trash";
 
 type FilesPageProps = {
   routeMode?: RouteMode;
-};
-
-const formatSize = (size?: number) => {
-  if (size === undefined || size === null) return "-";
-  if (size < 1024) return `${size} B`;
-  const units = ["KB", "MB", "GB", "TB"];
-  let value = size / 1024;
-  let unitIndex = 0;
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
-  }
-  return `${value.toFixed(1)} ${units[unitIndex]}`;
-};
-
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
 };
 
 type FolderViewProps = {
@@ -60,63 +32,13 @@ type FolderViewProps = {
   loadingMore: boolean;
   errorKey: I18nKey | null;
   selectedIds?: Set<string>;
-  // Back-compat shim (older pages)
-  selectedNodeId?: string;
-  onSelectItem?: (item: NodeItem | null) => void;
-
   onToggleSelect?: (item: NodeItem, multi: boolean) => void;
   onLoadMore?: () => void;
   rowActionRenderer?: (item: NodeItem) => React.ReactNode;
   emptyKey?: I18nKey;
-};
-
-const layoutStyles: Record<string, React.CSSProperties> = {
-  wrapper: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-  },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 600,
-  },
-  meta: {
-    color: "var(--nd-color-text-secondary)",
-    fontSize: 12,
-  },
-  table: {
-    display: "grid",
-    rowGap: 8,
-  },
-  row: {
-    display: "grid",
-    gridTemplateColumns: "2fr 1fr 1fr 1fr",
-    gap: 16,
-    alignItems: "center",
-    padding: "8px 12px",
-    borderRadius: 8,
-  },
-  cell: {
-    fontSize: 14,
-  },
-  headCell: {
-    fontWeight: 600,
-    color: "var(--nd-color-text-secondary)",
-    fontSize: 12,
-  },
-  nameCell: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  selectedRow: {
-    background: "color-mix(in srgb, var(--nd-color-accent-default) 12%, var(--nd-color-surface-current))",
-  },
+  onOpenItem?: (item: NodeItem) => void;
+  routeMode?: RouteMode;
+  onRetry?: () => void;
 };
 
 export function FolderView({
@@ -133,114 +55,104 @@ export function FolderView({
   onLoadMore,
   rowActionRenderer,
   emptyKey,
+  onOpenItem,
+  routeMode = "files",
+  onRetry,
 }: FolderViewProps) {
+  const navigate = useNavigate();
   const { prefs, setViewMode } = useViewPreferences();
+  const hasRowActions = Boolean(rowActionRenderer);
 
-  const getColDisplay = (colName: string) =>
-    prefs.visibleColumns.includes(colName) ? "block" : "none";
+  if (errorKey === "err.forbidden") {
+    return (
+      <ForbiddenState
+        titleKey={t("err.forbidden")}
+        descKey={t("msg.forbiddenAdmin")}
+        actionLabelKey={t("action.goHome")}
+        onAction={() => navigate("/files")}
+      />
+    );
+  }
+
+  if (errorKey) {
+    return (
+      <ErrorState
+        titleKey={t("err.unknown")}
+        descKey={t(errorKey)}
+        retryLabelKey={t("action.retry")}
+        onRetry={onRetry}
+      />
+    );
+  }
 
   return (
-    <section style={layoutStyles.wrapper}>
-      <header style={{ ...layoutStyles.header, flexDirection: "row" as const, justifyContent: "space-between", alignItems: "center" }}>
+    <section className="files-page__table-shell">
+      <header className="files-page__section-head">
         <div>
-          <div style={layoutStyles.title}>{title}</div>
-          {metaValue ? (
-            <div style={layoutStyles.meta}>
-              {t(metaLabelKey ?? "field.path")}: {metaValue}
-            </div>
-          ) : null}
+          <h2 className="files-page__section-title">{title}</h2>
+          {metaValue ? <p className="files-page__section-meta">{t(metaLabelKey ?? "field.path")}: {metaValue}</p> : null}
         </div>
-        <div style={{ display: "flex", gap: 8 } as React.CSSProperties}>
-          <Button
-            variant={prefs.viewMode === "table" ? "primary" : "ghost"}
-            onClick={() => setViewMode("table")}
-          >
-            Table
-          </Button>
-          <Button
-            variant={prefs.viewMode === "grid" ? "primary" : "ghost"}
-            onClick={() => setViewMode("grid")}
-          >
-            Grid
-          </Button>
+        <div className="files-page__view-toggle" role="tablist" aria-label={t("msg.filesViewToggle")}> 
+          <Button variant={prefs.viewMode === "table" ? "primary" : "ghost"} onClick={() => setViewMode("table")}>{t("action.viewTable")}</Button>
+          <Button variant={prefs.viewMode === "grid" ? "primary" : "ghost"} onClick={() => setViewMode("grid")}>{t("action.viewGrid")}</Button>
         </div>
       </header>
+
       {prefs.viewMode === "grid" ? (
-        <GridView
-          items={items}
-          loading={loading}
-          selectedIds={selectedIds}
-          onToggleSelect={onToggleSelect}
-        />
+        <GridView items={items} loading={loading} selectedIds={selectedIds} onToggleSelect={onToggleSelect} onOpenItem={onOpenItem} />
       ) : (
-        <div style={layoutStyles.table}>
-          <div style={{ ...layoutStyles.row, background: "var(--nd-color-surface-secondary)" }}>
-            <div style={{ ...layoutStyles.cell, ...layoutStyles.headCell }}>{t("field.name")}</div>
-            <div style={{ ...layoutStyles.cell, ...layoutStyles.headCell, display: getColDisplay("modifiedAt") }}>{t("field.modifiedAt")}</div>
-            <div style={{ ...layoutStyles.cell, ...layoutStyles.headCell, display: getColDisplay("size") }}>{t("field.size")}</div>
-            <div style={{ ...layoutStyles.cell, ...layoutStyles.headCell, display: getColDisplay("owner") }}>{t("field.owner")}</div>
+        <div className="files-page__table">
+          <div className={`files-page__row files-page__row--head${hasRowActions ? " files-page__row--actionable" : ""}`}>
+            <div>{t("field.name")}</div>
+            <div>{t(routeMode === "trash" ? "field.expiry" : "field.modifiedAt")}</div>
+            <div>{t("field.size")}</div>
+            <div>{t("field.owner")}</div>
+            {hasRowActions ? <div>{t("field.status")}</div> : null}
           </div>
           {loading && items.length === 0 ? (
-            <>
-              {[1, 2, 3].map((i) => (
-                <div key={`skel-${i}`} style={layoutStyles.row}>
-                  <SkeletonBlock height={20} width="80%" />
-                  <SkeletonBlock height={20} width="60%" />
-                  <SkeletonBlock height={20} width="40%" />
-                  <SkeletonBlock height={20} width="50%" />
-                </div>
-              ))}
-            </>
+            [1, 2, 3, 4].map((i) => (
+              <div key={`files-skeleton-${i}`} className={`files-page__row${hasRowActions ? " files-page__row--actionable" : ""}`}>
+                <SkeletonBlock height={18} width="80%" />
+                <SkeletonBlock height={18} width="70%" />
+                <SkeletonBlock height={18} width="50%" />
+                <SkeletonBlock height={18} width="50%" />
+                {hasRowActions ? <SkeletonBlock height={18} width="80%" /> : null}
+              </div>
+            ))
           ) : items.map((item) => {
             const isSelected = selectedIds?.has(item.id) ?? false;
+            const metaLine = routeMode === "trash"
+              ? formatDate(item.deleted_at ?? item.updated_at)
+              : routeMode === "files"
+                ? (item.type === "FOLDER" ? t("nav.files") : item.mime_type ?? "-")
+                : item.path;
+
             return (
-              <button
-                type="button"
-                key={item.id}
-                style={{ ...layoutStyles.row, ...(isSelected ? layoutStyles.selectedRow : null) }}
-                onClick={(event: React.MouseEvent) => onToggleSelect?.(item, event.metaKey || event.ctrlKey || event.shiftKey)}
-              >
-                <div style={{ ...layoutStyles.cell, ...layoutStyles.nameCell }}>
-                  <span>{item.name}</span>
-                  <span style={layoutStyles.meta}>
-                    {item.type === "FOLDER" ? t("nav.files") : item.mime_type ?? ""}
-                  </span>
-                </div>
-                <div style={{ ...layoutStyles.cell, display: getColDisplay("modifiedAt") }}>{formatDate(item.updated_at)}</div>
-                <div style={{ ...layoutStyles.cell, display: getColDisplay("size") }}>{formatSize(item.size_bytes)}</div>
-                <div style={{ ...layoutStyles.cell, display: getColDisplay("owner") }}>{item.owner_user_id ?? "-"}</div>
-              </button>
+              <div key={item.id} className={`files-page__row${hasRowActions ? " files-page__row--actionable" : ""}${isSelected ? " files-page__row--selected" : ""}`}>
+                <button
+                  type="button"
+                  className="files-page__row-button"
+                  onClick={(event) => onToggleSelect?.(item, event.metaKey || event.ctrlKey || event.shiftKey)}
+                  onDoubleClick={() => onOpenItem?.(item)}
+                >
+                  <span className="files-page__name">{item.name}</span>
+                  <span className="files-page__name-meta">{metaLine}</span>
+                </button>
+                <div>{formatDate(routeMode === "trash" ? item.deleted_at ?? item.updated_at : item.updated_at)}</div>
+                <div>{formatBytes(item.size_bytes)}</div>
+                <div>{item.owner_user_id ?? "-"}</div>
+                {hasRowActions ? <div className="files-page__row-actions">{rowActionRenderer?.(item)}</div> : null}
+              </div>
             );
           })}
         </div>
       )}
-      {!loading && items.length === 0 && !errorKey ? (
-        <EmptyState titleKey={t(emptyKey ?? "msg.emptyFolder")} />
-      ) : null}
-      {errorKey === "err.forbidden" ? (
-        <ForbiddenState
-          titleKey={t("err.forbidden")}
-          actionLabelKey={t("action.goHome")}
-          onAction={() => window.location.href = "/"}
-        />
-      ) : errorKey ? (
-        <ErrorState
-          titleKey={t("err.unknown")}
-          descKey={t(errorKey)}
-          retryLabelKey={t("action.retry")}
-          onRetry={() => window.location.reload()}
-        />
-      ) : null}
+
+      {!loading && items.length === 0 ? <EmptyState titleKey={t(emptyKey ?? "msg.emptyFolder")} descKey={t("msg.filesEmptyHint")} /> : null}
+
       {nextCursor ? (
-        <div className="files-view__footer">
-          <button
-            type="button"
-            className="files-view__load-more"
-            onClick={onLoadMore}
-            disabled={loadingMore}
-          >
-            {loadingMore ? `${t("action.loadMore")}…` : t("action.loadMore")}
-          </button>
+        <div className="files-page__footer">
+          <Button variant="ghost" onClick={onLoadMore} disabled={loadingMore}>{loadingMore ? t("msg.loading") : t("action.loadMore")}</Button>
         </div>
       ) : null}
     </section>
@@ -248,8 +160,10 @@ export function FolderView({
 }
 
 export function FilesPage({ routeMode = "files" }: FilesPageProps) {
+  const navigate = useNavigate();
   const { refreshToken, triggerRefresh } = useFolderRefresh();
   const { selectedNode, setSelectedNode } = useInspectorState();
+  const { items: uploadItems } = useUploadQueue();
   const { nodeId } = useParams();
   const isRootRoute = !nodeId;
   const isRecentRoute = routeMode === "recent";
@@ -275,30 +189,114 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
   const [actionErrorKey, setActionErrorKey] = useState<I18nKey | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmMode, setConfirmMode] = useState<"delete" | "deleteForever" | null>(null);
   const loadMoreGeneration = useRef(0);
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectedItems = children.filter((item) => selectedIds.has(item.id));
+  const pendingUploads = uploadItems.filter((item) => item.status !== "COMPLETED");
 
-  const handleToggleSelect = useCallback(
-    (item: NodeItem, multi: boolean) => {
-      setSelectedIds((prev: Set<string>) => {
-        const next = new Set(multi ? prev : []);
-        if (multi && prev.has(item.id)) {
-          next.delete(item.id);
+  const title =
+    isTrashRoute
+      ? t("nav.trash")
+      : isRecentRoute
+        ? t("nav.recent")
+        : isFavoritesRoute
+          ? t("nav.favorites")
+          : isSharedRoute
+            ? t("nav.shared")
+            : isMediaRoute
+              ? t("nav.media")
+              : isRootRoute
+                ? t("nav.files")
+                : node?.name ?? t("nav.files");
+
+  const pageEmptyKey = isRecentRoute
+    ? "msg.emptyRecent"
+    : isFavoritesRoute
+      ? "msg.emptyFavorites"
+      : isSharedRoute
+        ? "msg.emptyShared"
+        : isMediaRoute
+          ? "msg.emptyMedia"
+          : isTrashRoute
+            ? "msg.emptyTrash"
+            : undefined;
+
+  const runLoad = useCallback(async () => {
+    setActionErrorKey(null);
+
+    if (isTrashRoute) {
+      setLoading(true);
+      setLoadingMore(false);
+      setErrorKey(null);
+      setNode(null);
+      setChildren([]);
+      setNextCursor(null);
+
+      try {
+        const response = await nodesApi.listTrash({});
+        setChildren(response.items ?? []);
+        setNextCursor(response.next_cursor ?? null);
+      } catch (error) {
+        if (error instanceof ApiError) {
+          setErrorKey(error.key);
         } else {
-          next.add(item.id);
+          setErrorKey("err.network");
         }
-        return next;
-      });
-      // Also update inspector to show single item if only 1 is selected
-      if (!multi) {
-        setSelectedNode(item);
-      } else {
-        setSelectedNode(null); // multi select implies no single inspector
+        setChildren([]);
+        setNextCursor(null);
+      } finally {
+        setLoading(false);
       }
-    },
-    [setSelectedNode]
-  );
+      return;
+    }
+
+    if (!shouldLoadChildren) {
+      setLoading(false);
+      setLoadingMore(false);
+      setErrorKey(null);
+      setNode(null);
+      setChildren([]);
+      setNextCursor(null);
+      return;
+    }
+
+    setLoading(true);
+    setLoadingMore(false);
+    setErrorKey(null);
+    setNode(null);
+    setChildren([]);
+    setNextCursor(null);
+
+    try {
+      const childrenResponse = await nodesApi.listChildren({
+        nodeId: resolvedNodeId,
+        sort: listChildrenSort,
+        order: listChildrenOrder,
+      });
+
+      let nodeResponse: NodeItem | null = null;
+      if (!isRootRoute) {
+        nodeResponse = await nodesApi.getNode(resolvedNodeId);
+      }
+
+      setNode(nodeResponse);
+      setChildren(childrenResponse.items ?? []);
+      setNextCursor(childrenResponse.next_cursor ?? null);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrorKey(error.key);
+      } else {
+        setErrorKey("err.network");
+      }
+      setNode(null);
+      setChildren([]);
+      setNextCursor(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [isRootRoute, isTrashRoute, listChildrenOrder, listChildrenSort, nodesApi, resolvedNodeId, shouldLoadChildren]);
 
   useEffect(() => {
     let active = true;
@@ -319,108 +317,49 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
       };
     }
 
-    const load = async () => {
-      setActionErrorKey(null);
-
-      if (isTrashRoute) {
-        setLoading(true);
-        setLoadingMore(false);
-        setErrorKey(null);
-        setNode(null);
-        setChildren([]);
-        setNextCursor(null);
-
-        try {
-          const response = await nodesApi.listTrash({});
-          if (!active) return;
-          setChildren(response.items ?? []);
-          setNextCursor(response.next_cursor ?? null);
-        } catch (error) {
-          if (!active) return;
-          if (error instanceof ApiError) {
-            setErrorKey(error.key);
-          } else {
-            setErrorKey("err.network");
-          }
-          setChildren([]);
-          setNextCursor(null);
-        } finally {
-          if (active) setLoading(false);
-        }
-        return;
-      }
-
-      if (!shouldLoadChildren) {
-        setLoading(false);
-        setLoadingMore(false);
-        setErrorKey(null);
-        setNode(null);
-        setChildren([]);
-        setNextCursor(null);
-        return;
-      }
-
-      setLoading(true);
-      setLoadingMore(false);
-      setErrorKey(null);
-      setNode(null);
-      setChildren([]);
-      setNextCursor(null);
-
-      try {
-        const childrenResponse = await nodesApi.listChildren({
-          nodeId: resolvedNodeId,
-          sort: listChildrenSort,
-          order: listChildrenOrder,
-        });
-
-        let nodeResponse: NodeItem | null = null;
-        if (!isRootRoute) {
-          nodeResponse = await nodesApi.getNode(resolvedNodeId);
-        }
-
-        if (!active) return;
-        setNode(nodeResponse);
-        setChildren(childrenResponse.items ?? []);
-        setNextCursor(childrenResponse.next_cursor ?? null);
-      } catch (error) {
-        if (!active) return;
-        if (error instanceof ApiError) {
-          setErrorKey(error.key);
-        } else {
-          setErrorKey("err.network");
-        }
-        setNode(null);
-        setChildren([]);
-        setNextCursor(null);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-
-    load();
+    void (async () => {
+      if (!active) return;
+      await runLoad();
+    })();
 
     return () => {
       active = false;
     };
-  }, [
-    nodesApi,
-    refreshToken,
-    resolvedNodeId,
-    isTrashRoute,
-    shouldLoadChildren,
-    isRootRoute,
-    setSelectedNode,
-    listChildrenSort,
-    listChildrenOrder,
-    visualState,
-  ]);
+  }, [refreshToken, runLoad, setSelectedNode, visualState]);
 
-  useEffect(() => {
-    return () => {
+  useEffect(() => () => setSelectedNode(null), [setSelectedNode]);
+
+  const handleToggleSelect = useCallback((item: NodeItem, multi: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(multi ? prev : []);
+      if (multi && prev.has(item.id)) {
+        next.delete(item.id);
+      } else {
+        next.add(item.id);
+      }
+      return next;
+    });
+
+    if (!multi) {
+      setSelectedNode(item);
+    } else {
       setSelectedNode(null);
-    };
+    }
   }, [setSelectedNode]);
+
+  const openItem = useCallback(async (item: NodeItem) => {
+    if (item.type === "FOLDER") {
+      navigate(item.id === ROOT_NODE_ID ? "/files" : `/files/${item.id}`);
+      return;
+    }
+
+    try {
+      const blob = await nodesApi.downloadNode({ nodeId: item.id });
+      await downloadBlob(blob, item.name);
+    } catch (error) {
+      setActionErrorKey(error instanceof ApiError ? error.key : "err.network");
+    }
+  }, [navigate, nodesApi]);
 
   const loadMore = useCallback(async () => {
     if (!nextCursor) return;
@@ -429,153 +368,196 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
     setLoadingMore(true);
     setErrorKey(null);
     try {
-      const response = await nodesApi.listChildren({
-        nodeId: resolvedNodeId,
-        cursor: nextCursor,
-      });
-      setChildren((prev: NodeItem[]) => [...prev, ...response.items]);
+      const response = isTrashRoute
+        ? await nodesApi.listTrash({ cursor: nextCursor })
+        : await nodesApi.listChildren({ nodeId: resolvedNodeId, cursor: nextCursor, sort: listChildrenSort, order: listChildrenOrder });
+      if (requestToken !== loadMoreGeneration.current) return;
+      setChildren((prev) => [...prev, ...(response.items ?? [])]);
       setNextCursor(response.next_cursor ?? null);
     } catch (error) {
       if (requestToken !== loadMoreGeneration.current) return;
-      if (error instanceof ApiError) {
-        setErrorKey(error.key);
-      } else {
-        setErrorKey("err.network");
-      }
+      setErrorKey(error instanceof ApiError ? error.key : "err.network");
     } finally {
       if (requestToken === loadMoreGeneration.current) {
         setLoadingMore(false);
       }
     }
-  }, [
-    nextCursor,
-    nodesApi,
-    resolvedNodeId,
-  ]);
+  }, [isTrashRoute, listChildrenOrder, listChildrenSort, nextCursor, nodesApi, resolvedNodeId]);
 
-  const handleRestore = useCallback(
-    async (itemId: string) => {
-      if (actionId) return;
-      setActionId(itemId);
-      setActionErrorKey(null);
-      try {
+  const applyTrashRestore = useCallback(async (itemIds: string[]) => {
+    setActionId(itemIds[0] ?? null);
+    setActionErrorKey(null);
+    try {
+      for (const itemId of itemIds) {
         await nodesApi.restoreTrash({ nodeId: itemId });
-        setChildren((prev) => prev.filter((item) => item.id !== itemId));
-        triggerRefresh();
-      } catch (error) {
-        if (error instanceof ApiError) {
-          setActionErrorKey(error.key);
-        } else {
-          setActionErrorKey("err.network");
-        }
-      } finally {
-        setActionId(null);
       }
-    },
-    [actionId, nodesApi, triggerRefresh],
-  );
+      setChildren((prev) => prev.filter((item) => !itemIds.includes(item.id)));
+      setSelectedIds(new Set());
+      triggerRefresh();
+    } catch (error) {
+      setActionErrorKey(error instanceof ApiError ? error.key : "err.network");
+    } finally {
+      setActionId(null);
+    }
+  }, [nodesApi, triggerRefresh]);
 
-  const handleDelete = useCallback(
-    async (itemId: string) => {
-      if (actionId) return;
-      setActionId(itemId);
-      setActionErrorKey(null);
-      try {
-        await nodesApi.deleteTrash({ nodeId: itemId });
-        setChildren((prev) => prev.filter((item) => item.id !== itemId));
-        triggerRefresh();
-      } catch (error) {
-        if (error instanceof ApiError) {
-          setActionErrorKey(error.key);
+  const confirmDelete = useCallback(async () => {
+    const itemIds = Array.from(selectedIds);
+    if (!itemIds.length || !confirmMode) return;
+
+    setActionId(itemIds[0]);
+    setActionErrorKey(null);
+    try {
+      for (const itemId of itemIds) {
+        if (confirmMode === "deleteForever" || isTrashRoute) {
+          await nodesApi.deleteTrash({ nodeId: itemId });
         } else {
-          setActionErrorKey("err.network");
+          await nodesApi.deleteNode({ nodeId: itemId });
         }
-      } finally {
-        setActionId(null);
       }
-    },
-    [actionId, nodesApi, triggerRefresh],
-  );
+      setChildren((prev) => prev.filter((item) => !itemIds.includes(item.id)));
+      setSelectedIds(new Set());
+      setConfirmMode(null);
+      triggerRefresh();
+    } catch (error) {
+      setActionErrorKey(error instanceof ApiError ? error.key : "err.network");
+    } finally {
+      setActionId(null);
+    }
+  }, [confirmMode, isTrashRoute, nodesApi, selectedIds, triggerRefresh]);
 
-  const renderTrashActions = useCallback(
-    (item: NodeItem) => {
-      if (!isTrashRoute) return null;
+  const handleDownloadSelected = useCallback(async () => {
+    setActionErrorKey(null);
+    try {
+      for (const item of selectedItems) {
+        if (item.type === "FOLDER") continue;
+        const blob = await nodesApi.downloadNode({ nodeId: item.id });
+        await downloadBlob(blob, item.name);
+      }
+    } catch (error) {
+      setActionErrorKey(error instanceof ApiError ? error.key : "err.network");
+    }
+  }, [nodesApi, selectedItems]);
 
-      return (
-        <div className="files-view__action-group">
-          <button
-            type="button"
-            className="files-view__action-button"
-            onClick={() => handleRestore(item.id)}
-            disabled={!!actionId}
-          >
-            {t("action.restore")}
-          </button>
-          <button
-            type="button"
-            className="files-view__action-button files-view__action-button--danger"
-            onClick={() => handleDelete(item.id)}
-            disabled={!!actionId}
-          >
-            {t("action.deleteForever")}
-          </button>
-        </div>
-      );
-    },
-    [actionId, handleRestore, handleDelete, isTrashRoute],
-  );
+  const renderTrashActions = useCallback((item: NodeItem) => {
+    if (!isTrashRoute) return null;
 
-  const title =
-    isTrashRoute
-      ? t("nav.trash")
-      : isRecentRoute
-        ? t("nav.recent")
-        : isFavoritesRoute
-          ? t("nav.favorites")
-          : isSharedRoute
-            ? t("nav.shared")
-            : isMediaRoute
-              ? t("nav.media")
-              : isRootRoute
-                ? t("nav.files")
-                : node?.name ?? t("nav.files");
+    return (
+      <>
+        <Button variant="ghost" onClick={() => void applyTrashRestore([item.id])} disabled={!!actionId}>{t("action.restore")}</Button>
+        <Button variant="ghost" onClick={() => { setSelectedIds(new Set([item.id])); setConfirmMode("deleteForever"); }} disabled={!!actionId}>{t("action.deleteForever")}</Button>
+      </>
+    );
+  }, [actionId, applyTrashRestore, isTrashRoute]);
 
-  const pageMetaLabelKey = isRecentRoute ? "field.modifiedAt" : "field.path";
-
-  const pageEmptyKey = isRecentRoute
-    ? "msg.emptyRecent"
-    : isFavoritesRoute
-      ? "msg.emptyFavorites"
-      : isSharedRoute
-        ? "msg.emptyShared"
-        : isMediaRoute
-          ? "msg.emptyFolder"
-          : isTrashRoute
-            ? "msg.emptyTrash"
-            : undefined;
+  const summaryCards = [
+    { label: t("msg.filesSummaryItems"), value: String(children.length), tone: "default" },
+    { label: t("msg.filesSummarySelected"), value: String(selectedIds.size), tone: selectedIds.size ? "accent" : "default" },
+    { label: t("msg.filesSummaryUploads"), value: String(pendingUploads.length), tone: pendingUploads.length ? "accent" : "default" },
+    { label: t("msg.filesSummaryFolder"), value: isRootRoute ? t("nav.files") : (node?.name ?? t("nav.files")), tone: "default" },
+  ];
 
   return (
-    <>
-      <FolderView
-        title={title}
-        metaLabelKey="field.path"
-        metaValue={isRootRoute ? null : node?.path ?? null}
-        items={children}
-        nextCursor={nextCursor}
-        loading={loading}
-        loadingMore={loadingMore}
-        errorKey={errorKey}
-        selectedIds={selectedIds}
-        onToggleSelect={handleToggleSelect}
-        onLoadMore={loadMore}
-      />
+    <section className="files-page">
+      <header className="files-page__hero">
+        <div className="files-page__hero-copy">
+          <p className="files-page__eyebrow">{isTrashRoute ? t("nav.trash") : t("nav.files")}</p>
+          <h1 className="files-page__title">{title}</h1>
+          <p className="files-page__description">{isTrashRoute ? t("msg.trashDescription") : t("msg.filesDescription")}</p>
+        </div>
+        <div className="files-page__hero-actions">
+          <Button variant="ghost" onClick={() => void runLoad()}>{t("action.refresh")}</Button>
+          {!isTrashRoute ? <Button variant="primary" onClick={() => navigate("/search")}>{t("field.search")}</Button> : null}
+        </div>
+      </header>
+
+      <section className="files-page__summary-grid">
+        {summaryCards.map((card) => (
+          <article key={card.label} className={`files-page__summary-card${card.tone === "accent" ? " files-page__summary-card--accent" : ""}`}>
+            <span className="files-page__summary-label">{card.label}</span>
+            <strong className="files-page__summary-value">{card.value}</strong>
+          </article>
+        ))}
+      </section>
+
+      <section className="files-page__layout">
+        <div className="files-page__main-column">
+          {actionErrorKey ? <div className="files-page__banner files-page__banner--error">{t(actionErrorKey)}</div> : null}
+          <FolderView
+            title={title}
+            metaLabelKey="field.path"
+            metaValue={isRootRoute ? null : node?.path ?? null}
+            items={children}
+            nextCursor={nextCursor}
+            loading={loading}
+            loadingMore={loadingMore}
+            errorKey={errorKey}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+            onLoadMore={loadMore}
+            rowActionRenderer={isTrashRoute ? renderTrashActions : undefined}
+            emptyKey={pageEmptyKey}
+            onOpenItem={openItem}
+            routeMode={routeMode}
+            onRetry={() => void runLoad()}
+          />
+        </div>
+
+        <aside className="files-page__aside">
+          <article className="files-page__panel">
+            <h2 className="files-page__panel-title">{t("msg.filesQuickActionsTitle")}</h2>
+            <p className="files-page__panel-copy">{t("msg.filesQuickActionsBody")}</p>
+            <div className="files-page__panel-actions">
+              {!isTrashRoute ? <Button variant="ghost" onClick={() => navigate("/search")}>{t("field.search")}</Button> : null}
+              <Button variant="ghost" onClick={() => void runLoad()}>{t("action.refresh")}</Button>
+              {isTrashRoute && selectedIds.size > 0 ? <Button variant="ghost" onClick={() => void applyTrashRestore(Array.from(selectedIds))}>{t("action.restore")}</Button> : null}
+            </div>
+          </article>
+
+          <article className="files-page__panel">
+            <h2 className="files-page__panel-title">{t("msg.filesActivityTitle")}</h2>
+            <div className="files-page__activity-list">
+              {pendingUploads.length ? pendingUploads.slice(0, 4).map((item) => (
+                <div key={item.id} className="files-page__activity-item">
+                  <strong>{item.file.name}</strong>
+                  <span>{t("status.jobRunning")}</span>
+                </div>
+              )) : <p className="files-page__panel-copy">{t("msg.filesActivityEmpty")}</p>}
+            </div>
+          </article>
+
+          <article className="files-page__panel">
+            <h2 className="files-page__panel-title">{t("msg.filesSelectionTitle")}</h2>
+            <p className="files-page__panel-copy">
+              {selectedNode ? selectedNode.name : selectedIds.size ? t("msg.filesSelectionMany").replace("{n}", String(selectedIds.size)) : t("msg.selectItem")}
+            </p>
+          </article>
+        </aside>
+      </section>
+
       <SelectionActionBar
         selectedCount={selectedIds.size}
         onClearSelection={() => setSelectedIds(new Set())}
-        onDownload={selectedIds.size > 0 ? () => alert("Not implemented") : undefined}
-        onDelete={selectedIds.size > 0 ? () => alert("Not implemented") : undefined}
-        onMove={selectedIds.size > 0 ? () => alert("Not implemented") : undefined}
+        onDownload={selectedItems.some((item) => item.type !== "FOLDER") ? () => void handleDownloadSelected() : undefined}
+        onDelete={selectedIds.size > 0 ? () => setConfirmMode(isTrashRoute ? "deleteForever" : "delete") : undefined}
+        onRestore={isTrashRoute && selectedIds.size > 0 ? () => void applyTrashRestore(Array.from(selectedIds)) : undefined}
       />
-    </>
+
+      <Dialog
+        open={confirmMode !== null}
+        title={confirmMode === "deleteForever" ? t("modal.deleteForever.title") : t("modal.delete.title")}
+        onClose={() => { if (!actionId) setConfirmMode(null); }}
+        closeLabel={t("action.close")}
+        footer={
+          <div className="nd-dialog__actions">
+            <Button variant="ghost" onClick={() => setConfirmMode(null)} disabled={!!actionId}>{t("action.cancel")}</Button>
+            <Button variant="primary" onClick={() => void confirmDelete()} loading={!!actionId}>{confirmMode === "deleteForever" ? t("action.deleteForever") : t("action.delete")}</Button>
+          </div>
+        }
+      >
+        <p>{confirmMode === "deleteForever" ? t("modal.deleteForever.desc") : t("modal.delete.desc")}</p>
+      </Dialog>
+    </section>
   );
 }
+

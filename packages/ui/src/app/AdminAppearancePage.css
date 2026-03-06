@@ -1,11 +1,33 @@
 .admin-appearance {
   display: grid;
+  gap: 16px;
+}
+
+.admin-appearance__overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.admin-appearance__overview-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--nd-color-border-default);
+  border-radius: 12px;
+  background: var(--nd-color-surface-primary);
+}
+
+.admin-appearance__overview-card span {
+  color: var(--nd-color-text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .admin-appearance__message {
   margin: 0;
-  color: var(--nd-color-text);
+  color: var(--nd-color-text-primary);
   font-size: 0.9rem;
 }
 
@@ -17,12 +39,13 @@
 .admin-appearance__section h2 {
   margin: 0;
   font-size: 1rem;
-  color: var(--nd-color-text);
+  color: var(--nd-color-text-primary);
 }
 
-.admin-appearance__section p {
+.admin-appearance__section p,
+.admin-appearance__hint {
   margin: 0;
-  color: color-mix(in srgb, var(--nd-color-text) 72%, transparent);
+  color: var(--nd-color-text-secondary);
   font-size: 0.9rem;
 }
 
@@ -32,8 +55,8 @@
   gap: 8px;
 }
 
-.admin-appearance__hint {
-  margin: 0;
-  color: color-mix(in srgb, var(--nd-color-text) 70%, transparent);
-  font-size: 0.9rem;
+@media (max-width: 720px) {
+  .admin-appearance__overview {
+    grid-template-columns: 1fr;
+  }
 }

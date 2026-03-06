@@ -5,7 +5,8 @@ import { Button, PasswordField, TextField } from "@nimbus/ui-kit";
 import { saveAuthTokens } from "./authTokens";
 import { ApiError } from "../api/errors";
 import { t, type I18nKey } from "../i18n/t";
-import "./LoginPage.css";
+import { AuthLayout } from "./AuthLayout";
+import "./AuthForm.css";
 
 type LoginResponse = {
   user: {
@@ -29,10 +30,11 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
+  const [capsLockOn, setCapsLockOn] = useState(false);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!username || !password) {
+    if (!username.trim() || !password) {
       setErrorKey("err.validation");
       return;
     }
@@ -44,7 +46,7 @@ export function LoginPage() {
       const response = await api.request<LoginResponse>({
         path: "/auth/login",
         method: "POST",
-        body: { username, password },
+        body: { username: username.trim(), password },
       });
       saveAuthTokens(response.tokens);
       navigate("/files", { replace: true });
@@ -59,37 +61,62 @@ export function LoginPage() {
     }
   };
 
+  const helperStatus = (
+    <ul className="auth-form__status-list">
+      <li>{t("msg.loginStatusPrimary")}</li>
+      <li>{t("msg.loginStatusSecondary")}</li>
+      {capsLockOn ? <li>{t("status.capsLockOn")}</li> : null}
+    </ul>
+  );
+
   return (
-    <main className="login-page">
-      <form className="login-page__card" onSubmit={submit}>
-        <h1 className="login-page__title">{t("msg.loginTitle")}</h1>
+    <AuthLayout
+      titleKey="msg.loginTitle"
+      subtitleKey="msg.loginSubtitle"
+      status={helperStatus}
+      sidebarTitleKey="msg.loginHeroTitle"
+      sidebarBodyKey="msg.loginHeroBody"
+      sidebarItems={[
+        { labelKey: "field.status", value: t("status.readOnly") },
+        { labelKey: "field.permissions", value: t("msg.loginMetricSecurity") },
+      ]}
+    >
+      <form className="auth-form" onSubmit={submit}>
+        <div className="auth-form__fields">
+          <TextField
+            name="username"
+            autoComplete="username"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            label={t("field.username")}
+            aria-label={t("field.username")}
+            error={errorKey === "err.validation" && !username.trim() ? t(errorKey) : undefined}
+            disabled={submitting}
+          />
 
-        <TextField
-          name="username"
-          autoComplete="username"
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-          label={t("field.username")}
-          aria-label={t("field.username")}
-        />
+          <PasswordField
+            name="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            onKeyUp={(event) => setCapsLockOn(event.getModifierState("CapsLock"))}
+            onKeyDown={(event) => setCapsLockOn(event.getModifierState("CapsLock"))}
+            label={t("field.password")}
+            aria-label={t("field.password")}
+            error={errorKey === "err.validation" && !password ? t(errorKey) : undefined}
+            disabled={submitting}
+          />
+        </div>
 
-        <PasswordField
-          name="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          label={t("field.password")}
-          aria-label={t("field.password")}
-        />
+        {errorKey && errorKey !== "err.validation" ? <div className="auth-form__error">{t(errorKey)}</div> : null}
+        {capsLockOn ? <p className="auth-form__hint">{t("status.capsLockOn")}</p> : null}
 
-        {errorKey ? <div className="login-page__error">{t(errorKey)}</div> : null}
-
-        <div className="login-page__actions">
-          <Button type="submit" variant="primary" loading={submitting} disabled={submitting}>
+        <div className="auth-form__actions">
+          <Button type="submit" variant="primary" loading={submitting} disabled={submitting || !username.trim() || !password}>
             {t("action.signIn")}
           </Button>
         </div>
       </form>
-    </main>
+    </AuthLayout>
   );
 }

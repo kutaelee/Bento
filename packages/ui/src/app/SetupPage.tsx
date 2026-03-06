@@ -7,7 +7,8 @@ import { Button, PasswordField, TextField } from "@nimbus/ui-kit";
 import { t, type I18nKey } from "../i18n/t";
 import { saveAuthTokens } from "./authTokens";
 import { getSetupGateDecision } from "./setupGate";
-import "./SetupPage.css";
+import { AuthLayout } from "./AuthLayout";
+import "./AuthForm.css";
 
 type SetupFormState = {
   username: string;
@@ -72,7 +73,7 @@ export function SetupPage() {
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!formState.username || !formState.password) {
+    if (!formState.username.trim() || !formState.password) {
       setFormErrorKey("err.validation");
       return;
     }
@@ -82,9 +83,9 @@ export function SetupPage() {
 
     try {
       const response = await setupApi.createAdmin({
-        username: formState.username,
+        username: formState.username.trim(),
         password: formState.password,
-        display_name: formState.displayName || undefined,
+        display_name: formState.displayName.trim() || undefined,
         locale: "ko-KR",
       });
       saveAuthTokens(response.tokens);
@@ -100,60 +101,72 @@ export function SetupPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <main className="setup-page">
-        <section className="setup-page__card">
-          <h1 className="setup-page__title">{t("setup.title")}</h1>
-          <p className="setup-page__subtitle">{t("setup.loading")}</p>
-          {statusErrorKey ? <p className="setup-page__error">{t(statusErrorKey)}</p> : null}
-        </section>
-      </main>
-    );
-  }
+  const statusBlock = loading ? (
+    <p className="auth-form__hint">{t("setup.loading")}</p>
+  ) : statusErrorKey ? (
+    <p className="auth-form__error">{t(statusErrorKey)}</p>
+  ) : (
+    <ul className="auth-form__status-list">
+      <li>{t("setup.stepAccount")}</li>
+      <li>{t("setup.stepSecurity")}</li>
+      <li>{t("setup.stepComplete")}</li>
+    </ul>
+  );
 
   return (
-    <main className="setup-page">
-      <form className="setup-page__card" onSubmit={submit}>
-        <h1 className="setup-page__title">{t("setup.title")}</h1>
-        <p className="setup-page__subtitle">{t("setup.subtitle")}</p>
-        {statusErrorKey ? <p className="setup-page__error">{t(statusErrorKey)}</p> : null}
+    <AuthLayout
+      titleKey="setup.title"
+      subtitleKey="setup.subtitle"
+      status={statusBlock}
+      sidebarTitleKey="setup.heroTitle"
+      sidebarBodyKey="setup.heroBody"
+      sidebarItems={[
+        { labelKey: "field.status", value: loading ? t("msg.loading") : t("status.validation") },
+        { labelKey: "field.active", value: t("setup.metricInviteOnly") },
+      ]}
+    >
+      <form className="auth-form" onSubmit={submit}>
+        <div className="auth-form__fields">
+          <div className="auth-form__split">
+            <TextField
+              name="username"
+              autoComplete="username"
+              label={t("field.username")}
+              value={formState.username}
+              onChange={updateField("username")}
+              disabled={submitting || loading}
+              error={formErrorKey === "err.validation" && !formState.username.trim() ? t(formErrorKey) : undefined}
+            />
 
-        <TextField
-          name="username"
-          autoComplete="username"
-          label={t("field.username")}
-          value={formState.username}
-          onChange={updateField("username")}
-          disabled={submitting}
-        />
+            <TextField
+              name="displayName"
+              autoComplete="name"
+              label={t("setup.displayName")}
+              value={formState.displayName}
+              onChange={updateField("displayName")}
+              disabled={submitting || loading}
+            />
+          </div>
 
-        <PasswordField
-          name="password"
-          autoComplete="new-password"
-          label={t("field.password")}
-          value={formState.password}
-          onChange={updateField("password")}
-          disabled={submitting}
-        />
+          <PasswordField
+            name="password"
+            autoComplete="new-password"
+            label={t("field.password")}
+            value={formState.password}
+            onChange={updateField("password")}
+            disabled={submitting || loading}
+            error={formErrorKey === "err.validation" && !formState.password ? t(formErrorKey) : undefined}
+          />
+        </div>
 
-        <TextField
-          name="displayName"
-          autoComplete="name"
-          label={t("setup.displayName")}
-          value={formState.displayName}
-          onChange={updateField("displayName")}
-          disabled={submitting}
-        />
+        {formErrorKey && formErrorKey !== "err.validation" ? <p className="auth-form__error">{t(formErrorKey)}</p> : null}
 
-        {formErrorKey ? <p className="setup-page__error">{t(formErrorKey)}</p> : null}
-
-        <div className="setup-page__actions">
-          <Button type="submit" variant="primary" loading={submitting} disabled={submitting}>
+        <div className="auth-form__actions">
+          <Button type="submit" variant="primary" loading={submitting} disabled={loading || submitting || !formState.username.trim() || !formState.password}>
             {t("action.createAdmin")}
           </Button>
         </div>
       </form>
-    </main>
+    </AuthLayout>
   );
 }

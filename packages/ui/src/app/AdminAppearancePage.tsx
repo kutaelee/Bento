@@ -41,18 +41,12 @@ export default function AdminAppearancePage() {
   const [saving, setSaving] = useState(false);
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
   const [messageKey, setMessageKey] = useState<I18nKey | null>(null);
-  const [current, setCurrent] = useState<AppearanceConfig>({
-    locale: "ko-KR",
-    theme: "system",
-  });
-  const [draft, setDraft] = useState<AppearanceConfig>({
-    locale: "ko-KR",
-    theme: "system",
-  });
+  const [current, setCurrent] = useState<AppearanceConfig>({ locale: "ko-KR", theme: "system" });
+  const [draft, setDraft] = useState<AppearanceConfig>({ locale: "ko-KR", theme: "system" });
 
   const hasChanges = useMemo(
     () => draft.locale !== current.locale || draft.theme !== current.theme,
-    [draft.locale, draft.theme, current.locale, current.theme],
+    [current.locale, current.theme, draft.locale, draft.theme],
   );
 
   const loadProfile = useCallback(async () => {
@@ -62,7 +56,6 @@ export default function AdminAppearancePage() {
 
     try {
       const me = await api.getPreferences();
-
       setLocale(me.locale);
       const profile: AppearanceConfig = {
         locale: me.locale,
@@ -88,9 +81,6 @@ export default function AdminAppearancePage() {
       toggleTheme(draft.theme);
       setCurrent(draft);
       setMessageKey("admin.appearance.saved");
-      if (typeof window !== "undefined") {
-        window.setTimeout(() => window.location.reload(), 120);
-      }
     } catch {
       setErrorKey("admin.appearance.saveError");
     } finally {
@@ -122,7 +112,7 @@ export default function AdminAppearancePage() {
         title={t("admin.appearance.title")}
         actions={
           <Toolbar>
-            <Button disabled={!hasChanges || saving} onClick={onReset}>
+            <Button variant="ghost" disabled={!hasChanges || saving} onClick={onReset}>
               {t("admin.appearance.reset")}
             </Button>
             <Button disabled={!hasChanges || saving} onClick={onSave}>
@@ -131,6 +121,25 @@ export default function AdminAppearancePage() {
           </Toolbar>
         }
       />
+
+      <section className="admin-appearance__overview">
+        <div className="admin-appearance__overview-card">
+          <span>{t("admin.appearance.languageTitle")}</span>
+          <strong>{t(draft.locale === "ko-KR" ? "admin.appearance.languageKo" : "admin.appearance.languageEn")}</strong>
+        </div>
+        <div className="admin-appearance__overview-card">
+          <span>{t("admin.appearance.themeTitle")}</span>
+          <strong>
+            {t(
+              draft.theme === "system"
+                ? "admin.appearance.themeSystem"
+                : draft.theme === "light"
+                  ? "admin.appearance.themeLight"
+                  : "admin.appearance.themeDark",
+            )}
+          </strong>
+        </div>
+      </section>
 
       {messageKey ? <p className="admin-appearance__message">{t(messageKey)}</p> : null}
 
@@ -177,7 +186,7 @@ export default function AdminAppearancePage() {
       </section>
 
       <p className="admin-appearance__hint">{t("admin.appearance.themeHint")}</p>
-      {hasChanges ? null : <p className="admin-appearance__hint">{t("admin.appearance.noChanges")}</p>}
+      {!hasChanges ? <p className="admin-appearance__hint">{t("admin.appearance.noChanges")}</p> : null}
     </section>
   );
 }
