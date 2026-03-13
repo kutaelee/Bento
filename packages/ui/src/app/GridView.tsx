@@ -37,14 +37,17 @@ const gridStyles: {
     background: "color-mix(in srgb, var(--nd-color-accent-default) 8%, var(--nd-color-surface-primary))",
   },
   icon: {
-    width: 48,
-    height: 48,
-    display: "flex",
+    minWidth: 48,
+    height: 28,
+    display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "var(--nd-color-surface-secondary)",
-    borderRadius: 14,
-    fontSize: 24,
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: "0.02em",
+    padding: "0 10px",
+    border: "1px solid var(--nd-color-border-default)",
   },
   name: {
     fontSize: 14,
@@ -93,12 +96,31 @@ export function GridView({ items, loading, selectedIds, onToggleSelect, onOpenIt
             onClick={(event: React.MouseEvent) => onToggleSelect?.(item, event.metaKey || event.ctrlKey || event.shiftKey)}
             onDoubleClick={() => onOpenItem?.(item)}
           >
-            <div style={gridStyles.icon}>{item.type === "FOLDER" ? "¢Ã" : "¢Ç"}</div>
+            <div
+              style={{
+                ...gridStyles.icon,
+                background: item.type === "FOLDER"
+                  ? "color-mix(in srgb, #f59e0b 20%, transparent)"
+                  : item.mime_type?.startsWith("image/")
+                    ? "color-mix(in srgb, #22c55e 18%, transparent)"
+                    : item.mime_type?.startsWith("video/")
+                      ? "color-mix(in srgb, #a855f7 18%, transparent)"
+                      : "color-mix(in srgb, #3b82f6 18%, transparent)",
+              }}
+            >
+              {item.type === "FOLDER"
+                ? "ğŸ“"
+                : item.mime_type?.startsWith("image/")
+                  ? "ğŸ–¼ï¸"
+                  : item.mime_type?.startsWith("video/")
+                    ? "ğŸ¬"
+                    : "ğŸ“„"}
+            </div>
             <div style={gridStyles.name} title={item.name}>
               {item.name}
             </div>
             <div style={gridStyles.meta}>
-              {item.type === "FOLDER" ? t("nav.files") : formatBytes(item.size_bytes)}
+              {item.type === "FOLDER" ? t("msg.folderType") : formatBytes(item.size_bytes)}
             </div>
           </button>
         );

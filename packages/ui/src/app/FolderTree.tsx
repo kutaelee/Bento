@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { TreeView, type TreeNode } from "@nimbus/ui-kit";
 import { createNodesApi } from "../api/nodes";
 import { t } from "../i18n/t";
@@ -10,7 +10,6 @@ import {
   applyFolderNodeChildrenPage,
   isLoadMoreNodeId,
   loadMoreParentId,
-  beginFolderNodeLoading,
   buildTreeNodes,
   createFolderTreeState,
   markFolderNodeLoadFailed,
@@ -24,6 +23,7 @@ type FolderTreeProps = {
 export function FolderTree({ nodesApi: nodesApiOverride }: FolderTreeProps) {
   const { nodeId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const selectedId = nodeId ?? ROOT_NODE_ID;
   const { refreshToken } = useFolderRefresh();
 
@@ -38,7 +38,7 @@ export function FolderTree({ nodesApi: nodesApiOverride }: FolderTreeProps) {
       createFolderTreeState({
         rootId: ROOT_NODE_ID,
         rootLabel: t("nav.files"),
-        expanded: true,
+        expanded: false,
       }),
     [],
   );
@@ -51,7 +51,7 @@ export function FolderTree({ nodesApi: nodesApiOverride }: FolderTreeProps) {
         const response = await nodesApi.listChildren({
           nodeId: targetId,
           cursor,
-          limit: 200,
+          limit: 40,
           sort: "name",
           order: "asc",
         });
@@ -83,17 +83,8 @@ export function FolderTree({ nodesApi: nodesApiOverride }: FolderTreeProps) {
   );
 
   useEffect(() => {
-    let shouldLoad = false;
-    setTreeState(() => {
-      const baseState = createInitialTreeState();
-      const next = beginFolderNodeLoading(baseState, ROOT_NODE_ID);
-      shouldLoad = next.nodes[ROOT_NODE_ID].isLoading;
-      return next;
-    });
-    if (shouldLoad) {
-      void loadChildren(ROOT_NODE_ID);
-    }
-  }, [createInitialTreeState, loadChildren, refreshToken]);
+    setTreeState(() => createInitialTreeState());
+  }, [createInitialTreeState, refreshToken]);
 
   const handleToggle = useCallback(
     (node: TreeNode) => {
@@ -109,6 +100,8 @@ export function FolderTree({ nodesApi: nodesApiOverride }: FolderTreeProps) {
     },
     [loadChildren],
   );
+
+  // Disabled path auto-expansion for performance on large trees.
 
   const handleSelect = useCallback(
     (node: TreeNode) => {
@@ -137,13 +130,19 @@ export function FolderTree({ nodesApi: nodesApiOverride }: FolderTreeProps) {
         }
         return;
       }
+      const inMedia = location.pathname.startsWith("/media");
+      if (inMedia) {
+        if (node.id === ROOT_NODE_ID) navigate("/media");
+        else navigate(`/media/${node.id}`);
+        return;
+      }
       if (node.id === ROOT_NODE_ID) {
         navigate("/files");
       } else {
         navigate(`/files/${node.id}`);
       }
     },
-    [loadChildren, navigate, treeState.nodes],
+    [loadChildren, location.pathname, navigate, treeState.nodes],
   );
 
   const nodes = useMemo(

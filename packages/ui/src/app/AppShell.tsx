@@ -16,12 +16,22 @@ import { Button, Dialog, DetailInspector, TextField } from "@nimbus/ui-kit";
 import { t, type I18nKey } from "../i18n/t";
 import "./AppShell.css";
 
+const TOPBAR_ICONS: Record<string, string> = {
+  files: "📁",
+  recent: "🕘",
+  favorites: "⭐",
+  shared: "🤝",
+  media: "🖼️",
+  trash: "🗑️",
+};
+
 export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const { triggerRefresh } = useFolderRefresh();
   const { enqueueFiles, items: uploadItems } = useUploadQueue();
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const createInputRef = useRef<HTMLInputElement | null>(null);
   const filesMatch = useMatch("/files/:nodeId");
   const rootMatch = useMatch("/files");
   const activeFolderId = filesMatch?.params.nodeId ?? (rootMatch ? ROOT_NODE_ID : null);
@@ -33,7 +43,7 @@ export function AppShell() {
   const nodesApi = useMemo(() => createNodesApi(apiClient), [apiClient]);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [folderName, setFolderName] = useState("");
+  const createNameValueRef = useRef("");
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -43,10 +53,16 @@ export function AppShell() {
     setSearchValue(params.get("q") ?? "");
   }, [location.search]);
 
+  useEffect(() => {
+    if (!isCreateOpen) return;
+    const timer = window.setTimeout(() => createInputRef.current?.focus(), 0);
+    return () => window.clearTimeout(timer);
+  }, [isCreateOpen]);
+
   const handleOpenCreate = () => {
     if (!activeFolderId) return;
     setIsCreateOpen(true);
-    setFolderName("");
+    createNameValueRef.current = "";
     setErrorKey(null);
   };
 
@@ -77,7 +93,7 @@ export function AppShell() {
   const handleSubmitCreate = async (event?: React.FormEvent) => {
     event?.preventDefault();
     if (!activeFolderId) return;
-    const trimmed = folderName.trim();
+    const trimmed = createNameValueRef.current.trim();
     if (!trimmed) {
       setErrorKey("err.validation");
       return;
@@ -87,7 +103,7 @@ export function AppShell() {
     try {
       await nodesApi.createFolder({ parentId: activeFolderId, name: trimmed });
       setIsCreateOpen(false);
-      setFolderName("");
+      createNameValueRef.current = "";
       triggerRefresh();
     } catch (error) {
       if (error instanceof ApiError) {
@@ -144,7 +160,8 @@ export function AppShell() {
                     isActive ? "app-shell__topbar-tab app-shell__topbar-tab--active" : "app-shell__topbar-tab"
                   }
                 >
-                  {t(item.labelKey)}
+                  <span className="app-shell__tab-icon" aria-hidden="true">{TOPBAR_ICONS[item.id] ?? "•"}</span>
+                  <span>{t(item.labelKey)}</span>
                 </NavLink>
               ))}
             </nav>
@@ -167,7 +184,7 @@ export function AppShell() {
                 isActive ? "app-shell__icon-button app-shell__icon-button--active" : "app-shell__icon-button"
               }
             >
-              {t("nav.settings")}
+              ⚙️
             </NavLink>
           </div>
           <input ref={uploadInputRef} type="file" multiple className="app-shell__hidden-input" onChange={handleUploadChange} />
@@ -180,18 +197,25 @@ export function AppShell() {
           footer={
             <div className="nd-dialog__actions">
               <Button variant="ghost" onClick={handleCloseCreate} disabled={isSubmitting}>{t("action.cancel")}</Button>
-              <Button type="submit" form="create-folder-form" loading={isSubmitting} disabled={!folderName.trim()}>{t("action.newFolder")}</Button>
+              <Button type="submit" form="create-folder-form" loading={isSubmitting} disabled={isSubmitting}>{t("action.newFolder")}</Button>
             </div>
           }
         >
           <form id="create-folder-form" onSubmit={handleSubmitCreate}>
-            <TextField
-              label={t("field.name")}
-              value={folderName}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setFolderName(event.target.value)}
-              error={errorKey ? t(errorKey) : undefined}
-              autoFocus
+            <label className="app-shell__dialog-field" htmlFor="create-folder-name">
+              {t("field.name")}
+            </label>
+            <input
+              key={isCreateOpen ? "create-open" : "create-closed"}
+              id="create-folder-name"
+              ref={createInputRef}
+              className="app-shell__dialog-input"
+              defaultValue=""
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                createNameValueRef.current = event.target.value;
+              }}
             />
+            {errorKey ? <p className="app-shell__dialog-error">{t(errorKey)}</p> : null}
           </form>
         </Dialog>
         <ShareDialog open={isShareOpen} node={selectedNode} onClose={() => setIsShareOpen(false)} />

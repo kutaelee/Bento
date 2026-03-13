@@ -160,7 +160,7 @@ export function CreateVolumeSection({
         label={t("field.name")}
         value={createName}
         onChange={(event) => setCreateName(event.currentTarget.value)}
-        placeholder="Main"
+        placeholder={t("placeholder.mainVolumeName")}
       />
       <TextField
         label={t("field.path")}
@@ -169,6 +169,7 @@ export function CreateVolumeSection({
         placeholder="/mnt/storage"
       />
       {createErrorKey ? <ErrorState title={t(createErrorKey)} /> : null}
+      {creating ? <p className="admin-storage__muted">볼륨 생성 진행 중…</p> : null}
       {created ? <p className="admin-storage__muted">{t("msg.volumeCreated")}</p> : null}
       <div className="admin-storage__actions">
         <Button
@@ -189,7 +190,11 @@ type ActivateVolumeSectionProps = {
   activateErrorKey: I18nKey | null;
   activated: boolean;
   activating: boolean;
+  deactivating: boolean;
+  deleting: boolean;
   onActivate: () => void;
+  onDeactivate: () => void;
+  onDelete: () => void;
 };
 
 export function ActivateVolumeSection({
@@ -197,7 +202,11 @@ export function ActivateVolumeSection({
   activateErrorKey,
   activated,
   activating,
+  deactivating,
+  deleting,
   onActivate,
+  onDeactivate,
+  onDelete,
 }: ActivateVolumeSectionProps) {
   return (
     <section className="admin-storage__section">
@@ -215,6 +224,22 @@ export function ActivateVolumeSection({
           loading={activating}
         >
           {t("action.activateVolume")}
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={onDeactivate}
+          disabled={!selectedVolume || !selectedVolume.is_active}
+          loading={deactivating}
+        >
+          비활성화
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={onDelete}
+          disabled={!selectedVolume || selectedVolume.is_active}
+          loading={deleting}
+        >
+          삭제
         </Button>
       </div>
     </section>
@@ -288,7 +313,7 @@ export function ScanCleanupSection({
           errorKey={scanJobErrorKey}
         />
       ) : (
-        <EmptyState titleKey="msg.noJobs" />
+        <p className="admin-storage__muted">최근 실행된 작업이 없습니다.</p>
       )}
     </section>
   );

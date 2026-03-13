@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { ApiError } from "../api/errors";
 import { createNodesApi, type BreadcrumbItem } from "../api/nodes";
+import { createVolumesApi } from "../api/volumes";
 import { t, type I18nKey } from "../i18n/t";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import { ROOT_NODE_ID } from "./nodes";
@@ -156,16 +157,40 @@ export function Breadcrumbs() {
 
   const [items, setItems] = useState<BreadcrumbItem[]>([]);
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
+  const [activeBasePath, setActiveBasePath] = useState<string | null>(null);
 
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
 
   const nodesApi = useMemo(() => createNodesApi(apiClient), [apiClient]);
+  const volumesApi = useMemo(() => createVolumesApi(apiClient), [apiClient]);
+
+  useEffect(() => {
+    if (!isFilesRoute) return;
+
+    let active = true;
+    const loadVolume = async () => {
+      try {
+        const response = await volumesApi.listVolumes();
+        if (!active) return;
+        const activeVolume = response.items.find((item) => item.is_active);
+        setActiveBasePath(activeVolume?.base_path ?? null);
+      } catch {
+        if (!active) return;
+        setActiveBasePath(null);
+      }
+    };
+
+    void loadVolume();
+    return () => {
+      active = false;
+    };
+  }, [isFilesRoute, volumesApi]);
 
   useEffect(() => {
     if (!isFilesRoute) return;
 
     if (!nodeId) {
-      setItems([{ id: ROOT_NODE_ID, name: t("nav.files") }]);
+      setItems([{ id: ROOT_NODE_ID, name: activeBasePath ?? t("nav.files") }]);
       setErrorKey(null);
       return;
     }
@@ -177,8 +202,12 @@ export function Breadcrumbs() {
         const response = await nodesApi.getBreadcrumb(nodeId);
         if (!active) return;
         const nextItems = response.items?.length
-          ? response.items
-          : [{ id: ROOT_NODE_ID, name: t("nav.files") }];
+          ? response.items.map((item, index) =>
+              index === 0 && item.id === ROOT_NODE_ID
+                ? { ...item, name: activeBasePath ?? t("nav.files") }
+                : item,
+            )
+          : [{ id: ROOT_NODE_ID, name: activeBasePath ?? t("nav.files") }];
         setItems(nextItems);
       } catch (error) {
         if (!active) return;
@@ -187,7 +216,7 @@ export function Breadcrumbs() {
         } else {
           setErrorKey("err.network");
         }
-        setItems([{ id: ROOT_NODE_ID, name: t("nav.files") }]);
+        setItems([{ id: ROOT_NODE_ID, name: activeBasePath ?? t("nav.files") }]);
       }
     };
 
@@ -196,7 +225,7 @@ export function Breadcrumbs() {
     return () => {
       active = false;
     };
-  }, [isFilesRoute, nodeId, nodesApi]);
+  }, [isFilesRoute, nodeId, nodesApi, activeBasePath]);
 
   if (!isFilesRoute) return null;
   if (errorKey) {

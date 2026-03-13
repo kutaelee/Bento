@@ -52,7 +52,7 @@ const toHex = (buffer: ArrayBuffer) => {
     .join("");
 };
 
-export const hashSha256 = async (buffer: ArrayBuffer): Promise<string> => {
+export const hashSha256 = async (buffer: ArrayBuffer): Promise<string | null> => {
   if (globalThis.crypto?.subtle?.digest) {
     const digest = await globalThis.crypto.subtle.digest("SHA-256", buffer);
     return toHex(digest);
@@ -61,7 +61,8 @@ export const hashSha256 = async (buffer: ArrayBuffer): Promise<string> => {
     const { createHash } = await import("node:crypto");
     return createHash("sha256").update(Buffer.from(buffer)).digest("hex");
   }
-  throw new Error("SHA-256 not supported in this environment");
+  // In insecure mobile HTTP contexts, subtle crypto may be unavailable.
+  return null;
 };
 
 const createUploadId = () => {
@@ -298,12 +299,9 @@ export function UploadQueueProvider({ children }: UploadQueueProviderProps) {
         void uploadsApi.abortUpload({ uploadId: item.uploadId });
       }
 
-      updateItem(id, (prev) => ({
-        ...prev,
-        status: "ABORTED",
-      }));
+      setItems((prev) => prev.filter((entry) => entry.id !== id));
     },
-    [triggerRefresh, updateItem, uploadsApi],
+    [uploadsApi],
   );
 
   const retryUpload = useCallback(
@@ -357,14 +355,15 @@ const formatBytes = (value: number) => {
 
 export function UploadQueuePanel() {
   const { items, retryUpload, cancelUpload } = useUploadQueue();
+  const visibleItems = items.filter((item) => item.status !== "COMPLETED");
 
-  if (!items.length) return null;
+  if (!visibleItems.length) return null;
 
   return (
     <section className="upload-queue">
       <div className="upload-queue__header">{t("action.upload")}</div>
       <div className="upload-queue__list">
-        {items.map((item) => {
+        {visibleItems.map((item) => {
           const progress = item.totalChunks
             ? Math.round((item.uploadedChunks / item.totalChunks) * 100)
             : 0;
@@ -386,7 +385,7 @@ export function UploadQueuePanel() {
                     {t("action.retry")}
                   </Button>
                 ) : null}
-                {item.status === "UPLOADING" || item.status === "MERGING" || item.status === "INIT" ? (
+                {item.status !== "COMPLETED" ? (
                   <Button type="button" variant="secondary" onClick={() => cancelUpload(item.id)}>
                     {t("action.cancel")}
                   </Button>
