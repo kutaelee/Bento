@@ -457,7 +457,15 @@ function runVolumeAutoScanBatch(runState) {
   }
 
   if (Date.now() > runState.deadlineAtMs) {
-    throw new Error('volume auto-scan timed out');
+    job.error = { message: 'volume auto-scan timed out' };
+    setJobStatus(job, 'FAILED', 1);
+    volumeScanRuns.delete(volumeId);
+    try {
+      updateVolumeScanState({ volumeId, state: 'failed', jobId: job.id, progress: 1, errorMessage: 'volume auto-scan timed out' });
+    } catch {
+      // ignore metadata update failure
+    }
+    return;
   }
 
   const MAX_BATCH_DIRS = 24;
@@ -954,6 +962,26 @@ function ensureUniqueInParent(parentId, name, excludeNodeId = null) {
   return !hasSiblingNameConflict(parentId, name, excludeNodeId);
 }
 
+function loadActiveChildByName(parentId, name) {
+  const escapedParentId = quoteSqlLiteral(parentId);
+  const escapedName = String(name).replace(/'/g, "''");
+  const rowJson = execPsql(
+    "select row_to_json(n) from (" +
+      "select id::text as id, type, name, parent_id::text as parent_id, path::text as path, " +
+        "owner_user_id::text as owner_user_id, blob_id::text as blob_id, size_bytes, mime_type, metadata, " +
+        "to_char(created_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as created_at, " +
+        "to_char(updated_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as updated_at, " +
+        "to_char(deleted_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as deleted_at " +
+      "from nodes where parent_id='" + escapedParentId + "'::uuid and name='" + escapedName + "' and deleted_at is null limit 1" +
+    ") n;"
+  ).trim();
+
+  if (!rowJson) return null;
+  const node = JSON.parse(rowJson);
+  if (node && node.deleted_at === null) delete node.deleted_at;
+  return node;
+}
+
 function isAncestorPath(ancestorPath, targetPath) {
   return targetPath === ancestorPath || targetPath.startsWith(`${ancestorPath}.`);
 }
@@ -988,6 +1016,42 @@ function loadNodeAncestorsByPath(nodePath) {
   }
   const rows = JSON.parse(rowsJson);
   return Array.isArray(rows) ? rows : [];
+}
+
+function sanitizeFsSegment(name) {
+  return String(name || '')
+    .replace(/[\u0000-\u001F\u007F]/g, '')
+    .replace(/[\\/]/g, '_')
+    .trim();
+}
+
+function nodeRelativeFsPath(node) {
+  if (!node || !node.path) return '';
+  const ancestors = loadNodeAncestorsByPath(node.path);
+  if (!Array.isArray(ancestors) || ancestors.length === 0) return '';
+
+  const segments = ancestors
+    .map((item) => sanitizeFsSegment(item && item.name ? item.name : ''))
+    .filter((name, index) => index > 0 && name.length > 0); // skip logical root
+
+  return segments.join(path.sep);
+}
+
+function resolveNodeAbsoluteFsPath({ node, basePath, fileName = null }) {
+  const base = path.resolve(String(basePath));
+  const relativeDir = nodeRelativeFsPath(node);
+  const safeFileName = fileName === null ? null : sanitizeFsSegment(fileName);
+
+  const target = safeFileName
+    ? path.resolve(base, relativeDir, safeFileName)
+    : path.resolve(base, relativeDir || '.');
+
+  const basePrefix = base.endsWith(path.sep) ? base : `${base}${path.sep}`;
+  if (target !== base && !target.startsWith(basePrefix)) {
+    throw new Error('Computed fs path escapes volume base_path');
+  }
+
+  return target;
 }
 
 function updateUserLocale(userId, locale) {
@@ -1063,8 +1127,29 @@ function buildUploadSessionDefaults(sizeBytes) {
 }
 
 
-function listNodeChildren({ parentId, includeDeleted, limit, sortBy, order, cursor }) {
+function listNodeChildren({ parentId, includeDeleted, limit, sortBy, order, cursor, activeVolumeId = null }) {
   const whereDeleted = includeDeleted ? '' : ' and deleted_at is null';
+  const activeVolumeClause = activeVolumeId
+    ? ` and (` +
+      ` (type='FILE' and exists (` +
+        `select 1 from blobs bl ` +
+        `where bl.id=nodes.blob_id and bl.deleted_at is null and bl.volume_id='${quoteSqlLiteral(activeVolumeId)}'::uuid` +
+      `))` +
+      ` or ` +
+      ` (type='FOLDER' and (` +
+        ` exists (` +
+          `select 1 from nodes d join blobs bl on bl.id=d.blob_id ` +
+          `where d.deleted_at is null and bl.deleted_at is null ` +
+            `and d.path <@ nodes.path ` +
+            `and bl.volume_id='${quoteSqlLiteral(activeVolumeId)}'::uuid` +
+        `)` +
+        ` or not exists (` +
+          `select 1 from nodes d join blobs bl on bl.id=d.blob_id ` +
+          `where d.deleted_at is null and bl.deleted_at is null and d.path <@ nodes.path` +
+        `)` +
+      `))` +
+    `)`
+    : '';
   const sortDirection = order === 'desc' ? 'DESC' : 'ASC';
   const columnMap = {
     name: 'name',
@@ -1084,7 +1169,7 @@ function listNodeChildren({ parentId, includeDeleted, limit, sortBy, order, curs
         `to_char(updated_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as updated_at, ` +
         `to_char(deleted_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as deleted_at ` +
       `from nodes ` +
-      `where parent_id='${quoteSqlLiteral(parentId)}'::uuid and true ${whereDeleted} ` +
+      `where parent_id='${quoteSqlLiteral(parentId)}'::uuid and true ${whereDeleted}${activeVolumeClause} ` +
       `order by ${sortColumn} ${sortDirection}, id::text ${sortDirection} ` +
       `limit ${queryLimit} offset ${offset}` +
     `) n;`
@@ -1146,7 +1231,7 @@ function escapeLikePattern(value) {
     .replace(/_/g, '\\_');
 }
 
-function searchNodes({ queryText, parentId, type, limit, cursor, ownerUserId, includeAll, includeMetadata }) {
+function searchNodes({ queryText, parentId, type, limit, cursor, ownerUserId, includeAll, includeMetadata, activeVolumeId = null }) {
   const offset = cursor;
   const queryLimit = limit + 1;
   const escapedQuery = escapeLikePattern(queryText).replace(/'/g, "''");
@@ -1158,6 +1243,23 @@ function searchNodes({ queryText, parentId, type, limit, cursor, ownerUserId, in
   const searchClause = includeMetadata
     ? `(name ilike '${likePattern}' escape '\\' or metadata::text ilike '${likePattern}' escape '\\')`
     : `name ilike '${likePattern}' escape '\\'`;
+  const activeVolumeClause = activeVolumeId
+    ? ` and (` +
+      ` (type='FILE' and exists (` +
+        `select 1 from blobs bl where bl.id=nodes.blob_id and bl.deleted_at is null and bl.volume_id='${quoteSqlLiteral(activeVolumeId)}'::uuid` +
+      `))` +
+      ` or ` +
+      ` (type='FOLDER' and (` +
+        ` exists (` +
+          `select 1 from nodes d join blobs bl on bl.id=d.blob_id ` +
+          `where d.deleted_at is null and bl.deleted_at is null and d.path <@ nodes.path and bl.volume_id='${quoteSqlLiteral(activeVolumeId)}'::uuid` +
+        `)` +
+        ` or not exists (` +
+          `select 1 from nodes d join blobs bl on bl.id=d.blob_id where d.deleted_at is null and bl.deleted_at is null and d.path <@ nodes.path` +
+        `)` +
+      `))` +
+    `)`
+    : '';
 
   const rowsJson = execPsql(
     `select coalesce(json_agg(row_to_json(n) order by name asc, id::text asc), '[]'::json) from (` +
@@ -1172,6 +1274,7 @@ function searchNodes({ queryText, parentId, type, limit, cursor, ownerUserId, in
       ownerClause +
       parentClause +
       typeClause +
+      activeVolumeClause +
       ` order by name asc, id::text asc ` +
       `limit ${queryLimit} offset ${offset}` +
     `) n;`
@@ -1430,6 +1533,42 @@ function loadNodeById(nodeId) {
   const n = JSON.parse(rowJson);
   if (n && n.deleted_at === null) delete n.deleted_at;
   return n;
+}
+
+function loadNodeByPathText(nodePathText) {
+  const escaped = quoteSqlLiteral(nodePathText);
+  const rowJson = execPsql(
+    "select row_to_json(n) from (" +
+      "select id::text as id, type, name, parent_id::text as parent_id, path::text as path, " +
+        "owner_user_id::text as owner_user_id, blob_id::text as blob_id, size_bytes, mime_type, metadata, " +
+        "to_char(created_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as created_at, " +
+        "to_char(updated_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as updated_at, " +
+        "to_char(deleted_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as deleted_at " +
+      "from nodes where path::text='" + escaped + "' and deleted_at is null limit 1" +
+    ") n;"
+  ).trim();
+
+  if (!rowJson) return null;
+
+  const n = JSON.parse(rowJson);
+  if (n && n.deleted_at === null) delete n.deleted_at;
+  return n;
+}
+
+function resolveParentNodeFromInput(parentInput, userId) {
+  const parentText = String(parentInput || '').trim();
+  if (!parentText) return null;
+
+  if (isValidUuid(parentText)) {
+    let node = loadNodeById(parentText);
+    if (!node && parentText === '00000000-0000-0000-0000-000000000001') {
+      node = ensureRootFolderForUser(userId);
+    }
+    return node;
+  }
+
+  // Lenient fallback: accept ltree path text (e.g. root.n...).
+  return loadNodeByPathText(parentText);
 }
 
 function loadDeletedNodeById(nodeId) {
@@ -2599,6 +2738,21 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const node = createFolderNode({ parent, name: name.trim(), owner_user_id: auth.user_id });
+
+      try {
+        const volume = loadActiveVolume();
+        if (volume && volume.base_path) {
+          const dirPath = resolveNodeAbsoluteFsPath({ node, basePath: volume.base_path });
+          fs.mkdirSync(dirPath, { recursive: true });
+        }
+      } catch (fsErr) {
+        try {
+          execPsql("delete from nodes where id='" + quoteSqlLiteral(node.id) + "'::uuid;");
+        } catch (_) {}
+        sendJson(res, 500, errorResponse('INTERNAL', String(fsErr && fsErr.message ? fsErr.message : fsErr)));
+        return;
+      }
+
       sendJson(res, 201, node);
       return;
     } catch (err) {
@@ -2612,7 +2766,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (method === 'POST' && url === '/uploads') {
+  if (method === 'POST' && (url === '/uploads' || url === '/nodes/uploads')) {
     const auth = requireBearerAuth(req);
     if (!auth.ok) {
       sendJson(res, auth.status, auth.body);
@@ -2645,8 +2799,8 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (!isValidUuid(parentId)) {
-      sendJson(res, 400, errorResponse('BAD_REQUEST', 'parent_id must be a UUID'));
+    if (typeof parentId !== 'string' || parentId.trim().length === 0) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'parent_id must be a non-empty string'));
       return;
     }
 
@@ -2676,7 +2830,7 @@ const server = http.createServer(async (req, res) => {
 
     let parentNode;
     try {
-      parentNode = loadNodeById(parentId);
+      parentNode = resolveParentNodeFromInput(parentId, auth.user_id);
     } catch (err) {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
       return;
@@ -2695,7 +2849,7 @@ const server = http.createServer(async (req, res) => {
 
     const escapedUploadId = quoteSqlLiteral(uploadId);
     const escapedUserId = quoteSqlLiteral(auth.user_id);
-    const escapedParentId = quoteSqlLiteral(parentId);
+    const escapedParentId = quoteSqlLiteral(parentNode.id);
     const escapedFilename = filenameResult.value.replace(/'/g, "''");
     const escapedSize = Number(sizeResult.value);
     const escapedSha256 = sha256Result.value === null
@@ -2757,7 +2911,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (method === 'PUT') {
-    const match = pathname.match(/^\/uploads\/([0-9a-fA-F-]{36})\/chunks\/(\d+)$/);
+    const match = pathname.match(/^\/(?:nodes\/)?uploads\/([0-9a-fA-F-]{36})\/chunks\/(\d+)$/);
     if (match) {
       const auth = requireBearerAuth(req);
       if (!auth.ok) {
@@ -2777,10 +2931,6 @@ const server = http.createServer(async (req, res) => {
       const shaHeader = req.headers['x-chunk-sha256'];
       const shaText = Array.isArray(shaHeader) ? shaHeader[0] : shaHeader;
       const shaResult = parseSha256(shaText);
-      if (!shaResult.ok || shaResult.value === null) {
-        sendJson(res, 400, errorResponse('BAD_REQUEST', 'X-Chunk-SHA256 header is required and must be 64 hex chars'));
-        return;
-      }
 
       const session = loadUploadSessionById(uploadId);
       if (!session) {
@@ -2833,7 +2983,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       const actualSha = crypto.createHash('sha256').update(bodyBuffer).digest('hex');
-      if (actualSha !== shaResult.value) {
+      if (shaResult.ok && shaResult.value !== null && actualSha !== shaResult.value) {
         sendJson(res, 400, errorResponse('CHECKSUM_MISMATCH', 'Body checksum does not match X-Chunk-SHA256'));
         return;
       }
@@ -2850,7 +3000,8 @@ const server = http.createServer(async (req, res) => {
       const storedPath = path.join(tempDir, chunkFilename);
 
       const escapedStoredPath = quoteSqlLiteral(storedPath);
-      const escapedChecksum = quoteSqlLiteral(shaResult.value);
+      const effectiveChecksum = (shaResult.ok && shaResult.value !== null) ? shaResult.value : actualSha;
+      const escapedChecksum = quoteSqlLiteral(effectiveChecksum);
       const sizeBytes = bodyBuffer.length;
 
       // Try to insert first. If another request already inserted, we handle idempotent/conflict below.
@@ -2878,7 +3029,7 @@ const server = http.createServer(async (req, res) => {
 
         if (existingJson) {
           const existing = JSON.parse(existingJson);
-          if (existing.checksum !== shaResult.value) {
+          if (existing.checksum !== effectiveChecksum) {
             sendJson(res, 409, errorResponse('CHUNK_CONFLICT', 'Chunk already uploaded with different checksum'));
             return;
           }
@@ -2930,7 +3081,7 @@ const server = http.createServer(async (req, res) => {
 
 
   if (method === 'POST') {
-    const match = pathname.match(/^\/uploads\/([0-9a-fA-F-]{36})\/complete$/);
+    const match = pathname.match(/^\/(?:nodes\/)?uploads\/([0-9a-fA-F-]{36})\/complete$/);
     if (match) {
       const auth = requireBearerAuth(req);
       if (!auth.ok) {
@@ -3086,25 +3237,28 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      let node;
+      const fileName = String(session.filename);
+
+      // Mirror uploaded file into human-readable directory tree under active volume.
+      // (blob store remains source of truth for dedup/download APIs)
+      let mirroredFilePath = null;
       try {
-        node = createFileNode({
-          parent: parentNode,
-          name: String(session.filename),
-          owner_user_id: auth.user_id,
-          blob_id: blobId,
-          size_bytes: mergedSize,
-          mime_type: session.mime_type || null,
+        mirroredFilePath = resolveNodeAbsoluteFsPath({
+          node: parentNode,
+          basePath: volume.base_path,
+          fileName,
         });
-      } catch (err) {
-        const msg = String(err && err.message ? err.message : err);
+        fs.mkdirSync(path.dirname(mirroredFilePath), { recursive: true });
+        fs.writeFileSync(mirroredFilePath, merged, { flag: 'w' });
+      } catch (fsErr) {
         if (blobWasCreated) {
           try { execPsql("delete from blobs where id='" + quoteSqlLiteral(blobId) + "'::uuid;"); } catch (_) {}
           if (blobPath) {
             try { fs.rmSync(blobPath, { force: true }); } catch (_) {}
           }
         }
-        if (msg.includes('duplicate key value') || msg.includes('idx_nodes_parent_name_active_unique')) {
+        const msg = String(fsErr && fsErr.message ? fsErr.message : fsErr);
+        if (msg.includes('EEXIST')) {
           sendJson(res, 409, errorResponse('NODE_NAME_CONFLICT', 'A node with the same name already exists under this parent'));
           return;
         }
@@ -3112,9 +3266,64 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      let node;
+      let replacedOldBlobId = null;
+      try {
+        node = createFileNode({
+          parent: parentNode,
+          name: fileName,
+          owner_user_id: auth.user_id,
+          blob_id: blobId,
+          size_bytes: mergedSize,
+          mime_type: session.mime_type || null,
+        });
+      } catch (err) {
+        const msg = String(err && err.message ? err.message : err);
+        if (msg.includes('duplicate key value') || msg.includes('idx_nodes_parent_name_active_unique')) {
+          try {
+            const existing = loadActiveChildByName(parentNode.id, fileName);
+            if (existing && existing.type === 'FILE') {
+              const oldBlobId = existing.blob_id ? String(existing.blob_id) : null;
+              replacedOldBlobId = oldBlobId;
+              execPsql(
+                "update nodes set " +
+                  "blob_id='" + quoteSqlLiteral(blobId) + "'::uuid, " +
+                  "size_bytes=" + Number(mergedSize) + ", " +
+                  "mime_type=" + (session.mime_type ? ("'" + String(session.mime_type).replace(/'/g, "''") + "'") : 'NULL') + ", " +
+                  "updated_at=now() " +
+                "where id='" + quoteSqlLiteral(existing.id) + "'::uuid;"
+              );
+              node = loadNodeById(existing.id);
+
+            } else {
+              sendJson(res, 409, errorResponse('NODE_NAME_CONFLICT', 'A node with the same name already exists under this parent'));
+              return;
+            }
+          } catch (replaceErr) {
+            sendJson(res, 500, errorResponse('INTERNAL', String(replaceErr && replaceErr.message ? replaceErr.message : replaceErr)));
+            return;
+          }
+        } else {
+          if (mirroredFilePath) {
+            try { fs.rmSync(mirroredFilePath, { force: true }); } catch (_) {}
+          }
+          if (blobWasCreated) {
+            try { execPsql("delete from blobs where id='" + quoteSqlLiteral(blobId) + "'::uuid;"); } catch (_) {}
+            if (blobPath) {
+              try { fs.rmSync(blobPath, { force: true }); } catch (_) {}
+            }
+          }
+          sendJson(res, 500, errorResponse('INTERNAL', msg));
+          return;
+        }
+      }
+
       // Now that the node exists, bump blob ref_count. (Avoids leaking ref_count increments on name conflicts.)
       try {
         execPsql("update blobs set ref_count=ref_count+1 where id='" + quoteSqlLiteral(blobId) + "'::uuid;");
+        if (replacedOldBlobId && replacedOldBlobId !== blobId) {
+          execPsql("update blobs set ref_count=greatest(ref_count-1,0) where id='" + quoteSqlLiteral(replacedOldBlobId) + "'::uuid;");
+        }
       } catch (err) {
         sendJson(res, 500, errorResponse('INTERNAL', String(err)));
         return;
@@ -3312,42 +3521,15 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      // Two-phase switch to satisfy unique partial index on is_active=true.
       execPsql("begin;");
       try {
-        execPsql(
-          "update volumes set is_active=(id='" + quoteSqlLiteral(volumeId) + "'::uuid);"
-        );
-        const activeCountText = execPsql("select count(*)::bigint from volumes where is_active=true;").trim();
-        const activeCount = Number(activeCountText || 0);
-        if (!Number.isFinite(activeCount) || activeCount !== 1) {
-          throw new Error('active volume postcondition failed');
-        }
+        execPsql("update volumes set is_active=false where is_active=true;");
+        execPsql("update volumes set is_active=true where id='" + quoteSqlLiteral(volumeId) + "'::uuid;");
         execPsql("commit;");
-      } catch (err) {
+      } catch (switchErr) {
         try { execPsql("rollback;"); } catch (_) {}
-        throw err;
-      }
-
-      let scanJob = null;
-      try {
-        scanJob = createOrReuseVolumeAutoScanJob({
-          volumeId,
-          ownerUserId: caller.id,
-          dryRun: false,
-          trigger: 'activate',
-        });
-      } catch (scanErr) {
-        try {
-          updateVolumeScanState({
-            volumeId,
-            state: 'failed',
-            jobId: null,
-            progress: 1,
-            errorMessage: String(scanErr && scanErr.message ? scanErr.message : scanErr),
-          });
-        } catch {
-          // ignore scan-state update failure for activation response
-        }
+        throw switchErr;
       }
 
       const updated = loadVolumeById(volumeId);
@@ -3356,15 +3538,94 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const responseBody = scanJob
-        ? {
-            ...updated,
-            scan_job_id: scanJob.id,
-            scan_state: 'queued',
-            scan_progress: 0,
-          }
-        : updated;
-      sendJson(res, 200, responseBody);
+      sendJson(res, 200, updated);
+      return;
+    } catch (err) {
+      sendJson(res, 500, errorResponse('INTERNAL', String(err)));
+      return;
+    }
+  }
+
+  if (method === 'POST' && pathname.startsWith('/admin/volumes/') && pathname.endsWith('/deactivate')) {
+    const authResult = requireBearerAuth(req);
+    if (!authResult.ok) {
+      sendJson(res, authResult.status, authResult.body);
+      return;
+    }
+
+    const caller = loadUserById(authResult.user_id);
+    if (!caller) {
+      sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
+      return;
+    }
+    if (caller.role !== 'ADMIN') {
+      sendJson(res, 403, errorResponse('FORBIDDEN', 'Admin role required'));
+      return;
+    }
+
+    const volumeId = pathname.slice('/admin/volumes/'.length, -('/deactivate'.length));
+    if (!isValidUuid(volumeId)) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'volume_id must be a UUID'));
+      return;
+    }
+
+    try {
+      const volume = loadVolumeById(volumeId);
+      if (!volume) {
+        sendJson(res, 404, errorResponse('NOT_FOUND', 'Volume not found'));
+        return;
+      }
+      execPsql("update volumes set is_active=false where id='" + quoteSqlLiteral(volumeId) + "'::uuid;");
+      const updated = loadVolumeById(volumeId);
+      sendJson(res, 200, updated || { ...volume, is_active: false });
+      return;
+    } catch (err) {
+      sendJson(res, 500, errorResponse('INTERNAL', String(err)));
+      return;
+    }
+  }
+
+  if (method === 'DELETE' && pathname.startsWith('/admin/volumes/')) {
+    const authResult = requireBearerAuth(req);
+    if (!authResult.ok) {
+      sendJson(res, authResult.status, authResult.body);
+      return;
+    }
+
+    const caller = loadUserById(authResult.user_id);
+    if (!caller) {
+      sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
+      return;
+    }
+    if (caller.role !== 'ADMIN') {
+      sendJson(res, 403, errorResponse('FORBIDDEN', 'Admin role required'));
+      return;
+    }
+
+    const volumeId = pathname.slice('/admin/volumes/'.length);
+    if (!isValidUuid(volumeId)) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'volume_id must be a UUID'));
+      return;
+    }
+
+    try {
+      const volume = loadVolumeById(volumeId);
+      if (!volume) {
+        sendJson(res, 404, errorResponse('NOT_FOUND', 'Volume not found'));
+        return;
+      }
+      if (volume.is_active) {
+        sendJson(res, 409, errorResponse('CONFLICT', 'Deactivate volume before deleting'));
+        return;
+      }
+      const refCountText = execPsql("select count(*)::bigint from blobs where volume_id='" + quoteSqlLiteral(volumeId) + "'::uuid and deleted_at is null;").trim();
+      const refCount = Number(refCountText || 0);
+      if (Number.isFinite(refCount) && refCount > 0) {
+        sendJson(res, 409, errorResponse('CONFLICT', 'Volume has blob references'));
+        return;
+      }
+      execPsql("delete from volumes where id='" + quoteSqlLiteral(volumeId) + "'::uuid;");
+      sendJson(res, 200, { ok: true });
       return;
     } catch (err) {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
@@ -3806,6 +4067,21 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const node = createFolderNode({ parent, name: name.trim(), owner_user_id: auth.user_id });
+
+      try {
+        const volume = loadActiveVolume();
+        if (volume && volume.base_path) {
+          const dirPath = resolveNodeAbsoluteFsPath({ node, basePath: volume.base_path });
+          fs.mkdirSync(dirPath, { recursive: true });
+        }
+      } catch (fsErr) {
+        try {
+          execPsql("delete from nodes where id='" + quoteSqlLiteral(node.id) + "'::uuid;");
+        } catch (_) {}
+        sendJson(res, 500, errorResponse('INTERNAL', String(fsErr && fsErr.message ? fsErr.message : fsErr)));
+        return;
+      }
+
       sendJson(res, 201, node);
       return;
     } catch (err) {
@@ -5016,6 +5292,7 @@ const server = http.createServer(async (req, res) => {
     const query = parsedUrl.searchParams;
     const rawQuery = query.get('q');
     const trimmedQuery = rawQuery ? rawQuery.trim() : '';
+    const normalizedQuery = trimmedQuery.replace(/\*/g, '');
     if (trimmedQuery.length === 0) {
       sendJson(res, 400, errorResponse('BAD_REQUEST', 'q is required'));
       return;
@@ -5064,15 +5341,17 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
+      const activeVolume = loadActiveVolume();
       const result = searchNodes({
-        queryText: trimmedQuery,
+        queryText: normalizedQuery,
         parentId,
         type: nodeType,
         limit: limitResult.value,
         cursor: cursorResult.value,
         ownerUserId: caller.id,
         includeAll: caller.role === 'ADMIN',
-        includeMetadata: includeMetadataResult.value
+        includeMetadata: includeMetadataResult.value,
+        activeVolumeId: activeVolume?.id ?? null,
       });
       sendJson(res, 200, result);
       return;
@@ -5159,6 +5438,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
+      const activeVolume = loadActiveVolume();
+      if (!activeVolume) {
+        sendJson(res, 200, { items: [], next_cursor: null });
+        return;
+      }
       const result = listNodeChildren({
         parentId: nodeId,
         includeDeleted: includeDeletedResult.value,
@@ -5166,6 +5450,7 @@ const server = http.createServer(async (req, res) => {
         sortBy: sortResult.value,
         order: orderResult.value,
         cursor: cursorResult.value,
+        activeVolumeId: activeVolume?.id ?? null,
       });
       sendJson(res, 200, result);
       return;
@@ -5278,7 +5563,16 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (method === 'GET' && pathname.startsWith('/nodes/') && pathname.endsWith('/download')) {
-    const auth = requireBearerAuth(req);
+    let auth = requireBearerAuth(req);
+    if (!auth.ok) {
+      const queryToken = parsedUrl.searchParams.get('access_token');
+      if (queryToken) {
+        const row = accessTokenStore.get(String(queryToken));
+        if (row) {
+          auth = { ok: true, user_id: row.user_id };
+        }
+      }
+    }
     if (!auth.ok) {
       sendJson(res, auth.status, auth.body);
       return;
@@ -5356,8 +5650,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     const range = rangeParsed.value;
-    const contentType = 'application/octet-stream';
+    const contentType = node.mime_type && typeof node.mime_type === 'string'
+      ? String(node.mime_type)
+      : 'application/octet-stream';
+    const safeFileName = String(node.name || 'file').replace(/"/g, '');
     res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Disposition', `inline; filename="${safeFileName}"`);
 
     if (!range) {
       res.statusCode = 200;

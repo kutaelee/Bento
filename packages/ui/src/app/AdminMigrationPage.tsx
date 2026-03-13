@@ -195,7 +195,7 @@ export default function AdminMigrationPage() {
             label={t("field.targetVolumeId")}
             value={targetVolumeId}
             onChange={(event) => setTargetVolumeId(event.target.value)}
-            placeholder="volume-id"
+            placeholder={t("placeholder.volumeId")}
           />
           <label className="admin-migration__checkbox">
             <input

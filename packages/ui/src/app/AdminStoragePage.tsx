@@ -80,6 +80,8 @@ export default function AdminStoragePage() {
 
   const [activateErrorKey, setActivateErrorKey] = useState<I18nKey | null>(null);
   const [activating, setActivating] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [activated, setActivated] = useState(false);
 
   const [scanDeleteFiles, setScanDeleteFiles] = useState(false);
@@ -137,15 +139,8 @@ export default function AdminStoragePage() {
     void fetchScanJob(activeVolume.scan_job_id);
   }, [activeVolume?.scan_job_id, fetchScanJob]);
 
-  useEffect(() => {
-    if (!activeVolume) return;
-    if (activeVolume.scan_state !== "queued" && activeVolume.scan_state !== "running") return;
-
-    const timer = window.setTimeout(() => {
-      void loadVolumes();
-    }, 3000);
-    return () => window.clearTimeout(timer);
-  }, [activeVolume, loadVolumes]);
+  // Auto polling disabled: it made the storage page feel like constant refresh.
+  // Users can refresh manually via toolbar or action buttons.
 
   const handleValidate = async () => {
     if (!validatePath || validating) return;
@@ -199,6 +194,34 @@ export default function AdminStoragePage() {
       setActivateErrorKey(error instanceof ApiError ? error.key : "err.network");
     } finally {
       setActivating(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (!selectedVolume || !selectedVolume.is_active || deactivating) return;
+    setDeactivating(true);
+    setActivateErrorKey(null);
+    try {
+      await volumesApi.deactivateVolume(selectedVolume.id);
+      await loadVolumes();
+    } catch (error) {
+      setActivateErrorKey(error instanceof ApiError ? error.key : "err.network");
+    } finally {
+      setDeactivating(false);
+    }
+  };
+
+  const handleDeleteVolume = async () => {
+    if (!selectedVolume || selectedVolume.is_active || deleting) return;
+    setDeleting(true);
+    setActivateErrorKey(null);
+    try {
+      await volumesApi.deleteVolume(selectedVolume.id);
+      await loadVolumes();
+    } catch (error) {
+      setActivateErrorKey(error instanceof ApiError ? error.key : "err.network");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -364,7 +387,11 @@ export default function AdminStoragePage() {
         activateErrorKey={activateErrorKey}
         activated={activated}
         activating={activating}
+        deactivating={deactivating}
+        deleting={deleting}
         onActivate={handleActivate}
+        onDeactivate={handleDeactivate}
+        onDelete={handleDeleteVolume}
       />
 
       <ScanCleanupSection

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useFolderRefresh } from "./folderRefresh";
 import { createNodesApi, type NodeItem } from "../api/nodes";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
@@ -8,10 +9,15 @@ import { MediaCard, Lightbox } from "@nimbus/ui-kit";
 import { t, type I18nKey } from "../i18n/t";
 import { SelectionActionBar } from "./SelectionActionBar";
 import { ROOT_NODE_ID } from "./nodes";
+import { getAccessToken } from "./authTokens";
 
 export function MediaPage() {
     const { nonce } = useFolderRefresh();
+    const navigate = useNavigate();
+    const { nodeId } = useParams();
+    const currentNodeId = nodeId ?? ROOT_NODE_ID;
     const [items, setItems] = useState<NodeItem[]>([]);
+    const [folders, setFolders] = useState<NodeItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
@@ -19,6 +25,9 @@ export function MediaPage() {
 
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
+    const [previewIsVideo, setPreviewIsVideo] = useState(false);
+    const [breadcrumbs, setBreadcrumbs] = useState<Array<{ id: string; name: string }>>([]);
 
     const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
     const nodesApi = useMemo(() => createNodesApi(apiClient), [apiClient]);
@@ -37,15 +46,19 @@ export function MediaPage() {
             setLoading(true);
             setErrorKey(null);
             try {
-                // Mock loading media from root instead of real search to fulfill UI goal without backend touch
-                const response = await nodesApi.listChildren({ nodeId: ROOT_NODE_ID });
+                const response = await nodesApi.listChildren({ nodeId: currentNodeId });
                 if (!active) return;
-                // Filter mock simply by assuming images/videos are folders or have mime types...
-                // Actually, just keep all items as media for now if there are any.
-                const mediaItems = response.items.filter((item) =>
-                    item.type === "FILE" || item.type === "FOLDER"
-                );
+                const nextItems = response.items ?? [];
+                const crumbRes = await nodesApi.getBreadcrumb(currentNodeId);
+                const mediaItems = nextItems.filter((item) => {
+                    if (item.type !== "FILE") return false;
+                    const mime = item.mime_type?.toLowerCase() ?? "";
+                    const name = item.name.toLowerCase();
+                    return mime.startsWith("image/") || mime.startsWith("video/") || /\.(jpg|jpeg|png|gif|webp|bmp|heic|mp4|mov|mkv|webm)$/i.test(name);
+                });
+                setFolders(nextItems.filter((item) => item.type === "FOLDER"));
                 setItems(mediaItems);
+                setBreadcrumbs((crumbRes.items ?? []).map((c) => ({ id: c.id, name: c.name })));
                 setNextCursor(response.next_cursor ?? null);
             } catch (error) {
                 if (!active) return;
@@ -64,19 +77,51 @@ export function MediaPage() {
         return () => {
             active = false;
         };
-    }, [nonce, nodesApi]);
+    }, [currentNodeId, nonce, nodesApi]);
 
     const loadMore = async () => {
         if (!nextCursor) return;
         setLoadingMore(true);
         try {
-            const response = await nodesApi.listChildren({ nodeId: ROOT_NODE_ID, cursor: nextCursor });
-            setItems((prev) => [...prev, ...response.items]);
+            const response = await nodesApi.listChildren({ nodeId: currentNodeId, cursor: nextCursor });
+            const moreMedia = response.items.filter((item) => {
+                if (item.type !== "FILE") return false;
+                const mime = item.mime_type?.toLowerCase() ?? "";
+                const name = item.name.toLowerCase();
+                return mime.startsWith("image/") || mime.startsWith("video/") || /\.(jpg|jpeg|png|gif|webp|bmp|heic|mp4|mov|mkv|webm)$/i.test(name);
+            });
+            setItems((prev) => [...prev, ...moreMedia]);
             setNextCursor(response.next_cursor ?? null);
         } catch {
             // Ignored for load more
         } finally {
             setLoadingMore(false);
+        }
+    };
+
+    const handleOpenPreview = async (item: NodeItem, index: number) => {
+        if (item.type !== "FILE") return;
+        try {
+            const isVideo = item.mime_type?.startsWith("video/") || /\.(mp4|mov|mkv|webm)$/i.test(item.name.toLowerCase());
+            if (isVideo) {
+                const token = getAccessToken();
+                const qp = token ? `?access_token=${encodeURIComponent(token)}` : "";
+                setPreviewUrl(`/nodes/${item.id}/download${qp}`);
+                setPreviewIsVideo(true);
+                setPreviewIndex(index);
+                return;
+            }
+
+            const blob = await nodesApi.downloadNode({ nodeId: item.id });
+            const objectUrl = URL.createObjectURL(blob);
+            setPreviewUrl((prev) => {
+                if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+                return objectUrl;
+            });
+            setPreviewIsVideo(false);
+            setPreviewIndex(index);
+        } catch {
+            setPreviewIndex(null);
         }
     };
 
@@ -106,10 +151,26 @@ export function MediaPage() {
 
     return (
         <div style={{ padding: "var(--nd-space-4, 16px)", height: "100%", overflowY: "auto" }}>
-            <header style={{ marginBottom: "var(--nd-space-4, 16px)" }}>
+            <header style={{ marginBottom: "var(--nd-space-4, 16px)", display: "grid", gap: 8 }}>
                 <h1 style={{ fontSize: "1.5rem", fontWeight: 600, color: "var(--nd-color-text-primary)" }}>
                     {t("nav.media")}
                 </h1>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <Button variant="ghost" onClick={() => navigate("/media")}>루트</Button>
+                    {breadcrumbs.length > 1 ? (
+                        <Button
+                            variant="ghost"
+                            onClick={() => navigate(`/media/${breadcrumbs[breadcrumbs.length - 2].id}`)}
+                        >
+                            상위 폴더
+                        </Button>
+                    ) : null}
+                    {breadcrumbs.slice(1).map((crumb) => (
+                        <Button key={crumb.id} variant="ghost" onClick={() => navigate(`/media/${crumb.id}`)}>
+                            {crumb.name}
+                        </Button>
+                    ))}
+                </div>
             </header>
 
             {loading && items.length === 0 ? (
@@ -126,7 +187,7 @@ export function MediaPage() {
                         </div>
                     ))}
                 </div>
-            ) : items.length === 0 ? (
+            ) : items.length === 0 && folders.length === 0 ? (
                 <EmptyState
                     icon="🖼️"
                     title={t("msg.emptyMedia")}
@@ -134,6 +195,19 @@ export function MediaPage() {
                 />
             ) : (
                 <>
+                    {folders.length > 0 ? (
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ fontSize: 13, color: "var(--nd-color-text-secondary)", marginBottom: 8 }}>{t("msg.folderType")}</div>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                {folders.map((folder) => (
+                                    <Button key={folder.id} variant="ghost" onClick={() => navigate(`/media/${folder.id}`)}>
+                                        📁 {folder.name}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
+
                     <div
                         style={{
                             display: "grid",
@@ -142,24 +216,47 @@ export function MediaPage() {
                         }}
                     >
                         {items.map((item, index) => {
+                            const shouldLoadThumb = index < 24;
+                            const token = getAccessToken();
+                            const tokenQuery = token ? `?access_token=${encodeURIComponent(token)}` : "";
                             const isSelected = selectedIds.has(item.id);
-                            const isVideo = item.mime_type?.startsWith("video/");
-                            // Only files get a fallback thumbnail
-                            const fallbackIcon = item.type === "FILE" && !isVideo ? "📄" : undefined;
+                            const nameLower = item.name.toLowerCase();
+                            const isVideo = item.mime_type?.startsWith("video/") || /\.(mp4|mov|mkv|webm)$/i.test(nameLower);
+                            const isImage = item.mime_type?.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i.test(nameLower);
+                            const fallbackIcon = item.type === "FILE"
+                                ? (isImage ? "🖼️" : isVideo ? "🎬" : "📄")
+                                : "📁";
 
                             // In a real app we would have a thumbnailUrl
                             // we don't have it on the dummy NodeType so we'll leave it undefined to show fallback/skeleton
                             return (
-                                <MediaCard
-                                    key={item.id}
-                                    id={item.id}
-                                    name={item.name}
-                                    isVideo={isVideo || item.name.endsWith(".mp4")}
-                                    fallbackIcon={fallbackIcon || "🖼️"}
-                                    selected={isSelected}
-                                    onSelect={(multi) => handleToggleSelect(item, multi)}
-                                    onClick={() => setPreviewIndex(index)}
-                                />
+                                <div key={item.id} style={{ display: "grid", gap: 6 }}>
+                                    <MediaCard
+                                        id={item.id}
+                                        name={item.name}
+                                        thumbnailUrl={shouldLoadThumb
+                                            ? (isImage
+                                                ? `/nodes/${item.id}/download${tokenQuery}`
+                                                : isVideo
+                                                    ? `/media/${item.id}/thumbnail`
+                                                    : undefined)
+                                            : undefined}
+                                        isVideo={isVideo || item.name.endsWith(".mp4")}
+                                        fallbackIcon={
+                                            item.mime_type?.startsWith("image/")
+                                                ? "🖼️"
+                                                : (isVideo || item.name.endsWith(".mp4"))
+                                                    ? "🎬"
+                                                    : (fallbackIcon || "📄")
+                                        }
+                                        selected={isSelected}
+                                        onSelect={(multi) => handleToggleSelect(item, multi)}
+                                        onClick={() => void handleOpenPreview(item, index)}
+                                    />
+                                    <div style={{ fontSize: 12, color: "var(--nd-color-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={item.name}>
+                                        {item.name}
+                                    </div>
+                                </div>
                             );
                         })}
                     </div>
@@ -175,19 +272,47 @@ export function MediaPage() {
                     <SelectionActionBar
                         selectedCount={selectedIds.size}
                         onClearSelection={() => setSelectedIds(new Set())}
-                        onDownload={selectedIds.size > 0 ? () => alert("Download selected: " + selectedIds.size) : undefined}
-                        onDelete={selectedIds.size > 0 ? () => alert("Delete selected: " + selectedIds.size) : undefined}
-                        onMove={selectedIds.size > 0 ? () => alert("Move selected: " + selectedIds.size) : undefined}
+                        onDownload={selectedIds.size > 0 ? () => alert(t("msg.mediaDownloadSelected").replace("{n}", String(selectedIds.size))) : undefined}
+                        onDelete={selectedIds.size > 0 ? () => alert(t("msg.mediaDeleteSelected").replace("{n}", String(selectedIds.size))) : undefined}
+                        onMove={selectedIds.size > 0 ? () => alert(t("msg.mediaMoveSelected").replace("{n}", String(selectedIds.size))) : undefined}
                     />
 
-                    <Lightbox
-                        isOpen={previewIndex !== null}
-                        onClose={() => setPreviewIndex(null)}
-                        imageUrl={undefined} // No actual images in API
-                        imageName={previewIndex !== null ? items[previewIndex]?.name : undefined}
-                        onNext={previewIndex !== null && previewIndex < items.length - 1 ? () => setPreviewIndex(previewIndex + 1) : undefined}
-                        onPrev={previewIndex !== null && previewIndex > 0 ? () => setPreviewIndex(previewIndex - 1) : undefined}
-                    />
+                    {previewIsVideo ? (
+                        previewIndex !== null && previewUrl ? (
+                            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "grid", placeItems: "center", padding: 16 }}>
+                                <div style={{ width: "min(960px, 96vw)", background: "#111", borderRadius: 12, overflow: "hidden" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", color: "#fff" }}>
+                                        <strong style={{ fontSize: 14 }}>{items[previewIndex]?.name}</strong>
+                                        <Button variant="secondary" onClick={() => {
+                                            setPreviewIndex(null);
+                                            setPreviewIsVideo(false);
+                                            setPreviewUrl((prev) => {
+                                                if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+                                                return undefined;
+                                            });
+                                        }}>닫기</Button>
+                                    </div>
+                                    <video src={previewUrl} controls autoPlay style={{ width: "100%", maxHeight: "80vh", background: "#000" }} />
+                                </div>
+                            </div>
+                        ) : null
+                    ) : (
+                        <Lightbox
+                            isOpen={previewIndex !== null}
+                            onClose={() => {
+                                setPreviewIndex(null);
+                                setPreviewIsVideo(false);
+                                setPreviewUrl((prev) => {
+                                    if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+                                    return undefined;
+                                });
+                            }}
+                            imageUrl={previewUrl}
+                            imageName={previewIndex !== null ? items[previewIndex]?.name : undefined}
+                            onNext={previewIndex !== null && previewIndex < items.length - 1 ? () => void handleOpenPreview(items[previewIndex + 1], previewIndex + 1) : undefined}
+                            onPrev={previewIndex !== null && previewIndex > 0 ? () => void handleOpenPreview(items[previewIndex - 1], previewIndex - 1) : undefined}
+                        />
+                    )}
                 </>
             )}
         </div>
