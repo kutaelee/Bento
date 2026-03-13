@@ -25,6 +25,11 @@ const proxy = disableProxy
         bypass: (req) => (shouldBypassForSpaNavigation(req) ? req.url : undefined),
       },
       "/nodes": proxyTarget,
+      "/uploads": proxyTarget,
+      "^/bento/(auth|me|nodes|uploads|admin|search|trash|media|jobs|system|setup)": {
+        target: proxyTarget,
+        rewrite: (path) => path.replace(/^\/bento/, ""),
+      },
       "/jobs": proxyTarget,
       "/trash": {
         target: proxyTarget,

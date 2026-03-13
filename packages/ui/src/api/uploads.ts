@@ -28,7 +28,7 @@ export type UploadChunkParams = {
   uploadId: string;
   chunkIndex: number;
   chunk: Blob;
-  chunkHash: string;
+  chunkHash?: string | null;
   idempotencyKey?: string;
   signal?: AbortSignal;
 };
@@ -50,6 +50,20 @@ export type UploadsApiOptions = {
 export type UploadsApi = ReturnType<typeof createUploadsApi>;
 
 export const createUploadsApi = ({ client }: UploadsApiOptions) => {
+  const withFallback = async <T,>(primary: () => Promise<T>, fallback: () => Promise<T>): Promise<T> => {
+    try {
+      return await primary();
+    } catch (error: unknown) {
+      const status = typeof error === "object" && error !== null && "status" in error
+        ? Number((error as { status?: unknown }).status)
+        : null;
+      if (status === null || [404, 405, 502, 503, 504].includes(status)) {
+        return fallback();
+      }
+      throw error;
+    }
+  };
+
   return {
     createUpload: async ({
       parentId,
@@ -61,20 +75,30 @@ export const createUploadsApi = ({ client }: UploadsApiOptions) => {
       idempotencyKey,
       signal,
     }: CreateUploadParams): Promise<CreateUploadResponse> => {
-      return client.request<CreateUploadResponse>({
-        path: "/uploads",
-        method: "POST",
-        body: {
-          parent_id: parentId,
-          filename,
-          size_bytes: sizeBytes,
-          ...(sha256 ? { sha256 } : {}),
-          ...(mimeType !== undefined ? { mime_type: mimeType } : {}),
-          ...(modifiedAt !== undefined ? { modified_at: modifiedAt } : {}),
-        } satisfies CreateUploadRequest,
-        headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
-        signal,
-      });
+      const payload = {
+        parent_id: parentId,
+        filename,
+        size_bytes: sizeBytes,
+        ...(sha256 ? { sha256 } : {}),
+        ...(mimeType !== undefined ? { mime_type: mimeType } : {}),
+        ...(modifiedAt !== undefined ? { modified_at: modifiedAt } : {}),
+      } satisfies CreateUploadRequest;
+      return withFallback(
+        () => client.request<CreateUploadResponse>({
+          path: "/nodes/uploads",
+          method: "POST",
+          body: payload,
+          headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+          signal,
+        }),
+        () => client.request<CreateUploadResponse>({
+          path: "/uploads",
+          method: "POST",
+          body: payload,
+          headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+          signal,
+        }),
+      );
     },
     uploadChunk: async ({
       uploadId,
@@ -84,31 +108,55 @@ export const createUploadsApi = ({ client }: UploadsApiOptions) => {
       idempotencyKey,
       signal,
     }: UploadChunkParams): Promise<UploadSession> => {
-      return client.request<UploadSession>({
-        path: `/uploads/${uploadId}/chunks/${chunkIndex}`,
-        method: "PUT",
-        rawBody: chunk,
-        headers: {
-          "Content-Type": "application/octet-stream",
-          "X-Chunk-SHA256": chunkHash,
-          ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-        },
-        signal,
-      });
+      const headers = {
+        "Content-Type": "application/octet-stream",
+        ...(chunkHash ? { "X-Chunk-SHA256": chunkHash } : {}),
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      };
+      return withFallback(
+        () => client.request<UploadSession>({
+          path: `/nodes/uploads/${uploadId}/chunks/${chunkIndex}`,
+          method: "PUT",
+          rawBody: chunk,
+          headers,
+          signal,
+        }),
+        () => client.request<UploadSession>({
+          path: `/uploads/${uploadId}/chunks/${chunkIndex}`,
+          method: "PUT",
+          rawBody: chunk,
+          headers,
+          signal,
+        }),
+      );
     },
     completeUpload: async ({ uploadId, idempotencyKey }: CompleteUploadParams): Promise<CompleteUploadResponse> => {
-      return client.request<CompleteUploadResponse>({
-        path: `/uploads/${uploadId}/complete`,
-        method: "POST",
-        headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
-      });
+      return withFallback(
+        () => client.request<CompleteUploadResponse>({
+          path: `/nodes/uploads/${uploadId}/complete`,
+          method: "POST",
+          headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+        }),
+        () => client.request<CompleteUploadResponse>({
+          path: `/uploads/${uploadId}/complete`,
+          method: "POST",
+          headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+        }),
+      );
     },
     abortUpload: async ({ uploadId, idempotencyKey }: AbortUploadParams): Promise<SuccessResponse> => {
-      return client.request<SuccessResponse>({
-        path: `/uploads/${uploadId}`,
-        method: "DELETE",
-        headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
-      });
+      return withFallback(
+        () => client.request<SuccessResponse>({
+          path: `/nodes/uploads/${uploadId}`,
+          method: "DELETE",
+          headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+        }),
+        () => client.request<SuccessResponse>({
+          path: `/uploads/${uploadId}`,
+          method: "DELETE",
+          headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+        }),
+      );
     },
   };
 };

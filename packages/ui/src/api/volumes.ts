@@ -49,5 +49,17 @@ export const createVolumesApi = (client: ReturnType<typeof createApiClient>) => 
         body: payload && Object.keys(payload).length > 0 ? payload : undefined,
       });
     },
+    deactivateVolume: async (volumeId: string): Promise<Volume> => {
+      return client.request<Volume>({
+        path: `/admin/volumes/${volumeId}/deactivate`,
+        method: "POST",
+      });
+    },
+    deleteVolume: async (volumeId: string): Promise<{ ok: boolean }> => {
+      return client.request<{ ok: boolean }>({
+        path: `/admin/volumes/${volumeId}`,
+        method: "DELETE",
+      });
+    },
   };
 };

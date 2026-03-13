@@ -3,6 +3,8 @@ import { Button, TextField } from "@nimbus/ui-kit";
 import { t, type I18nKey } from "../i18n/t";
 import type { NodeItem } from "../api/nodes";
 import { createNodesApi } from "../api/nodes";
+import { createVolumesApi } from "../api/volumes";
+import { createMePreferencesApi } from "../api/mePreferences";
 import { ApiError } from "../api/errors";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import { useFolderRefresh } from "./folderRefresh";
@@ -33,13 +35,13 @@ const formatDate = (value?: string) => {
   });
 };
 
-const InspectorDetails = ({ node }: { node: NodeItem }) => {
+const InspectorDetails = ({ node, ownerName, pathLabel }: { node: NodeItem; ownerName: string; pathLabel: string }) => {
   const rows: Array<{ label: string; value: string }> = [
     { label: t("field.name"), value: node.name },
     { label: t("field.modifiedAt"), value: formatDate(node.updated_at) },
     { label: t("field.size"), value: formatSize(node.size_bytes) },
-    { label: t("field.owner"), value: node.owner_user_id ?? "-" },
-    { label: t("field.path"), value: node.path },
+    { label: t("field.owner"), value: ownerName },
+    { label: t("field.path"), value: pathLabel },
   ];
 
   return (
@@ -60,7 +62,11 @@ export function InspectorPanel() {
 
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const nodesApi = useMemo(() => createNodesApi(apiClient), [apiClient]);
+  const volumesApi = useMemo(() => createVolumesApi(apiClient), [apiClient]);
+  const meApi = useMemo(() => createMePreferencesApi(apiClient), [apiClient]);
 
+  const [ownerLabel, setOwnerLabel] = useState("-");
+  const [pathLabel, setPathLabel] = useState("-");
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
@@ -86,6 +92,42 @@ export function InspectorPanel() {
     setCopyNoticeKey(null);
     setIsSubmitting(false);
   }, [selectedNode?.id]);
+
+  useEffect(() => {
+    let active = true;
+    if (!selectedNode) {
+      setOwnerLabel("-");
+      setPathLabel("-");
+      return;
+    }
+
+    void (async () => {
+      try {
+        const [me, vols, crumbs] = await Promise.all([
+          meApi.getPreferences(),
+          volumesApi.listVolumes(),
+          nodesApi.getBreadcrumb(selectedNode.id),
+        ]);
+        if (!active) return;
+        const owner = selectedNode.owner_user_id;
+        const meId = String(me.id || "");
+        const meName = me.display_name || me.username || "me";
+        setOwnerLabel(owner && owner === meId ? meName : (owner ? "공유 사용자" : "-"));
+
+        const base = vols.items.find((v) => v.is_active)?.base_path ?? "/";
+        const names = (crumbs.items ?? []).slice(1).map((i) => i.name).filter(Boolean);
+        setPathLabel([base, ...names].join("/"));
+      } catch {
+        if (!active) return;
+        setOwnerLabel(selectedNode.owner_user_id ? "공유 사용자" : "-");
+        setPathLabel("-");
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [meApi, nodesApi, selectedNode, volumesApi]);
 
   const handleOpenRename = () => {
     if (!selectedNode) return;
@@ -239,7 +281,7 @@ export function InspectorPanel() {
       <div className="inspector-panel__title">{t("msg.detailsTitle")}</div>
       {selectedNode ? (
         <>
-          <InspectorDetails node={selectedNode} />
+          <InspectorDetails node={selectedNode} ownerName={ownerLabel} pathLabel={pathLabel} />
           <div className="inspector-panel__actions">
             <Button type="button" variant="secondary" onClick={handleOpenRename}>
               {t("action.rename")}

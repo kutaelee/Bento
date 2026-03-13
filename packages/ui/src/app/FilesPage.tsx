@@ -4,6 +4,8 @@ import { Button, Dialog, EmptyState, ErrorState, ForbiddenState, SkeletonBlock }
 import { ROOT_NODE_ID } from "./nodes";
 import { ApiError } from "../api/errors";
 import { createNodesApi, type NodeItem } from "../api/nodes";
+import { createMePreferencesApi } from "../api/mePreferences";
+import { createVolumesApi } from "../api/volumes";
 import { t, type I18nKey } from "../i18n/t";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import { useFolderRefresh } from "./folderRefresh";
@@ -26,6 +28,7 @@ type FolderViewProps = {
   title: string;
   metaLabelKey?: I18nKey;
   metaValue?: string | null;
+  ownerLabel?: (ownerUserId?: string | null) => string;
   items: NodeItem[];
   nextCursor: string | null;
   loading: boolean;
@@ -45,6 +48,7 @@ export function FolderView({
   title,
   metaLabelKey,
   metaValue,
+  ownerLabel,
   items,
   nextCursor,
   loading,
@@ -90,7 +94,7 @@ export function FolderView({
       <header className="files-page__section-head">
         <div>
           <h2 className="files-page__section-title">{title}</h2>
-          {metaValue ? <p className="files-page__section-meta">{t(metaLabelKey ?? "field.path")}: {metaValue}</p> : null}
+          {metaValue ? <p className="files-page__section-meta">{t(metaLabelKey ?? "field.path")}: <span className="files-page__path-pill">{metaValue}</span></p> : null}
         </div>
         <div className="files-page__view-toggle" role="tablist" aria-label={t("msg.filesViewToggle")}> 
           <Button variant={prefs.viewMode === "table" ? "primary" : "ghost"} onClick={() => setViewMode("table")}>{t("action.viewTable")}</Button>
@@ -124,8 +128,8 @@ export function FolderView({
             const metaLine = routeMode === "trash"
               ? formatDate(item.deleted_at ?? item.updated_at)
               : routeMode === "files"
-                ? (item.type === "FOLDER" ? t("nav.files") : item.mime_type ?? "-")
-                : item.path;
+                ? (item.type === "FOLDER" ? t("msg.folderType") : item.mime_type ?? t("msg.fileType"))
+                : (item.type === "FOLDER" ? t("msg.folderType") : item.mime_type ?? t("msg.fileType"));
 
             return (
               <div key={item.id} className={`files-page__row${hasRowActions ? " files-page__row--actionable" : ""}${isSelected ? " files-page__row--selected" : ""}`}>
@@ -135,12 +139,31 @@ export function FolderView({
                   onClick={(event) => onToggleSelect?.(item, event.metaKey || event.ctrlKey || event.shiftKey)}
                   onDoubleClick={() => onOpenItem?.(item)}
                 >
+                  <span
+                    className={`files-page__type-badge files-page__type-badge--${
+                      item.type === "FOLDER"
+                        ? "folder"
+                        : item.mime_type?.startsWith("image/")
+                          ? "image"
+                          : item.mime_type?.startsWith("video/")
+                            ? "video"
+                            : "file"
+                    }`}
+                  >
+                    {item.type === "FOLDER"
+                      ? "📁"
+                      : item.mime_type?.startsWith("image/")
+                        ? "🖼️"
+                        : item.mime_type?.startsWith("video/")
+                          ? "🎬"
+                          : "📄"}
+                  </span>
                   <span className="files-page__name">{item.name}</span>
                   <span className="files-page__name-meta">{metaLine}</span>
                 </button>
                 <div>{formatDate(routeMode === "trash" ? item.deleted_at ?? item.updated_at : item.updated_at)}</div>
                 <div>{formatBytes(item.size_bytes)}</div>
-                <div>{item.owner_user_id ?? "-"}</div>
+                <div>{ownerLabel ? ownerLabel(item.owner_user_id) : (item.owner_user_id ?? "-")}</div>
                 {hasRowActions ? <div className="files-page__row-actions">{rowActionRenderer?.(item)}</div> : null}
               </div>
             );
@@ -175,15 +198,20 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
   const shouldLoadChildren = !isSharedRoute && !isTrashRoute;
   const resolvedNodeId = nodeId ?? ROOT_NODE_ID;
 
-  const listChildrenSort = isRecentRoute || isFavoritesRoute ? "updated_at" : "name";
-  const listChildrenOrder = isRecentRoute || isFavoritesRoute ? "desc" : "asc";
+  const listChildrenSort = "updated_at";
+  const listChildrenOrder = "desc";
 
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const nodesApi = useMemo(() => createNodesApi(apiClient), [apiClient]);
+  const meApi = useMemo(() => createMePreferencesApi(apiClient), [apiClient]);
+  const volumesApi = useMemo(() => createVolumesApi(apiClient), [apiClient]);
 
   const [node, setNode] = useState<NodeItem | null>(null);
   const [children, setChildren] = useState<NodeItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [currentPathLabel, setCurrentPathLabel] = useState<string | null>(null);
+  const [activeBasePath, setActiveBasePath] = useState<string>("/");
+  const [meUser, setMeUser] = useState<{ id: string; displayName: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
@@ -191,10 +219,28 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
   const [actionId, setActionId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmMode, setConfirmMode] = useState<"delete" | "deleteForever" | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => {
+    try {
+      const raw = window.localStorage.getItem("nd.favorites");
+      const arr = raw ? (JSON.parse(raw) as string[]) : [];
+      return new Set(arr);
+    } catch {
+      return new Set();
+    }
+  });
   const loadMoreGeneration = useRef(0);
 
-  const selectedItems = children.filter((item) => selectedIds.has(item.id));
+  const filteredChildren = useMemo(
+    () => (isFavoritesRoute ? children.filter((item) => favoriteIds.has(item.id)) : children),
+    [children, favoriteIds, isFavoritesRoute],
+  );
+
+  const selectedItems = filteredChildren.filter((item) => selectedIds.has(item.id));
   const pendingUploads = uploadItems.filter((item) => item.status !== "COMPLETED");
+  const recentUploads = uploadItems
+    .filter((item) => item.status === "COMPLETED" || item.status === "FAILED" || item.status === "ABORTED")
+    .slice(-8)
+    .reverse();
 
   const title =
     isTrashRoute
@@ -272,16 +318,13 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
     try {
       const childrenResponse = await nodesApi.listChildren({
         nodeId: resolvedNodeId,
+        limit: 50,
         sort: listChildrenSort,
         order: listChildrenOrder,
       });
 
-      let nodeResponse: NodeItem | null = null;
-      if (!isRootRoute) {
-        nodeResponse = await nodesApi.getNode(resolvedNodeId);
-      }
-
-      setNode(nodeResponse);
+      // Skip extra getNode call on initial load for faster first paint.
+      setNode(null);
       setChildren(childrenResponse.items ?? []);
       setNextCursor(childrenResponse.next_cursor ?? null);
     } catch (error) {
@@ -329,6 +372,90 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
 
   useEffect(() => () => setSelectedNode(null), [setSelectedNode]);
 
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const user = await meApi.getPreferences();
+          if (!active) return;
+          setMeUser({
+            id: String(user.id),
+            displayName: user.display_name || user.username || "me",
+          });
+        } catch {
+          if (!active) return;
+          setMeUser(null);
+        }
+      })();
+    }, 200);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [meApi]);
+
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const volumeRes = await volumesApi.listVolumes();
+          if (!active) return;
+          setActiveBasePath(volumeRes.items.find((v) => v.is_active)?.base_path ?? "/");
+        } catch {
+          if (!active) return;
+          setActiveBasePath("/");
+        }
+      })();
+    }, 300);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [volumesApi]);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        if (isRootRoute) {
+          if (active) setCurrentPathLabel(activeBasePath);
+          return;
+        }
+        const crumbs = await nodesApi.getBreadcrumb(resolvedNodeId);
+        if (!active) return;
+        const names = (crumbs.items ?? []).slice(1).map((item) => item.name).filter(Boolean);
+        setCurrentPathLabel([activeBasePath, ...names].join("/"));
+      } catch {
+        if (!active) return;
+        setCurrentPathLabel(isRootRoute ? activeBasePath : null);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [activeBasePath, isRootRoute, nodesApi, resolvedNodeId]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("nd.favorites", JSON.stringify(Array.from(favoriteIds)));
+    } catch {
+      // ignore storage failure
+    }
+  }, [favoriteIds]);
+
+  const toggleFavorite = useCallback((itemId: string) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }, []);
+
   const handleToggleSelect = useCallback((item: NodeItem, multi: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(multi ? prev : []);
@@ -370,7 +497,7 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
     try {
       const response = isTrashRoute
         ? await nodesApi.listTrash({ cursor: nextCursor })
-        : await nodesApi.listChildren({ nodeId: resolvedNodeId, cursor: nextCursor, sort: listChildrenSort, order: listChildrenOrder });
+        : await nodesApi.listChildren({ nodeId: resolvedNodeId, cursor: nextCursor, limit: 50, sort: listChildrenSort, order: listChildrenOrder });
       if (requestToken !== loadMoreGeneration.current) return;
       setChildren((prev) => [...prev, ...(response.items ?? [])]);
       setNextCursor(response.next_cursor ?? null);
@@ -450,8 +577,24 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
     );
   }, [actionId, applyTrashRestore, isTrashRoute]);
 
+  const renderDefaultActions = useCallback((item: NodeItem) => {
+    if (isTrashRoute) return null;
+    return (
+      <Button variant="ghost" onClick={() => toggleFavorite(item.id)}>
+        {favoriteIds.has(item.id) ? "★" : "☆"}
+      </Button>
+    );
+  }, [favoriteIds, isTrashRoute, toggleFavorite]);
+
+  const ownerLabel = useCallback((ownerUserId?: string | null) => {
+    if (!ownerUserId) return "-";
+    if (meUser && ownerUserId === meUser.id) return meUser.displayName;
+    if (/^[0-9a-fA-F-]{36}$/.test(ownerUserId)) return ownerUserId.slice(0, 8);
+    return ownerUserId;
+  }, [meUser]);
+
   const summaryCards = [
-    { label: t("msg.filesSummaryItems"), value: String(children.length), tone: "default" },
+    { label: t("msg.filesSummaryItems"), value: String(filteredChildren.length), tone: "default" },
     { label: t("msg.filesSummarySelected"), value: String(selectedIds.size), tone: selectedIds.size ? "accent" : "default" },
     { label: t("msg.filesSummaryUploads"), value: String(pendingUploads.length), tone: pendingUploads.length ? "accent" : "default" },
     { label: t("msg.filesSummaryFolder"), value: isRootRoute ? t("nav.files") : (node?.name ?? t("nav.files")), tone: "default" },
@@ -486,8 +629,9 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
           <FolderView
             title={title}
             metaLabelKey="field.path"
-            metaValue={isRootRoute ? null : node?.path ?? null}
-            items={children}
+            metaValue={currentPathLabel}
+            ownerLabel={ownerLabel}
+            items={filteredChildren}
             nextCursor={nextCursor}
             loading={loading}
             loadingMore={loadingMore}
@@ -495,7 +639,7 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
             onLoadMore={loadMore}
-            rowActionRenderer={isTrashRoute ? renderTrashActions : undefined}
+            rowActionRenderer={isTrashRoute ? renderTrashActions : renderDefaultActions}
             emptyKey={pageEmptyKey}
             onOpenItem={openItem}
             routeMode={routeMode}
@@ -517,7 +661,18 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
           <article className="files-page__panel">
             <h2 className="files-page__panel-title">{t("msg.filesActivityTitle")}</h2>
             <div className="files-page__activity-list">
-              {pendingUploads.length ? pendingUploads.slice(0, 4).map((item) => (
+              {recentUploads.length ? recentUploads.slice(0, 4).map((item) => (
+                <div key={item.id} className="files-page__activity-item">
+                  <strong>{item.file.name}</strong>
+                  <span>
+                    {item.status === "COMPLETED"
+                      ? t("status.jobDone")
+                      : item.status === "FAILED"
+                        ? t("status.jobFailed")
+                        : t("status.uploadPaused")}
+                  </span>
+                </div>
+              )) : pendingUploads.length ? pendingUploads.slice(0, 4).map((item) => (
                 <div key={item.id} className="files-page__activity-item">
                   <strong>{item.file.name}</strong>
                   <span>{t("status.jobRunning")}</span>
