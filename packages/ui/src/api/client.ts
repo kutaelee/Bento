@@ -1,4 +1,4 @@
-import { ApiError, ApiErrorKey, mapStatusToErrorKey } from "./errors";
+import { ApiError, ApiErrorKey, mapErrorCodeToKey, mapStatusToErrorKey } from "./errors";
 import type { components } from "./schema";
 
 export type ApiClientOptions = {
@@ -70,8 +70,24 @@ export const createApiClient = (options: ApiClientOptions) => {
     });
 
     if (!response.ok) {
-      const key: ApiErrorKey = mapStatusToErrorKey(response.status);
-      throw new ApiError(response.status, key);
+      const text = await response.text();
+      let errorCode: string | undefined;
+      let errorMessage: string | undefined;
+
+      if (text) {
+        try {
+          const parsed = JSON.parse(text) as { error?: { code?: string; message?: string } };
+          errorCode = typeof parsed?.error?.code === "string" ? parsed.error.code : undefined;
+          errorMessage = typeof parsed?.error?.message === "string" ? parsed.error.message : undefined;
+        } catch (_) {
+          errorMessage = text;
+        }
+      }
+
+      const key: ApiErrorKey = errorCode
+        ? mapErrorCodeToKey(errorCode, response.status)
+        : mapStatusToErrorKey(response.status);
+      throw new ApiError(response.status, key, errorMessage, errorCode);
     }
 
     if (response.status === 204) {

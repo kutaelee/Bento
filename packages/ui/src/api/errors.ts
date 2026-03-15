@@ -3,6 +3,8 @@ export type ApiErrorKey =
   | "err.forbidden"
   | "err.notFound"
   | "err.conflict"
+  | "err.readOnly"
+  | "err.uploadFailed"
   | "err.rateLimited"
   | "err.validation"
   | "err.server"
@@ -29,14 +31,33 @@ export const mapStatusToErrorKey = (status: number): ApiErrorKey => {
   }
 };
 
+export const mapErrorCodeToKey = (code: string | null | undefined, status: number): ApiErrorKey => {
+  const normalized = String(code || "").trim().toUpperCase();
+  switch (normalized) {
+    case "READ_ONLY":
+      return "err.readOnly";
+    case "UPLOAD_INCOMPLETE":
+    case "CHUNK_CONFLICT":
+    case "CHECKSUM_MISMATCH":
+      return "err.uploadFailed";
+    case "NODE_NAME_CONFLICT":
+    case "CONFLICT":
+      return "err.conflict";
+    default:
+      return mapStatusToErrorKey(status);
+  }
+};
+
 export class ApiError extends Error {
   readonly status: number;
   readonly key: ApiErrorKey;
+  readonly code?: string;
 
-  constructor(status: number, key: ApiErrorKey, message?: string) {
+  constructor(status: number, key: ApiErrorKey, message?: string, code?: string) {
     super(message ?? key);
     this.name = "ApiError";
     this.status = status;
     this.key = key;
+    this.code = code;
   }
 }

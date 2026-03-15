@@ -45,4 +45,22 @@ describe("api client", () => {
       key: "err.conflict",
     });
   });
+
+  it("maps structured READ_ONLY errors to err.readOnly", async () => {
+    mockFetch(async () =>
+      new Response(JSON.stringify({ error: { code: "READ_ONLY", message: "System is in read-only mode" } }), {
+        status: 409,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const client = createApiClient({ baseUrl: "http://localhost:8080" });
+
+    await expect(client.request({ path: "/uploads", method: "POST" })).rejects.toMatchObject({
+      status: 409,
+      key: "err.readOnly",
+      code: "READ_ONLY",
+      message: "System is in read-only mode",
+    });
+  });
 });

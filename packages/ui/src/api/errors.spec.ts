@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapStatusToErrorKey } from "./errors";
+import { mapErrorCodeToKey, mapStatusToErrorKey } from "./errors";
 
 describe("mapStatusToErrorKey", () => {
   it("maps 401 to err.unauthorized", () => {
@@ -16,6 +16,16 @@ describe("mapStatusToErrorKey", () => {
 
   it("maps 409 to err.conflict", () => {
     expect(mapStatusToErrorKey(409)).toBe("err.conflict");
+  });
+
+  it("maps READ_ONLY code to err.readOnly", () => {
+    expect(mapErrorCodeToKey("READ_ONLY", 409)).toBe("err.readOnly");
+  });
+
+  it("maps upload conflict codes to err.uploadFailed", () => {
+    expect(mapErrorCodeToKey("UPLOAD_INCOMPLETE", 409)).toBe("err.uploadFailed");
+    expect(mapErrorCodeToKey("CHUNK_CONFLICT", 409)).toBe("err.uploadFailed");
+    expect(mapErrorCodeToKey("CHECKSUM_MISMATCH", 409)).toBe("err.uploadFailed");
   });
 
   it("maps 429 to err.rateLimited", () => {

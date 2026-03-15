@@ -13,6 +13,17 @@ const dictionaries: Record<Locale, Dictionary> = {
   "en-US": en as Dictionary,
 };
 
+const overrides: Record<Locale, Dictionary> = {
+  "ko-KR": {
+    "err.readOnly": "읽기 전용 모드에서는 이 작업을 실행할 수 없습니다.",
+    "err.uploadFailed": "업로드를 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+  },
+  "en-US": {
+    "err.readOnly": "This action is unavailable while the system is in read-only mode.",
+    "err.uploadFailed": "The upload could not be completed. Please try again.",
+  },
+};
+
 export type I18nKey = string;
 
 const suspiciousLatin1Run = /[\u00C0-\u00FF]{2,}/;
@@ -52,12 +63,20 @@ export function setLocale(locale: Locale) {
 
 export function t(key: I18nKey | string, locale: Locale = getLocale()): string {
   const normalizedKey = String(key);
+  const overrideValue = overrides[locale][normalizedKey];
+  if (typeof overrideValue === "string" && !isSuspiciousTranslation(overrideValue, locale)) {
+    return overrideValue;
+  }
   const primaryValue = dictionaries[locale][normalizedKey];
   if (typeof primaryValue === "string" && !isSuspiciousTranslation(primaryValue, locale)) {
     return primaryValue;
   }
 
   const fallbackLocale: Locale = locale === "ko-KR" ? "en-US" : "ko-KR";
+  const fallbackOverride = overrides[fallbackLocale][normalizedKey];
+  if (typeof fallbackOverride === "string" && !isSuspiciousTranslation(fallbackOverride, fallbackLocale)) {
+    return fallbackOverride;
+  }
   const fallbackValue = dictionaries[fallbackLocale][normalizedKey];
   if (typeof fallbackValue === "string" && !isSuspiciousTranslation(fallbackValue, fallbackLocale)) {
     return fallbackValue;
