@@ -2888,10 +2888,15 @@ const server = http.createServer(async (req, res) => {
 
       const shaHeader = req.headers['x-chunk-sha256'];
       const shaText = Array.isArray(shaHeader) ? shaHeader[0] : shaHeader;
-      const shaResult = parseSha256(shaText);
-      if (!shaResult.ok || shaResult.value === null) {
-        sendJson(res, 400, errorResponse('BAD_REQUEST', 'X-Chunk-SHA256 header is required and must be 64 hex chars'));
-        return;
+      const hasChunkChecksum = typeof shaText === 'string' && shaText.trim().length > 0;
+      let requestedChunkSha = null;
+      if (hasChunkChecksum) {
+        const shaResult = parseSha256(shaText);
+        if (!shaResult.ok || shaResult.value === null) {
+          sendJson(res, 400, errorResponse('BAD_REQUEST', 'X-Chunk-SHA256 header must be 64 hex chars when provided'));
+          return;
+        }
+        requestedChunkSha = shaResult.value;
       }
 
       const session = loadUploadSessionById(uploadId);
@@ -2945,10 +2950,11 @@ const server = http.createServer(async (req, res) => {
       }
 
       const actualSha = crypto.createHash('sha256').update(bodyBuffer).digest('hex');
-      if (actualSha !== shaResult.value) {
+      if (requestedChunkSha !== null && actualSha !== requestedChunkSha) {
         sendJson(res, 400, errorResponse('CHECKSUM_MISMATCH', 'Body checksum does not match X-Chunk-SHA256'));
         return;
       }
+      const effectiveChunkSha = requestedChunkSha ?? actualSha;
 
       // Authorization: the upload session must belong to the caller. (checked above)
 
@@ -2962,7 +2968,7 @@ const server = http.createServer(async (req, res) => {
       const storedPath = path.join(tempDir, chunkFilename);
 
       const escapedStoredPath = quoteSqlLiteral(storedPath);
-      const escapedChecksum = quoteSqlLiteral(shaResult.value);
+      const escapedChecksum = quoteSqlLiteral(effectiveChunkSha);
       const sizeBytes = bodyBuffer.length;
 
       // Try to insert first. If another request already inserted, we handle idempotent/conflict below.
@@ -2990,7 +2996,7 @@ const server = http.createServer(async (req, res) => {
 
         if (existingJson) {
           const existing = JSON.parse(existingJson);
-          if (existing.checksum !== shaResult.value) {
+          if (existing.checksum !== effectiveChunkSha) {
             sendJson(res, 409, errorResponse('CHUNK_CONFLICT', 'Chunk already uploaded with different checksum'));
             return;
           }
