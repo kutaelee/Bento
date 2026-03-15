@@ -33,6 +33,32 @@ const defaultFormState: InviteAcceptFormState = {
   displayName: "",
 };
 
+const usernamePattern = /^[a-zA-Z0-9_.-]{3,32}$/;
+
+const mapInviteAcceptError = (error: ApiError): I18nKey => {
+  if (error.status !== 400 || error.key !== "err.validation") {
+    return error.key;
+  }
+
+  switch (String(error.message || "").trim()) {
+    case "token must be a string":
+      return "msg.inviteMissingToken";
+    case "username must be a string":
+    case "username length must be 3..32":
+      return "msg.inviteUsernameRule";
+    case "username has invalid format":
+      return "msg.inviteUsernameFormat";
+    case "password must be a string":
+    case "password length must be 8..128":
+      return "msg.invitePasswordRule";
+    case "display_name must be a string":
+    case "display_name maxLength is 64":
+      return "msg.inviteDisplayNameRule";
+    default:
+      return error.key;
+  }
+};
+
 export function InviteAcceptView({
   tokenMissing,
   submitting,
@@ -75,38 +101,60 @@ export function InviteAcceptView({
             error={activeErrorKey === "msg.inviteMissingToken" && !formState.token.trim() ? t(activeErrorKey) : undefined}
           />
           <div className="auth-form__split">
-            <TextField
-              name="username"
-              autoComplete="username"
-              label={t("field.username")}
-              value={formState.username}
-              onChange={onFieldChange("username")}
-              disabled={submitting}
-              aria-label={t("field.username")}
-              error={errorKey === "err.validation" && !formState.username.trim() ? t(errorKey) : undefined}
-            />
+            <div>
+              <TextField
+                name="username"
+                autoComplete="username"
+                label={t("field.username")}
+                value={formState.username}
+                onChange={onFieldChange("username")}
+                disabled={submitting}
+                aria-label={t("field.username")}
+                error={
+                  errorKey === "err.validation" && !formState.username.trim()
+                    ? t(errorKey)
+                    : errorKey === "msg.inviteUsernameRule" || errorKey === "msg.inviteUsernameFormat"
+                      ? t(errorKey)
+                      : undefined
+                }
+              />
+              <p className="auth-form__hint">{t("msg.inviteUsernameHint")}</p>
+            </div>
 
-            <TextField
-              name="displayName"
-              autoComplete="name"
-              label={t("field.displayName")}
-              value={formState.displayName}
-              onChange={onFieldChange("displayName")}
-              disabled={submitting}
-              aria-label={t("field.displayName")}
-            />
+            <div>
+              <TextField
+                name="displayName"
+                autoComplete="name"
+                label={t("field.displayName")}
+                value={formState.displayName}
+                onChange={onFieldChange("displayName")}
+                disabled={submitting}
+                aria-label={t("field.displayName")}
+                error={errorKey === "msg.inviteDisplayNameRule" ? t(errorKey) : undefined}
+              />
+              <p className="auth-form__hint">{t("msg.inviteDisplayNameHint")}</p>
+            </div>
           </div>
 
-          <PasswordField
-            name="password"
-            autoComplete="new-password"
-            label={t("field.password")}
-            value={formState.password}
-            onChange={onFieldChange("password")}
-            disabled={submitting}
-            aria-label={t("field.password")}
-            error={errorKey === "err.validation" && !formState.password ? t(errorKey) : undefined}
-          />
+          <div>
+            <PasswordField
+              name="password"
+              autoComplete="new-password"
+              label={t("field.password")}
+              value={formState.password}
+              onChange={onFieldChange("password")}
+              disabled={submitting}
+              aria-label={t("field.password")}
+              error={
+                errorKey === "err.validation" && !formState.password
+                  ? t(errorKey)
+                  : errorKey === "msg.invitePasswordRule"
+                    ? t(errorKey)
+                    : undefined
+              }
+            />
+            <p className="auth-form__hint">{t("msg.invitePasswordHint")}</p>
+          </div>
         </div>
 
         {activeErrorKey && activeErrorKey !== "err.validation" ? <p className="auth-form__error">{t(activeErrorKey)}</p> : null}
@@ -165,8 +213,26 @@ export function InviteAcceptPage() {
       return;
     }
 
-    if (!formState.username.trim() || !formState.password) {
+    const trimmedUsername = formState.username.trim();
+    const trimmedDisplayName = formState.displayName.trim();
+
+    if (!trimmedUsername || !formState.password) {
       setErrorKey("err.validation");
+      return;
+    }
+
+    if (!usernamePattern.test(trimmedUsername)) {
+      setErrorKey(trimmedUsername.length < 3 || trimmedUsername.length > 32 ? "msg.inviteUsernameRule" : "msg.inviteUsernameFormat");
+      return;
+    }
+
+    if (formState.password.length < 8 || formState.password.length > 128) {
+      setErrorKey("msg.invitePasswordRule");
+      return;
+    }
+
+    if (trimmedDisplayName.length > 64) {
+      setErrorKey("msg.inviteDisplayNameRule");
       return;
     }
 
@@ -176,16 +242,16 @@ export function InviteAcceptPage() {
     try {
       const response = await authApi.acceptInvite({
         token: formState.token.trim(),
-        username: formState.username.trim(),
+        username: trimmedUsername,
         password: formState.password,
-        display_name: formState.displayName.trim() || undefined,
+        display_name: trimmedDisplayName || undefined,
       });
       saveAuthTokens(response.tokens);
       const next = new URLSearchParams(location.search).get("next");
       redirectAfterAuth(next && next.startsWith("/") ? next : "/");
     } catch (error) {
       if (error instanceof ApiError) {
-        setErrorKey(error.key);
+        setErrorKey(mapInviteAcceptError(error));
       } else {
         setErrorKey("err.network");
       }

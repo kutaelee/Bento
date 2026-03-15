@@ -36,6 +36,13 @@ const overrides: Record<Locale, Dictionary> = {
     "msg.inviteExpired": "초대 링크가 만료되었습니다.",
     "msg.inviteAlreadyUsed": "이미 사용된 초대 코드입니다.",
     "msg.usernameTaken": "이미 사용 중인 아이디입니다.",
+    "msg.inviteUsernameRule": "아이디는 3~32자여야 합니다.",
+    "msg.inviteUsernameFormat": "아이디는 영문, 숫자, 점(.), 밑줄(_), 하이픈(-)만 사용할 수 있습니다.",
+    "msg.invitePasswordRule": "비밀번호는 8~128자여야 합니다.",
+    "msg.inviteDisplayNameRule": "표시 이름은 64자 이하여야 합니다.",
+    "msg.inviteUsernameHint": "영문, 숫자, 점(.), 밑줄(_), 하이픈(-)만 사용 가능하며 3~32자여야 합니다.",
+    "msg.invitePasswordHint": "비밀번호는 8~128자로 입력해 주세요.",
+    "msg.inviteDisplayNameHint": "표시 이름은 선택 사항이며 64자까지 입력할 수 있습니다.",
   },
   "en-US": {
     "err.readOnly": "This action is unavailable while the system is in read-only mode.",
@@ -48,6 +55,13 @@ const overrides: Record<Locale, Dictionary> = {
     "msg.inviteExpired": "Invite link has expired.",
     "msg.inviteAlreadyUsed": "This invite has already been used.",
     "msg.usernameTaken": "That username is already in use.",
+    "msg.inviteUsernameRule": "Username must be 3 to 32 characters long.",
+    "msg.inviteUsernameFormat": "Username may contain only letters, numbers, dot (.), underscore (_), and hyphen (-).",
+    "msg.invitePasswordRule": "Password must be 8 to 128 characters long.",
+    "msg.inviteDisplayNameRule": "Display name must be 64 characters or fewer.",
+    "msg.inviteUsernameHint": "Use 3 to 32 characters: letters, numbers, dot (.), underscore (_), and hyphen (-) only.",
+    "msg.invitePasswordHint": "Use a password between 8 and 128 characters.",
+    "msg.inviteDisplayNameHint": "Display name is optional and can be up to 64 characters.",
   },
 };
 
