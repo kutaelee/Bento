@@ -2709,20 +2709,28 @@ const server = http.createServer(async (req, res) => {
     try {
       const tokenHashHex = hashInviteToken(body.token);
 
-      const inviteRow = execPsql(
-        "select id::text, role, locale, created_by::text, " +
-          "to_char(expires_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as expires_at, " +
-          "used_at is not null as used " +
+      const inviteJson = execPsql(
+        "select json_build_object(" +
+          "'id', id::text, " +
+          "'role', trim(role::text), " +
+          "'locale', trim(locale::text), " +
+          "'created_by', created_by::text, " +
+          "'expires_at', to_char(expires_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'), " +
+          "'used', used_at is not null" +
+        ")::text " +
         "from invites where token_hash=decode('" + tokenHashHex + "','hex') limit 1;"
       ).trim();
 
-      if (!inviteRow) {
+      if (!inviteJson) {
         sendJson(res, 404, errorResponse('INVITE_NOT_FOUND', 'Invite token not found'));
         return;
       }
 
-      const [inviteId, inviteRole, inviteLocale, inviteCreatedBy, inviteExpiresAt, usedStr] = inviteRow.split('|').map((s) => s.trim());
-      const used = usedStr === 't' || usedStr === 'true';
+      const invite = JSON.parse(inviteJson);
+      const inviteId = String(invite.id || '');
+      const inviteRole = String(invite.role || '').trim();
+      const inviteLocale = String(invite.locale || '').trim();
+      const used = invite.used === true;
 
       // Expiry check
       const isExpired = execPsql(
