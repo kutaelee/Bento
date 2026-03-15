@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button, TextField } from "@nimbus/ui-kit";
 import { t, type I18nKey } from "../i18n/t";
 import type { NodeItem } from "../api/nodes";
@@ -12,7 +12,8 @@ import { downloadBlob, formatDate } from "./format";
 import { useFolderRefresh } from "./folderRefresh";
 import { useInspectorState } from "./inspectorState";
 import { useNodeFavorites } from "./useNodeFavorites";
-import { buildDisplayPath, formatOwnerLabel, type UserIdentity } from "./nodePresentation";
+import { getVisualFixtureSearch } from "./visualFixtures";
+import { buildDisplayPath, formatOwnerLabel, getNodePreviewKind, type UserIdentity } from "./nodePresentation";
 import "./InspectorPanel.css";
 
 const formatSize = (size?: number) => {
@@ -53,7 +54,9 @@ export function InspectorPanel() {
   const { selectedNode, setSelectedNode } = useInspectorState();
   const { triggerRefresh } = useFolderRefresh();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isFavorite, toggleFavorite } = useNodeFavorites();
+  const preservedSearch = useMemo(() => getVisualFixtureSearch(location.search), [location.search]);
 
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const nodesApi = useMemo(() => createNodesApi(apiClient), [apiClient]);
@@ -146,7 +149,17 @@ export function InspectorPanel() {
   const handleOpenSelected = () => {
     if (!selectedNode) return;
     if (selectedNode.type === "FOLDER") {
-      navigate(`/files/${selectedNode.id}`);
+      navigate({
+        pathname: `/files/${selectedNode.id}`,
+        search: preservedSearch,
+      });
+      return;
+    }
+    if (getNodePreviewKind(selectedNode)) {
+      navigate({
+        pathname: `/media/${selectedNode.id}`,
+        search: preservedSearch,
+      });
       return;
     }
     void handleDownloadSelected();

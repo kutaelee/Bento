@@ -20,7 +20,7 @@ import { useNodeFavorites } from "./useNodeFavorites";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { FavoriteIcon } from "./FavoriteIcon";
-import { buildChildDisplayPath, buildDisplayPath, formatOwnerLabel, type UserIdentity } from "./nodePresentation";
+import { buildChildDisplayPath, buildDisplayPath, formatOwnerLabel, getNodePreviewKind, type UserIdentity } from "./nodePresentation";
 import "./FilesPage.css";
 
 type RouteMode = "files" | "recent" | "favorites" | "shared" | "media" | "trash";
@@ -108,6 +108,21 @@ export function FolderView({
   const location = useLocation();
   const { prefs, setViewMode } = useViewPreferences();
   const hasRowActions = Boolean(rowActionRenderer);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !nextCursor || loading || loadingMore || !onLoadMore) return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        onLoadMore();
+      }
+    }, { rootMargin: "320px 0px" });
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [loading, loadingMore, nextCursor, onLoadMore]);
 
   if (errorKey === "err.forbidden") {
     return (
@@ -300,6 +315,7 @@ export function FolderView({
 
       {nextCursor ? (
         <div className="files-page__footer">
+          <div ref={loadMoreRef} className="files-page__load-sentinel" aria-hidden="true" />
           <Button variant="ghost" onClick={onLoadMore} disabled={loadingMore}>{loadingMore ? t("msg.loading") : t("action.loadMore")}</Button>
         </div>
       ) : null}
@@ -612,6 +628,14 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
     if (item.type === "FOLDER") {
       navigate({
         pathname: item.id === ROOT_NODE_ID ? "/files" : `/files/${item.id}`,
+        search: preservedSearch,
+      });
+      return;
+    }
+
+    if (getNodePreviewKind(item)) {
+      navigate({
+        pathname: `/media/${item.id}`,
         search: preservedSearch,
       });
       return;

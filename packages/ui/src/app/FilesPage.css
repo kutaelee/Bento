@@ -388,7 +388,16 @@
 }
 
 .files-page__footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1px;
   padding: 0 24px 24px;
+}
+
+.files-page__load-sentinel {
+  width: 1px;
+  height: 1px;
 }
 
 @media (max-width: 1100px) {

@@ -12,31 +12,14 @@ import { useFolderRefresh } from "./folderRefresh";
 import { useInspectorState } from "./inspectorState";
 import { downloadBlob, formatBytes, formatDate } from "./format";
 import { getVisualFixtureSearch } from "./visualFixtures";
-import { buildDisplayPath } from "./nodePresentation";
+import { buildDisplayPath, getNodePreviewKind } from "./nodePresentation";
 import "./MediaPage.css";
 
 type MediaFilter = "all" | "image" | "video";
-type MediaKind = "image" | "video";
 
 const MEDIA_PAGE_SIZE = 60;
 const THUMBNAIL_BATCH_SIZE = 48;
 const THUMBNAIL_MAX_RETRIES = 5;
-
-const imageExtensions = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "heic", "heif", "avif"]);
-const videoExtensions = new Set(["mp4", "mov", "avi", "mkv", "webm", "m4v"]);
-
-function getMediaKind(item: NodeItem): MediaKind | null {
-  if (item.type !== "FILE") return null;
-
-  const mimeType = item.mime_type?.toLowerCase() ?? "";
-  if (mimeType.startsWith("image/")) return "image";
-  if (mimeType.startsWith("video/")) return "video";
-
-  const extension = item.name.split(".").pop()?.toLowerCase() ?? "";
-  if (imageExtensions.has(extension)) return "image";
-  if (videoExtensions.has(extension)) return "video";
-  return null;
-}
 
 async function fetchThumbnail(nodeId: string) {
   const token = getAccessToken();
@@ -79,6 +62,7 @@ export function MediaPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<MediaFilter>("all");
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewRouteItem, setPreviewRouteItem] = useState<NodeItem | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewErrorKey, setPreviewErrorKey] = useState<I18nKey | null>(null);
@@ -100,7 +84,7 @@ export function MediaPage() {
   );
 
   const filteredItems = useMemo(
-    () => items.filter((item) => filter === "all" || getMediaKind(item) === filter),
+    () => items.filter((item) => filter === "all" || getNodePreviewKind(item) === filter),
     [filter, items],
   );
 
@@ -109,10 +93,12 @@ export function MediaPage() {
     [items, selectedIds],
   );
 
-  const previewItem = previewId ? itemsById[previewId] ?? null : null;
+  const previewItem = previewId
+    ? itemsById[previewId] ?? (previewRouteItem?.id === previewId ? previewRouteItem : null)
+    : null;
   const previewIndex = previewItem ? filteredItems.findIndex((item) => item.id === previewItem.id) : -1;
-  const imageCount = items.filter((item) => getMediaKind(item) === "image").length;
-  const videoCount = items.filter((item) => getMediaKind(item) === "video").length;
+  const imageCount = items.filter((item) => getNodePreviewKind(item) === "image").length;
+  const videoCount = items.filter((item) => getNodePreviewKind(item) === "video").length;
 
   useEffect(() => {
     thumbnailUrlsRef.current = thumbnailUrls;
@@ -168,6 +154,7 @@ export function MediaPage() {
     setErrorKey(null);
     setActionErrorKey(null);
     setPreviewId(null);
+    setPreviewRouteItem(null);
     setSelectedIds(new Set());
     setSelectedNode(null);
     Object.values(thumbnailUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
@@ -211,29 +198,55 @@ export function MediaPage() {
   }, [itemsById, selectedIds, setSelectedNode]);
 
   useEffect(() => {
+    let active = true;
+
     if (!routeNodeId) {
       setPreviewId(null);
-      return;
+      setPreviewRouteItem(null);
+      return () => {
+        active = false;
+      };
     }
-
-    if (loading) return;
 
     const routeItem = itemsById[routeNodeId];
-    if (!routeItem) {
-      navigate("/media", { replace: true });
-      return;
+    if (routeItem) {
+      setSelectedIds(new Set([routeNodeId]));
+      setPreviewId(routeNodeId);
+      setPreviewRouteItem(null);
+      return () => {
+        active = false;
+      };
     }
 
-    setSelectedIds(new Set([routeNodeId]));
     setPreviewId(routeNodeId);
-  }, [itemsById, loading, navigate, routeNodeId]);
+    setSelectedIds(new Set([routeNodeId]));
+
+    void (async () => {
+      try {
+        const item = await nodesApi.getNode(routeNodeId);
+        if (!active) return;
+        if (!getNodePreviewKind(item)) {
+          navigate({ pathname: "/media", search: preservedSearch }, { replace: true });
+          return;
+        }
+        setPreviewRouteItem(item);
+      } catch {
+        if (!active) return;
+        navigate({ pathname: "/media", search: preservedSearch }, { replace: true });
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [itemsById, navigate, nodesApi, preservedSearch, routeNodeId]);
 
   useEffect(() => {
     let active = true;
 
     const run = async () => {
-      const targets = items.slice(0, THUMBNAIL_BATCH_SIZE).filter((item) => {
-        const kind = getMediaKind(item);
+        const targets = items.slice(0, THUMBNAIL_BATCH_SIZE).filter((item) => {
+        const kind = getNodePreviewKind(item);
         return kind !== null
           && !thumbnailUrls[item.id]
           && !thumbnailPendingIds.has(item.id)
@@ -487,7 +500,7 @@ export function MediaPage() {
     }
   }, [nodesApi, previewItem]);
 
-  const previewKind = previewItem ? getMediaKind(previewItem) : null;
+  const previewKind = previewItem ? getNodePreviewKind(previewItem) : null;
 
   const summaryCards = [
     { label: t("msg.mediaSummaryTotal"), value: String(items.length) },
@@ -554,7 +567,7 @@ export function MediaPage() {
             </button>
           ))}
         </div>
-        {nextCursor || loadingMore ? <div className="media-page__scan-note">{loadingMore ? t("msg.loading") : t("action.loadMore")}</div> : null}
+        {loadingMore ? <div className="media-page__scan-note">{t("msg.loading")}</div> : null}
       </section>
 
       {actionErrorKey ? <div className="media-page__banner media-page__banner--error">{t(actionErrorKey)}</div> : null}
@@ -573,7 +586,7 @@ export function MediaPage() {
         <section className="media-page__grid">
           {filteredItems.map((item) => {
             const isSelected = selectedIds.has(item.id);
-            const kind = getMediaKind(item);
+            const kind = getNodePreviewKind(item);
             const thumbnailUrl = thumbnailUrls[item.id];
             const isPending = thumbnailPendingIds.has(item.id);
 
