@@ -1,0 +1,44 @@
+{
+  "started_at": "2026-03-15T11:22:39.077Z",
+  "base_url": "http://127.0.0.1:18080",
+  "iterations": 10,
+  "login_ms": 430.05,
+  "results": {
+    "/me": {
+      "count": 10,
+      "avg_ms": 209.9,
+      "min_ms": 182.7,
+      "p50_ms": 204.55,
+      "p95_ms": 248.99,
+      "max_ms": 248.99,
+      "total_ms": 2098.99
+    },
+    "/me/preferences": {
+      "count": 10,
+      "avg_ms": 189.56,
+      "min_ms": 173.74,
+      "p50_ms": 186.97,
+      "p95_ms": 205.15,
+      "max_ms": 205.15,
+      "total_ms": 1895.55
+    },
+    "/admin/volumes": {
+      "count": 10,
+      "avg_ms": 397.52,
+      "min_ms": 366.65,
+      "p50_ms": 391.19,
+      "p95_ms": 430.26,
+      "max_ms": 430.26,
+      "total_ms": 3975.21
+    },
+    "/jobs": {
+      "count": 10,
+      "avg_ms": 194.55,
+      "min_ms": 174.79,
+      "p50_ms": 192.34,
+      "p95_ms": 213.57,
+      "max_ms": 213.57,
+      "total_ms": 1945.53
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "compared_at": "2026-03-15T11:34:24.454Z",
+  "before_path": "C:\\codex\\Bento\\artifacts\\perf\\backend-before.json",
+  "after_path": "C:\\codex\\Bento\\artifacts\\perf\\backend-after-container-fix.json",
+  "endpoints": [
+    {
+      "endpoint": "/me",
+      "before_total_ms": 2098.99,
+      "after_total_ms": 207.73,
+      "saved_total_ms": 1891.26,
+      "before_avg_ms": 209.9,
+      "after_avg_ms": 20.77,
+      "saved_avg_ms": 189.13,
+      "improvement_pct": 90.1
+    },
+    {
+      "endpoint": "/me/preferences",
+      "before_total_ms": 1895.55,
+      "after_total_ms": 8.91,
+      "saved_total_ms": 1886.64,
+      "before_avg_ms": 189.56,
+      "after_avg_ms": 0.89,
+      "saved_avg_ms": 188.67,
+      "improvement_pct": 99.53
+    },
+    {
+      "endpoint": "/admin/volumes",
+      "before_total_ms": 3975.21,
+      "after_total_ms": 205.62,
+      "saved_total_ms": 3769.59,
+      "before_avg_ms": 397.52,
+      "after_avg_ms": 20.56,
+      "saved_avg_ms": 376.96,
+      "improvement_pct": 94.83
+    },
+    {
+      "endpoint": "/jobs",
+      "before_total_ms": 1945.53,
+      "after_total_ms": 6.85,
+      "saved_total_ms": 1938.68,
+      "before_avg_ms": 194.55,
+      "after_avg_ms": 0.68,
+      "saved_avg_ms": 193.87,
+      "improvement_pct": 99.65
+    }
+  ],
+  "totals": {
+    "before_total_ms": 9915.28,
+    "after_total_ms": 429.11,
+    "saved_total_ms": 9486.17,
+    "improvement_pct": 95.67
+  }
+}

@@ -7,6 +7,33 @@ function sleepMs(ms) {
 
 let cachedContainerName = '';
 let schemaReadyChecked = false;
+const queryResultCache = new Map();
+
+function getSelectCacheMs() {
+  const raw = Number(process.env.EXEC_PSQL_SELECT_CACHE_MS || 750);
+  return Number.isFinite(raw) && raw > 0 ? raw : 0;
+}
+
+function isReadOnlyQuery(query) {
+  const normalized = String(query).trim().toLowerCase();
+  if (!normalized) return false;
+  if (!(normalized.startsWith('select') || normalized.startsWith('with'))) {
+    return false;
+  }
+  if (
+    normalized.includes('now()') ||
+    normalized.includes('clock_timestamp()') ||
+    normalized.includes('random()') ||
+    normalized.includes('gen_random_uuid()')
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function clearQueryResultCache() {
+  queryResultCache.clear();
+}
 
 function resolvePostgresContainerName() {
   if (process.env.POSTGRES_CONTAINER && process.env.POSTGRES_CONTAINER.trim().length > 0) {
@@ -18,6 +45,7 @@ function resolvePostgresContainerName() {
   }
 
   const candidates = [
+    ['ps', '--filter', 'name=bento-postgres', '--format', '{{.Names}}'],
     ['ps', '--filter', 'name=nimbus-postgres', '--format', '{{.Names}}'],
     ['ps', '--filter', 'label=com.docker.compose.service=postgres', '--format', '{{.Names}}'],
   ];
@@ -113,6 +141,22 @@ function waitForCoreTables(containerName) {
 }
 
 export function execPsql(query) {
+  const sql = String(query);
+  const cacheMs = getSelectCacheMs();
+  const canUseCache = cacheMs > 0 && isReadOnlyQuery(sql);
+
+  if (canUseCache) {
+    const cached = queryResultCache.get(sql);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+    if (cached) {
+      queryResultCache.delete(sql);
+    }
+  } else {
+    clearQueryResultCache();
+  }
+
   const maxAttempts = Number(process.env.EXEC_PSQL_MAX_ATTEMPTS || 14);
   let lastErr;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -122,7 +166,14 @@ export function execPsql(query) {
         waitForCoreTables(containerName);
         schemaReadyChecked = true;
       }
-      return runPsqlInContainer(containerName, query);
+      const result = runPsqlInContainer(containerName, sql);
+      if (canUseCache) {
+        queryResultCache.set(sql, {
+          value: result,
+          expiresAt: Date.now() + cacheMs,
+        });
+      }
+      return result;
     } catch (err) {
       const msg = String(err && err.message ? err.message : err);
       lastErr = err;
@@ -146,6 +197,9 @@ export function execPsql(query) {
       if (transient) {
         // Re-check schema readiness on next attempt
         schemaReadyChecked = false;
+        if (canUseCache) {
+          queryResultCache.delete(sql);
+        }
         sleepMs(250);
         continue;
       }
