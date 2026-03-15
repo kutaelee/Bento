@@ -182,7 +182,7 @@ export function InviteAcceptPage() {
       });
       saveAuthTokens(response.tokens);
       const next = new URLSearchParams(location.search).get("next");
-      redirectAfterAuth(next && next.startsWith("/") ? next : "/files");
+      redirectAfterAuth(next && next.startsWith("/") ? next : "/");
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorKey(error.key);

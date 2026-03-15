@@ -30,7 +30,6 @@ export function LoginPage() {
   const api = useMemo(() => createApiClient({ baseUrl: getAppBasePath(), getLocale }), []);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
   const [capsLockOn, setCapsLockOn] = useState(false);
@@ -73,13 +72,7 @@ export function LoginPage() {
     }
   };
 
-  const handleInviteEntry = () => {
-    const token = inviteCode.trim();
-    navigate({
-      pathname: "/invite/accept",
-      search: token ? `?token=${encodeURIComponent(token)}` : "",
-    });
-  };
+  const handleInviteEntry = () => navigate("/invite/accept");
 
   const helperStatus = (
     <ul className="auth-form__status-list">
@@ -127,20 +120,10 @@ export function LoginPage() {
             disabled={submitting}
           />
 
-          <TextField
-            name="inviteCode"
-            autoComplete="off"
-            value={inviteCode}
-            onChange={(event) => setInviteCode(event.target.value)}
-            label={t("field.inviteCode")}
-            aria-label={t("field.inviteCode")}
-            disabled={submitting}
-          />
         </div>
 
         {errorKey && errorKey !== "err.validation" ? <div className="auth-form__error">{t(errorKey)}</div> : null}
         {capsLockOn ? <p className="auth-form__hint">{t("status.capsLockOn")}</p> : null}
-        <p className="auth-form__hint">{t("msg.inviteCodeHint")}</p>
 
         <div className="auth-form__actions">
           <Button type="button" variant="secondary" onClick={handleInviteEntry} disabled={submitting}>
