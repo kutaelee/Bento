@@ -150,8 +150,34 @@
   padding-top: 4px;
 }
 
+.admin-storage__table .nd-table__row {
+  border-radius: 12px;
+}
+
+.admin-storage__table .nd-table__row:hover {
+  background: color-mix(in srgb, var(--nd-color-accent-default) 12%, var(--nd-color-surface-primary));
+  color: var(--nd-color-text-primary);
+}
+
+.admin-storage__row--selected {
+  background: color-mix(in srgb, var(--nd-color-accent-default) 18%, var(--nd-color-surface-primary));
+  color: var(--nd-color-text-primary);
+}
+
+.admin-storage__row--selected:hover {
+  background: color-mix(in srgb, var(--nd-color-accent-default) 24%, var(--nd-color-surface-primary));
+  color: var(--nd-color-text-primary);
+}
+
 .admin-storage__row--active {
+  background: color-mix(in srgb, var(--nd-color-status-success) 12%, var(--nd-color-surface-primary));
   border-color: color-mix(in srgb, var(--nd-color-accent-default) 22%, transparent);
+  color: var(--nd-color-text-primary);
+}
+
+.admin-storage__row--active:hover {
+  background: color-mix(in srgb, var(--nd-color-status-success) 18%, var(--nd-color-surface-primary));
+  color: var(--nd-color-text-primary);
 }
 
 .admin-storage__row--selected .nd-table__cell,
@@ -161,7 +187,24 @@
 }
 
 .dark .admin-storage__row--active {
-  background: color-mix(in srgb, #38bdf8 14%, #1f2937);
+  background: color-mix(in srgb, #4ade80 18%, #1f2937);
+  color: #f0f6fc;
+}
+
+.dark .admin-storage__row--active:hover {
+  background: color-mix(in srgb, #4ade80 26%, #1f2937);
+  color: #f0f6fc;
+}
+
+.dark .admin-storage__row--selected {
+  background: color-mix(in srgb, #38bdf8 24%, #1f2937);
+  color: #f0f6fc;
+}
+
+.dark .admin-storage__row--selected:hover,
+.dark .admin-storage__table .nd-table__row:hover {
+  background: color-mix(in srgb, #38bdf8 30%, #1f2937);
+  color: #f0f6fc;
 }
 
 .admin-storage__actions {
