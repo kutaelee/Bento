@@ -9,6 +9,11 @@ let cachedContainerName = '';
 let schemaReadyChecked = false;
 const queryResultCache = new Map();
 
+function getDockerCommandTimeoutMs() {
+  const raw = Number(process.env.EXEC_PSQL_TIMEOUT_MS || 8000);
+  return Number.isFinite(raw) && raw > 0 ? raw : 8000;
+}
+
 function getSelectCacheMs() {
   const raw = Number(process.env.EXEC_PSQL_SELECT_CACHE_MS || 750);
   return Number.isFinite(raw) && raw > 0 ? raw : 0;
@@ -52,7 +57,11 @@ function resolvePostgresContainerName() {
 
   for (const args of candidates) {
     try {
-      const out = execFileSync('docker', args, { encoding: 'utf8' }).trim();
+      const out = execFileSync('docker', args, {
+        encoding: 'utf8',
+        timeout: getDockerCommandTimeoutMs(),
+        killSignal: 'SIGKILL',
+      }).trim();
       const first = out.split('\n').map((s) => s.trim()).find(Boolean);
       if (first) {
         cachedContainerName = first;
@@ -103,7 +112,11 @@ function runPsqlInContainer(containerName, query) {
     dbName,
     '-qtAc',
     query,
-  ], { encoding: 'utf8' });
+  ], {
+    encoding: 'utf8',
+    timeout: getDockerCommandTimeoutMs(),
+    killSignal: 'SIGKILL',
+  });
 }
 
 function waitForCoreTables(containerName) {

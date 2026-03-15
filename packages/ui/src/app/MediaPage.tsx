@@ -24,7 +24,7 @@ const MEDIA_SCAN_LIMIT = 180;
 const MEDIA_NODE_LIMIT = 640;
 const MEDIA_FOLDER_LIMIT = 80;
 const THUMBNAIL_BATCH_SIZE = 48;
-const THUMBNAIL_MAX_RETRIES = 2;
+const THUMBNAIL_MAX_RETRIES = 5;
 
 const imageExtensions = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "heic", "heif", "avif"]);
 const videoExtensions = new Set(["mp4", "mov", "avi", "mkv", "webm", "m4v"]);
@@ -219,7 +219,7 @@ export function MediaPage() {
       }
       setThumbnailPendingIds(new Set());
       setThumbnailRetryTick((prev) => prev + 1);
-    }, 1800);
+    }, 2200);
     return () => window.clearTimeout(timeout);
   }, [thumbnailPendingIds, thumbnailRetryCounts]);
 
