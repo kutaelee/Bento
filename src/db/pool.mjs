@@ -1,79 +1,31 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { Worker } from 'node:worker_threads';
 
 function sleepMs(ms) {
   const end = Date.now() + ms;
   while (Date.now() < end) {}
 }
 
-let cachedContainerName = '';
 let schemaReadyChecked = false;
 const queryResultCache = new Map();
-
-function getDockerCommandTimeoutMs() {
-  const raw = Number(process.env.EXEC_PSQL_TIMEOUT_MS || 8000);
-  return Number.isFinite(raw) && raw > 0 ? raw : 8000;
-}
+let cachedPort = null;
 
 function getSelectCacheMs() {
   const raw = Number(process.env.EXEC_PSQL_SELECT_CACHE_MS || 750);
   return Number.isFinite(raw) && raw > 0 ? raw : 0;
 }
 
-function isReadOnlyQuery(query) {
-  const normalized = String(query).trim().toLowerCase();
-  if (!normalized) return false;
-  if (!(normalized.startsWith('select') || normalized.startsWith('with'))) {
-    return false;
-  }
-  if (
-    normalized.includes('now()') ||
-    normalized.includes('clock_timestamp()') ||
-    normalized.includes('random()') ||
-    normalized.includes('gen_random_uuid()')
-  ) {
-    return false;
-  }
-  return true;
+function getQueryTimeoutMs() {
+  const raw = Number(process.env.EXEC_PSQL_TIMEOUT_MS || 8000);
+  return Number.isFinite(raw) && raw > 0 ? raw : 8000;
 }
 
-function clearQueryResultCache() {
-  queryResultCache.clear();
-}
-
-function resolvePostgresContainerName() {
-  if (process.env.POSTGRES_CONTAINER && process.env.POSTGRES_CONTAINER.trim().length > 0) {
-    return process.env.POSTGRES_CONTAINER.trim();
-  }
-
-  if (cachedContainerName) {
-    return cachedContainerName;
-  }
-
-  const candidates = [
-    ['ps', '--filter', 'name=bento-postgres', '--format', '{{.Names}}'],
-    ['ps', '--filter', 'name=nimbus-postgres', '--format', '{{.Names}}'],
-    ['ps', '--filter', 'label=com.docker.compose.service=postgres', '--format', '{{.Names}}'],
-  ];
-
-  for (const args of candidates) {
-    try {
-      const out = execFileSync('docker', args, {
-        encoding: 'utf8',
-        timeout: getDockerCommandTimeoutMs(),
-        killSignal: 'SIGKILL',
-      }).trim();
-      const first = out.split('\n').map((s) => s.trim()).find(Boolean);
-      if (first) {
-        cachedContainerName = first;
-        return first;
-      }
-    } catch (_) {
-      // ignore and try next candidate
-    }
-  }
-
-  // fallback (legacy)
-  return 'nimbus-postgres';
+function getQueryAttempts() {
+  const raw = Number(process.env.EXEC_PSQL_MAX_ATTEMPTS || 4);
+  return Number.isFinite(raw) && raw > 0 ? raw : 4;
 }
 
 function resolveDbName() {
@@ -98,29 +50,127 @@ function resolveDbName() {
   return 'nimbus_drive';
 }
 
-function runPsqlInContainer(containerName, query) {
-  const dbName = resolveDbName();
-  return execFileSync('docker', [
-    'exec',
-    containerName,
-    'psql',
-    '-v',
-    'ON_ERROR_STOP=1',
-    '-U',
-    'nimbus',
-    '-d',
-    dbName,
-    '-qtAc',
-    query,
-  ], {
-    encoding: 'utf8',
-    timeout: getDockerCommandTimeoutMs(),
-    killSignal: 'SIGKILL',
-  });
+function resolvePgPortFromDocker() {
+  if (cachedPort !== null) {
+    return cachedPort;
+  }
+
+  const candidates = [
+    process.env.POSTGRES_CONTAINER,
+    'bento-postgres',
+    'bento-postgres-1',
+    'nimbus-postgres',
+  ].filter(Boolean);
+
+  for (const containerName of candidates) {
+    try {
+      const output = execFileSync(
+        'docker',
+        ['inspect', '-f', '{{range $p, $conf := .NetworkSettings.Ports}}{{if eq $p "5432/tcp"}}{{(index $conf 0).HostPort}}{{end}}{{end}}', containerName],
+        {
+          encoding: 'utf8',
+          timeout: getQueryTimeoutMs(),
+          killSignal: 'SIGKILL',
+        },
+      ).trim();
+      const port = Number(output);
+      if (Number.isFinite(port) && port > 0) {
+        cachedPort = port;
+        return port;
+      }
+    } catch (_) {
+      // ignore and try next container candidate
+    }
+  }
+
+  cachedPort = 15432;
+  return cachedPort;
 }
 
-function waitForCoreTables(containerName) {
-  const maxWaitAttempts = Number(process.env.EXEC_PSQL_SCHEMA_MAX_ATTEMPTS || 40);
+function resolveConnectionConfig() {
+  const connectionString = process.env.DATABASE_URL;
+  if (connectionString && connectionString.trim().length > 0) {
+    return { connectionString: connectionString.trim() };
+  }
+
+  return {
+    host: process.env.PGHOST || '127.0.0.1',
+    port: Number(process.env.PGPORT || resolvePgPortFromDocker()),
+    user: process.env.PGUSER || 'nimbus',
+    password: process.env.PGPASSWORD || 'nimbus',
+    database: resolveDbName(),
+  };
+}
+
+function isReadOnlyQuery(query) {
+  const normalized = String(query).trim().toLowerCase();
+  if (!normalized) return false;
+  if (!(normalized.startsWith('select') || normalized.startsWith('with'))) {
+    return false;
+  }
+  if (
+    normalized.includes('now()') ||
+    normalized.includes('clock_timestamp()') ||
+    normalized.includes('random()') ||
+    normalized.includes('gen_random_uuid()')
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function clearQueryResultCache() {
+  queryResultCache.clear();
+}
+
+function runPgQuerySync(query) {
+  const workerScript = new URL('./pg_query_worker.mjs', import.meta.url);
+  const tempBase = fs.mkdtempSync(path.join(os.tmpdir(), 'bento-pg-query-'));
+  const resultPath = path.join(tempBase, 'result.txt');
+  const errorPath = path.join(tempBase, 'error.txt');
+  const stateBuffer = new SharedArrayBuffer(4);
+  const stateView = new Int32Array(stateBuffer);
+  const timeoutMs = getQueryTimeoutMs();
+
+  const worker = new Worker(workerScript, {
+    workerData: {
+      connectionConfig: resolveConnectionConfig(),
+      query: String(query),
+      resultPath,
+      errorPath,
+      stateBuffer,
+      timeoutMs,
+    },
+    stdout: false,
+    stderr: false,
+  });
+
+  try {
+    const waitResult = Atomics.wait(stateView, 0, 0, timeoutMs + 1000);
+    if (waitResult === 'timed-out') {
+      worker.terminate();
+      throw new Error(`pg query timed out after ${timeoutMs}ms`);
+    }
+
+    const state = Atomics.load(stateView, 0);
+    if (state === 2) {
+      const message = fs.existsSync(errorPath) ? fs.readFileSync(errorPath, 'utf8') : 'Unknown pg worker error';
+      throw new Error(message);
+    }
+
+    return fs.existsSync(resultPath) ? fs.readFileSync(resultPath, 'utf8') : '';
+  } finally {
+    worker.terminate().catch(() => {});
+    try {
+      fs.rmSync(tempBase, { recursive: true, force: true });
+    } catch (_) {
+      // ignore temp cleanup failure
+    }
+  }
+}
+
+function waitForCoreTables() {
+  const maxWaitAttempts = Number(process.env.EXEC_PSQL_SCHEMA_MAX_ATTEMPTS || 20);
   const requiredTables = ['users', 'upload_sessions', 'system_settings'];
   const sql =
     "select count(*)::int from information_schema.tables " +
@@ -128,7 +178,7 @@ function waitForCoreTables(containerName) {
 
   for (let attempt = 0; attempt < maxWaitAttempts; attempt += 1) {
     try {
-      const out = runPsqlInContainer(containerName, sql).trim();
+      const out = runPgQuerySync(sql).trim();
       const count = Number(out);
       if (Number.isFinite(count) && count >= requiredTables.length) {
         return;
@@ -136,12 +186,12 @@ function waitForCoreTables(containerName) {
     } catch (err) {
       const msg = String(err && err.message ? err.message : err);
       const transient = (
-        msg.includes('No such container') ||
+        msg.includes('ECONNREFUSED') ||
+        msg.includes('timeout') ||
+        msg.includes('terminating connection') ||
         msg.includes('database system is starting up') ||
         msg.includes('database system is shutting down') ||
-        msg.includes('database "nimbus_drive" does not exist') ||
-        msg.includes('database "' + resolveDbName() + '" does not exist') ||
-        msg.includes('connection to server on socket')
+        msg.includes('does not exist')
       );
       if (!transient) {
         throw err;
@@ -170,16 +220,15 @@ export function execPsql(query) {
     clearQueryResultCache();
   }
 
-  const maxAttempts = Number(process.env.EXEC_PSQL_MAX_ATTEMPTS || 14);
+  const maxAttempts = getQueryAttempts();
   let lastErr;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const containerName = resolvePostgresContainerName();
     try {
       if (!schemaReadyChecked) {
-        waitForCoreTables(containerName);
+        waitForCoreTables();
         schemaReadyChecked = true;
       }
-      const result = runPsqlInContainer(containerName, sql);
+      const result = runPgQuerySync(sql);
       if (canUseCache) {
         queryResultCache.set(sql, {
           value: result,
@@ -190,25 +239,17 @@ export function execPsql(query) {
     } catch (err) {
       const msg = String(err && err.message ? err.message : err);
       lastErr = err;
-
       const transient = (
-        msg.includes('No such container') ||
-        msg.includes('the database system is starting up') ||
-        msg.includes('the database system is shutting down') ||
-        msg.includes('server closed the connection unexpectedly') ||
-        msg.includes('database "nimbus_drive" does not exist') ||
-        msg.includes('database "' + resolveDbName() + '" does not exist') ||
-        msg.includes('connection to server on socket') ||
+        msg.includes('ECONNREFUSED') ||
+        msg.includes('timeout') ||
+        msg.includes('terminating connection') ||
+        msg.includes('database system is starting up') ||
+        msg.includes('database system is shutting down') ||
         msg.includes('relation "upload_sessions" does not exist') ||
         msg.includes('relation "system_settings" does not exist')
       );
 
-      if (msg.includes('No such container')) {
-        cachedContainerName = '';
-      }
-
       if (transient) {
-        // Re-check schema readiness on next attempt
         schemaReadyChecked = false;
         if (canUseCache) {
           queryResultCache.delete(sql);

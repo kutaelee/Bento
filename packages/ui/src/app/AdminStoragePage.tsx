@@ -105,6 +105,12 @@ export default function AdminStoragePage() {
       const response = await volumesApi.listVolumes();
       setVolumes(response.items);
       const nextActiveVolume = response.items.find((volume) => volume.is_active);
+      setSelectedVolumeId((current) => {
+        if (current && response.items.some((volume) => volume.id === current)) {
+          return current;
+        }
+        return nextActiveVolume?.id ?? response.items[0]?.id ?? null;
+      });
       const shouldContinuePolling = nextActiveVolume?.scan_state === "queued" || nextActiveVolume?.scan_state === "running";
       setScanPollingEnabled(Boolean(shouldContinuePolling));
     } catch (error) {
@@ -422,6 +428,13 @@ export default function AdminStoragePage() {
                   heightPx={320}
                   rowHeightPx={44}
                   getRowKey={(item) => item.id}
+                  getRowClassName={(item) =>
+                    item.id === selectedVolumeId
+                      ? "nd-table__row--selected admin-storage__row--selected"
+                      : item.is_active
+                        ? "admin-storage__row--active"
+                        : undefined
+                  }
                   onRowClick={(item) => setSelectedVolumeId(item.id)}
                 />
               </div>

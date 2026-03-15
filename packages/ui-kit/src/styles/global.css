@@ -420,6 +420,22 @@
   height: 44px;
   border-bottom: 1px solid color-mix(in srgb, #000 8%, transparent);
   font-size: var(--nd-font-size-sm);
+  color: var(--nd-color-text);
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.nd-table__row:hover {
+  background: color-mix(in srgb, var(--nd-color-accent-default) 10%, var(--nd-color-surface-current));
+  color: var(--nd-color-text);
+}
+
+.nd-table__row--selected {
+  background: color-mix(in srgb, var(--nd-color-accent-default) 18%, var(--nd-color-surface-current));
+  color: var(--nd-color-text);
+}
+
+.nd-table__row--selected:hover {
+  background: color-mix(in srgb, var(--nd-color-accent-default) 24%, var(--nd-color-surface-current));
 }
 
 .nd-table__row:last-child {
@@ -438,6 +454,20 @@
 
 .dark .nd-table__cell--header {
   color: color-mix(in srgb, #fff 70%, transparent);
+}
+
+.dark .nd-table__row:hover {
+  background: color-mix(in srgb, #38bdf8 16%, var(--nd-color-surface-current));
+  color: #f0f6fc;
+}
+
+.dark .nd-table__row--selected {
+  background: color-mix(in srgb, #38bdf8 22%, #1f2937);
+  color: #f0f6fc;
+}
+
+.dark .nd-table__row--selected:hover {
+  background: color-mix(in srgb, #38bdf8 28%, #1f2937);
 }
 
 .nd-treeview {

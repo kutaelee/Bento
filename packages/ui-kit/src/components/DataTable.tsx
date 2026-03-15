@@ -17,6 +17,7 @@ export type DataTableProps<TItem> = {
   overscanCount?: number;
   getRowKey?: (item: TItem, index: number) => string | number;
   onRowClick?: (item: TItem, index: number) => void;
+  getRowClassName?: (item: TItem, index: number) => string | undefined;
   scrollTopPx?: number;
   onScroll?: React.UIEventHandler<HTMLDivElement>;
 };
@@ -37,6 +38,7 @@ export function DataTable<TItem>({
   overscanCount = 4,
   getRowKey,
   onRowClick,
+  getRowClassName,
   scrollTopPx,
   onScroll,
 }: DataTableProps<TItem>) {
@@ -77,7 +79,7 @@ export function DataTable<TItem>({
           return (
             <div
               key={getRowKey ? getRowKey(item, index) : index}
-              className="nd-table__row"
+              className={["nd-table__row", getRowClassName?.(item, index)].filter(Boolean).join(" ")}
               data-testid="data-table-row"
               style={{
                 gridTemplateColumns,

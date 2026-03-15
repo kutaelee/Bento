@@ -3380,20 +3380,16 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      execPsql("begin;");
-      try {
-        execPsql(
-          "update volumes set is_active=(id='" + quoteSqlLiteral(volumeId) + "'::uuid);"
-        );
-        const activeCountText = execPsql("select count(*)::bigint from volumes where is_active=true;").trim();
-        const activeCount = Number(activeCountText || 0);
-        if (!Number.isFinite(activeCount) || activeCount !== 1) {
-          throw new Error('active volume postcondition failed');
-        }
-        execPsql("commit;");
-      } catch (err) {
-        try { execPsql("rollback;"); } catch (_) {}
-        throw err;
+      execPsql(
+        "begin;" +
+          "update volumes set is_active=false where is_active=true and id<>'" + quoteSqlLiteral(volumeId) + "'::uuid;" +
+          "update volumes set is_active=true where id='" + quoteSqlLiteral(volumeId) + "'::uuid;" +
+        "commit;"
+      );
+      const activeCountText = execPsql("select count(*)::bigint from volumes where is_active=true;").trim();
+      const activeCount = Number(activeCountText || 0);
+      if (!Number.isFinite(activeCount) || activeCount !== 1) {
+        throw new Error('active volume postcondition failed');
       }
 
       let scanJob = null;

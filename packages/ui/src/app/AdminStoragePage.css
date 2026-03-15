@@ -150,6 +150,20 @@
   padding-top: 4px;
 }
 
+.admin-storage__row--active {
+  border-color: color-mix(in srgb, var(--nd-color-accent-default) 22%, transparent);
+}
+
+.admin-storage__row--selected .nd-table__cell,
+.admin-storage__row--active .nd-table__cell,
+.admin-storage__table .nd-table__row:hover .nd-table__cell {
+  color: inherit;
+}
+
+.dark .admin-storage__row--active {
+  background: color-mix(in srgb, #38bdf8 14%, #1f2937);
+}
+
 .admin-storage__actions {
   display: flex;
   justify-content: flex-end;
