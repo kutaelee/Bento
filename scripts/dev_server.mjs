@@ -720,10 +720,55 @@ function listJobs({ type, status, cursor, limit }) {
 }
 
 function selectThumbnailContentType(acceptHeader) {
+  if (typeof acceptHeader === 'string' && acceptHeader.includes('image/svg+xml')) {
+    return 'image/svg+xml';
+  }
   if (typeof acceptHeader === 'string' && acceptHeader.includes('image/png')) {
     return 'image/png';
   }
   return 'image/png';
+}
+
+function inferMediaKind(node) {
+  const mimeType = String(node?.mime_type || '').toLowerCase();
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+
+  const extension = String(node?.name || '').split('.').pop()?.toLowerCase() || '';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'heic', 'heif', 'avif'].includes(extension)) {
+    return 'image';
+  }
+  if (['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v'].includes(extension)) {
+    return 'video';
+  }
+  return 'file';
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildThumbnailSvg(node, mediaKind) {
+  const label = mediaKind === 'video' ? 'VIDEO' : mediaKind === 'image' ? 'IMAGE' : 'FILE';
+  const accent = mediaKind === 'video' ? '#38BDF8' : mediaKind === 'image' ? '#4ADE80' : '#8B949E';
+  const safeName = escapeHtml(String(node?.name || 'Untitled'));
+  return Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="${safeName}">
+      <rect width="640" height="360" rx="28" fill="#111827"/>
+      <rect x="24" y="24" width="592" height="312" rx="22" fill="#1F2937" stroke="#30363D" stroke-width="2"/>
+      <circle cx="112" cy="112" r="42" fill="${accent}" fill-opacity="0.18" />
+      <path d="M102 88h20l18 24-18 24h-20l18-24-18-24z" fill="${accent}" />
+      <text x="180" y="108" fill="#F0F6FC" font-size="20" font-family="Segoe UI, Arial, sans-serif" font-weight="700">${label}</text>
+      <text x="180" y="146" fill="#8B949E" font-size="18" font-family="Segoe UI, Arial, sans-serif">${safeName.slice(0, 44)}</text>
+      <text x="180" y="182" fill="#6B7280" font-size="14" font-family="Segoe UI, Arial, sans-serif">Bento media preview</text>
+    </svg>`,
+    'utf8',
+  );
 }
 
 function buildThumbnailJob(nodeId) {
@@ -738,19 +783,42 @@ function buildThumbnailJob(nodeId) {
   };
 }
 
-function ensureThumbnailEntry(nodeId, acceptHeader) {
-  const existing = thumbnailCache.get(nodeId);
+function ensureThumbnailEntry(node, acceptHeader) {
+  const existing = thumbnailCache.get(node.id);
   if (existing) {
     return { fresh: false, entry: existing };
   }
 
-  const contentType = selectThumbnailContentType(acceptHeader);
-  const entry = {
-    contentType,
-    buffer: THUMBNAIL_PLACEHOLDER_PNG,
-    job: buildThumbnailJob(nodeId),
-  };
-  thumbnailCache.set(nodeId, entry);
+  const mediaKind = inferMediaKind(node);
+  let entry;
+
+  if (mediaKind === 'image' && node.blob_id) {
+    const blob = loadBlobById(node.blob_id);
+    if (blob) {
+      const filePathResult = resolveBlobAbsolutePath(blob);
+      if (filePathResult.ok && fs.existsSync(filePathResult.value)) {
+        const stat = fs.statSync(filePathResult.value);
+        entry = {
+          contentType: blob.content_type || node.mime_type || 'image/jpeg',
+          filePath: filePathResult.value,
+          contentLength: stat.size,
+        };
+      }
+    }
+  }
+
+  if (!entry) {
+    const contentType = mediaKind === 'video' ? 'image/svg+xml' : selectThumbnailContentType(acceptHeader);
+    entry = {
+      contentType,
+      buffer: mediaKind === 'video'
+        ? buildThumbnailSvg(node, mediaKind)
+        : THUMBNAIL_PLACEHOLDER_PNG,
+      job: buildThumbnailJob(node.id),
+    };
+  }
+
+  thumbnailCache.set(node.id, entry);
   return { fresh: true, entry };
 }
 
@@ -5264,14 +5332,29 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const { fresh, entry } = ensureThumbnailEntry(nodeId, req.headers.accept);
+    const { fresh, entry } = ensureThumbnailEntry(node, req.headers.accept);
     if (fresh) {
-      sendJson(res, 202, entry.job);
-      return;
+      if (entry.job) {
+        sendJson(res, 202, entry.job);
+        return;
+      }
     }
 
     res.statusCode = 200;
     res.setHeader('Content-Type', entry.contentType);
+    if (entry.filePath) {
+      res.setHeader('Content-Length', String(entry.contentLength ?? fs.statSync(entry.filePath).size));
+      const stream = fs.createReadStream(entry.filePath);
+      stream.on('error', (err) => {
+        if (!res.headersSent) {
+          sendJson(res, 500, errorResponse('INTERNAL', String(err)));
+        } else {
+          res.end();
+        }
+      });
+      stream.pipe(res);
+      return;
+    }
     res.setHeader('Content-Length', String(entry.buffer.length));
     res.end(entry.buffer);
     return;
