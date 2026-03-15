@@ -3440,6 +3440,106 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (method === 'POST' && pathname.startsWith('/admin/volumes/') && pathname.endsWith('/deactivate')) {
+    const authResult = requireBearerAuth(req);
+    if (!authResult.ok) {
+      sendJson(res, authResult.status, authResult.body);
+      return;
+    }
+
+    const caller = loadUserById(authResult.user_id);
+    if (!caller) {
+      sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
+      return;
+    }
+    if (caller.role !== 'ADMIN') {
+      sendJson(res, 403, errorResponse('FORBIDDEN', 'Admin role required'));
+      return;
+    }
+
+    const volumeId = pathname.slice('/admin/volumes/'.length, -('/deactivate'.length));
+    if (!isValidUuid(volumeId)) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'volume_id must be a UUID'));
+      return;
+    }
+
+    try {
+      const volume = loadVolumeById(volumeId);
+      if (!volume) {
+        sendJson(res, 404, errorResponse('NOT_FOUND', 'Volume not found'));
+        return;
+      }
+
+      execPsql(
+        "update volumes set is_active=false, scan_state='succeeded', scan_job_id=null, scan_progress=1, scan_error=null, scan_updated_at=now() " +
+        "where id='" + quoteSqlLiteral(volumeId) + "'::uuid;"
+      );
+
+      const updated = loadVolumeById(volumeId);
+      if (!updated) {
+        sendJson(res, 500, errorResponse('INTERNAL', 'Failed to load deactivated volume'));
+        return;
+      }
+
+      sendJson(res, 200, updated);
+      return;
+    } catch (err) {
+      sendJson(res, 500, errorResponse('INTERNAL', String(err)));
+      return;
+    }
+  }
+
+  if (method === 'DELETE' && pathname.startsWith('/admin/volumes/')) {
+    const authResult = requireBearerAuth(req);
+    if (!authResult.ok) {
+      sendJson(res, authResult.status, authResult.body);
+      return;
+    }
+
+    const caller = loadUserById(authResult.user_id);
+    if (!caller) {
+      sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
+      return;
+    }
+    if (caller.role !== 'ADMIN') {
+      sendJson(res, 403, errorResponse('FORBIDDEN', 'Admin role required'));
+      return;
+    }
+
+    const volumeId = pathname.slice('/admin/volumes/'.length);
+    if (!isValidUuid(volumeId)) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', 'volume_id must be a UUID'));
+      return;
+    }
+
+    try {
+      const volume = loadVolumeById(volumeId);
+      if (!volume) {
+        sendJson(res, 404, errorResponse('NOT_FOUND', 'Volume not found'));
+        return;
+      }
+      if (volume.is_active) {
+        sendJson(res, 409, errorResponse('CONFLICT', 'Active volume cannot be deleted'));
+        return;
+      }
+
+      const blobCount = Number(
+        execPsql("select count(*)::bigint from blobs where volume_id='" + quoteSqlLiteral(volumeId) + "'::uuid and deleted_at is null;").trim() || 0,
+      );
+      if (Number.isFinite(blobCount) && blobCount > 0) {
+        sendJson(res, 409, errorResponse('CONFLICT', 'Volume still contains blobs'));
+        return;
+      }
+
+      execPsql("delete from volumes where id='" + quoteSqlLiteral(volumeId) + "'::uuid;");
+      sendJson(res, 200, { ok: true });
+      return;
+    } catch (err) {
+      sendJson(res, 500, errorResponse('INTERNAL', String(err)));
+      return;
+    }
+  }
+
   if (method === 'POST' && pathname.startsWith('/admin/volumes/') && pathname.endsWith('/scan')) {
     const authResult = requireBearerAuth(req);
     if (!authResult.ok) {

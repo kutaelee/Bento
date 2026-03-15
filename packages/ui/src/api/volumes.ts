@@ -9,7 +9,9 @@ export type Volume = components["schemas"]["Volume"] & {
   scan_error?: string | null;
   scan_updated_at?: string | null;
 };
-export type ListVolumesResponse = components["schemas"]["ListVolumesResponse"];
+export type ListVolumesResponse = Omit<components["schemas"]["ListVolumesResponse"], "items"> & {
+  items: Volume[];
+};
 export type CreateVolumeRequest = components["schemas"]["CreateVolumeRequest"];
 export type ValidatePathRequest = components["schemas"]["ValidatePathRequest"];
 export type ValidatePathResponse = components["schemas"]["ValidatePathResponse"];
@@ -20,7 +22,11 @@ export type ScanVolumeRequest = {
 export const createVolumesApi = (client: ReturnType<typeof createApiClient>) => {
   return {
     listVolumes: async (): Promise<ListVolumesResponse> => {
-      return client.request<ListVolumesResponse>({ path: "/admin/volumes" });
+      const response = await client.request<components["schemas"]["ListVolumesResponse"]>({ path: "/admin/volumes" });
+      return {
+        ...response,
+        items: (response.items ?? []) as Volume[],
+      };
     },
     createVolume: async (payload: CreateVolumeRequest): Promise<Volume> => {
       return client.request<Volume>({

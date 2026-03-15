@@ -24,6 +24,7 @@ const MEDIA_SCAN_LIMIT = 180;
 const MEDIA_NODE_LIMIT = 640;
 const MEDIA_FOLDER_LIMIT = 80;
 const THUMBNAIL_BATCH_SIZE = 48;
+const THUMBNAIL_MAX_RETRIES = 2;
 
 const imageExtensions = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "heic", "heif", "avif"]);
 const videoExtensions = new Set(["mp4", "mov", "avi", "mkv", "webm", "m4v"]);
@@ -152,6 +153,7 @@ export function MediaPage() {
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
   const [thumbnailPendingIds, setThumbnailPendingIds] = useState<Set<string>>(new Set());
   const [thumbnailFailedIds, setThumbnailFailedIds] = useState<Set<string>>(new Set());
+  const [thumbnailRetryCounts, setThumbnailRetryCounts] = useState<Record<string, number>>({});
   const thumbnailUrlsRef = useRef<Record<string, string>>({});
   const [thumbnailRetryTick, setThumbnailRetryTick] = useState(0);
   const [activeBasePath, setActiveBasePath] = useState("/");
@@ -207,11 +209,19 @@ export function MediaPage() {
   useEffect(() => {
     if (thumbnailPendingIds.size === 0) return undefined;
     const timeout = window.setTimeout(() => {
+      const exhaustedIds = Array.from(thumbnailPendingIds).filter((id) => (thumbnailRetryCounts[id] ?? 0) >= THUMBNAIL_MAX_RETRIES);
+      if (exhaustedIds.length > 0) {
+        setThumbnailFailedIds((prev) => {
+          const next = new Set(prev);
+          exhaustedIds.forEach((id) => next.add(id));
+          return next;
+        });
+      }
       setThumbnailPendingIds(new Set());
       setThumbnailRetryTick((prev) => prev + 1);
     }, 1800);
     return () => window.clearTimeout(timeout);
-  }, [thumbnailPendingIds]);
+  }, [thumbnailPendingIds, thumbnailRetryCounts]);
 
   useEffect(() => {
     let active = true;
@@ -227,6 +237,7 @@ export function MediaPage() {
     setThumbnailUrls({});
     setThumbnailPendingIds(new Set());
     setThumbnailFailedIds(new Set());
+    setThumbnailRetryCounts({});
 
     void (async () => {
       try {
@@ -298,17 +309,33 @@ export function MediaPage() {
           if (!active) break;
 
           if (result.status === "pending") {
+            setThumbnailRetryCounts((prev) => ({
+              ...prev,
+              [item.id]: (prev[item.id] ?? 0) + 1,
+            }));
             setThumbnailPendingIds((prev) => new Set(prev).add(item.id));
             continue;
           }
 
           const objectUrl = URL.createObjectURL(result.blob);
+          setThumbnailRetryCounts((prev) => {
+            if (!(item.id in prev)) return prev;
+            const next = { ...prev };
+            delete next[item.id];
+            return next;
+          });
           setThumbnailUrls((prev) => {
             const next = { ...prev, [item.id]: objectUrl };
             return next;
           });
         } catch {
           if (!active) break;
+          setThumbnailRetryCounts((prev) => {
+            if (!(item.id in prev)) return prev;
+            const next = { ...prev };
+            delete next[item.id];
+            return next;
+          });
           setThumbnailFailedIds((prev) => new Set(prev).add(item.id));
         }
       }

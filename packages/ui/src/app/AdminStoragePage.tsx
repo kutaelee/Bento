@@ -95,6 +95,7 @@ export default function AdminStoragePage() {
   const [scanJobLoading, setScanJobLoading] = useState(false);
   const [scanJobErrorKey, setScanJobErrorKey] = useState<I18nKey | null>(null);
   const [scanRetrying, setScanRetrying] = useState(false);
+  const [scanPollingEnabled, setScanPollingEnabled] = useState(false);
 
   const loadVolumes = useCallback(async () => {
     setLoading(true);
@@ -103,8 +104,12 @@ export default function AdminStoragePage() {
     try {
       const response = await volumesApi.listVolumes();
       setVolumes(response.items);
+      const nextActiveVolume = response.items.find((volume) => volume.is_active);
+      const shouldContinuePolling = nextActiveVolume?.scan_state === "queued" || nextActiveVolume?.scan_state === "running";
+      setScanPollingEnabled(Boolean(shouldContinuePolling));
     } catch (error) {
       setLoadErrorKey(error instanceof ApiError ? error.key : "err.network");
+      setScanPollingEnabled(false);
     } finally {
       setLoading(false);
     }
@@ -164,14 +169,14 @@ export default function AdminStoragePage() {
   }, [activeVolume?.scan_job_id, fetchScanJob]);
 
   useEffect(() => {
-    if (!activeVolume) return;
+    if (!activeVolume || !scanPollingEnabled) return;
     if (activeVolume.scan_state !== "queued" && activeVolume.scan_state !== "running") return;
 
     const timer = window.setTimeout(() => {
       void loadVolumes();
     }, 3000);
     return () => window.clearTimeout(timer);
-  }, [activeVolume, loadVolumes]);
+  }, [activeVolume, loadVolumes, scanPollingEnabled]);
 
   const handleValidate = async () => {
     if (!validatePath || validating) return;
@@ -288,6 +293,7 @@ export default function AdminStoragePage() {
 
       const job = await maintenanceApi.scanStorage(payload);
       setScanJob(job);
+      setScanPollingEnabled(true);
       await fetchScanJob(job.id);
     } catch (error) {
       setScanErrorKey(error instanceof ApiError ? error.key : "err.network");
@@ -304,6 +310,7 @@ export default function AdminStoragePage() {
     try {
       const job = await volumesApi.scanVolume(activeVolume.id, { dry_run: false });
       setScanJob(job);
+      setScanPollingEnabled(true);
       await loadVolumes();
       await fetchScanJob(job.id);
     } catch (error) {
