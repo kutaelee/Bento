@@ -62,6 +62,11 @@ const JOB_TYPES = new Set(['THUMBNAIL', 'TRANSCODE', 'MIGRATION', 'TRASH_GC', 'S
 const JOB_STATUSES = new Set(['QUEUED', 'RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED']);
 const volumeScanRuns = new Map();
 
+function shouldAutoScanOnActivate() {
+  const raw = String(process.env.BENTO_AUTO_SCAN_ON_ACTIVATE || '').trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
+}
+
 function registerJob(job) {
   jobStore.set(job.id, job);
   jobOrder.push(job.id);
@@ -3435,7 +3440,8 @@ const server = http.createServer(async (req, res) => {
       execPsql(
         "begin;" +
           "update volumes set is_active=false where is_active=true and id<>'" + quoteSqlLiteral(volumeId) + "'::uuid;" +
-          "update volumes set is_active=true where id='" + quoteSqlLiteral(volumeId) + "'::uuid;" +
+          "update volumes set is_active=true, scan_state='succeeded', scan_job_id=null, scan_progress=1, scan_error=null, scan_updated_at=now() " +
+            "where id='" + quoteSqlLiteral(volumeId) + "'::uuid;" +
         "commit;"
       );
       const activeCountText = execPsql("select count(*)::bigint from volumes where is_active=true;").trim();
@@ -3444,43 +3450,37 @@ const server = http.createServer(async (req, res) => {
         throw new Error('active volume postcondition failed');
       }
 
-      let scanJob = null;
-      try {
-        scanJob = createOrReuseVolumeAutoScanJob({
-          volumeId,
-          ownerUserId: caller.id,
-          dryRun: false,
-          trigger: 'activate',
-        });
-      } catch (scanErr) {
-        try {
-          updateVolumeScanState({
-            volumeId,
-            state: 'failed',
-            jobId: null,
-            progress: 1,
-            errorMessage: String(scanErr && scanErr.message ? scanErr.message : scanErr),
-          });
-        } catch {
-          // ignore scan-state update failure for activation response
-        }
-      }
-
       const updated = loadVolumeById(volumeId);
       if (!updated) {
         sendJson(res, 500, errorResponse('INTERNAL', 'Failed to load activated volume'));
         return;
       }
 
-      const responseBody = scanJob
-        ? {
-            ...updated,
-            scan_job_id: scanJob.id,
-            scan_state: 'queued',
-            scan_progress: 0,
+      sendJson(res, 200, updated);
+      if (shouldAutoScanOnActivate()) {
+        setTimeout(() => {
+          try {
+            createOrReuseVolumeAutoScanJob({
+              volumeId,
+              ownerUserId: caller.id,
+              dryRun: false,
+              trigger: 'activate',
+            });
+          } catch (scanErr) {
+            try {
+              updateVolumeScanState({
+                volumeId,
+                state: 'failed',
+                jobId: null,
+                progress: 1,
+                errorMessage: String(scanErr && scanErr.message ? scanErr.message : scanErr),
+              });
+            } catch {
+              // ignore scan-state update failure for background activation scan
+            }
           }
-        : updated;
-      sendJson(res, 200, responseBody);
+        }, 25);
+      }
       return;
     } catch (err) {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
