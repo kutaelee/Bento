@@ -318,7 +318,7 @@ export function ScanCleanupSection({
           errorKey={scanJobErrorKey}
         />
       ) : (
-        <EmptyState titleKey="msg.noJobs" />
+        <EmptyState title={t("msg.noJobs")} />
       )}
     </section>
   );

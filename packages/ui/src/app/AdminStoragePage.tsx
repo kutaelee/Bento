@@ -161,7 +161,12 @@ export default function AdminStoragePage() {
         const job = await jobsApi.getJob(jobId);
         setScanJob(job);
       } catch (error) {
-        setScanJobErrorKey(error instanceof ApiError ? error.key : "err.network");
+        if (error instanceof ApiError && error.key === "err.notFound") {
+          setScanJob(null);
+          setScanJobErrorKey(null);
+        } else {
+          setScanJobErrorKey(error instanceof ApiError ? error.key : "err.network");
+        }
       } finally {
         setScanJobLoading(false);
       }
