@@ -1031,6 +1031,41 @@ function ensureUniqueInParent(parentId, name, excludeNodeId = null) {
   return !hasSiblingNameConflict(parentId, name, excludeNodeId);
 }
 
+function splitFilenameParts(name) {
+  const input = String(name || '').trim();
+  const lastDot = input.lastIndexOf('.');
+  if (lastDot <= 0) {
+    return { stem: input, ext: '' };
+  }
+  return {
+    stem: input.slice(0, lastDot),
+    ext: input.slice(lastDot),
+  };
+}
+
+function resolveAvailableSiblingName(parentId, requestedName, excludeNodeId = null) {
+  const normalized = String(requestedName || '').trim();
+  if (!normalized) {
+    return normalized;
+  }
+
+  if (ensureUniqueInParent(parentId, normalized, excludeNodeId)) {
+    return normalized;
+  }
+
+  const { stem, ext } = splitFilenameParts(normalized);
+  const baseStem = stem || 'untitled';
+
+  for (let attempt = 1; attempt <= 9999; attempt += 1) {
+    const candidate = `${baseStem} (${attempt})${ext}`;
+    if (ensureUniqueInParent(parentId, candidate, excludeNodeId)) {
+      return candidate;
+    }
+  }
+
+  throw new Error(`Unable to resolve unique sibling name for ${normalized}`);
+}
+
 function isAncestorPath(ancestorPath, targetPath) {
   return targetPath === ancestorPath || targetPath.startsWith(`${ancestorPath}.`);
 }
@@ -3163,15 +3198,16 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      let node;
-      try {
-        node = createFileNode({
-          parent: parentNode,
-          name: String(session.filename),
-          owner_user_id: auth.user_id,
-          blob_id: blobId,
-          size_bytes: mergedSize,
-          mime_type: session.mime_type || null,
+        let node;
+        try {
+          const resolvedFilename = resolveAvailableSiblingName(parentNode.id, String(session.filename));
+          node = createFileNode({
+            parent: parentNode,
+            name: resolvedFilename,
+            owner_user_id: auth.user_id,
+            blob_id: blobId,
+            size_bytes: mergedSize,
+            mime_type: session.mime_type || null,
         });
       } catch (err) {
         const msg = String(err && err.message ? err.message : err);
