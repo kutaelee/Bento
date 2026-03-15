@@ -442,6 +442,7 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
         nodeId: resolvedNodeId,
         sort: listChildrenSort,
         order: listChildrenOrder,
+        activeVolumeOnly: routeMode === "files",
       });
 
       let nodeResponse: NodeItem | null = null;
@@ -460,7 +461,7 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
     } finally {
       setLoading(false);
     }
-  }, [isFavoritesRoute, isRootRoute, isTrashRoute, listChildrenOrder, listChildrenSort, nodesApi, resolvedNodeId, shouldLoadChildren]);
+  }, [isFavoritesRoute, isRootRoute, isTrashRoute, listChildrenOrder, listChildrenSort, nodesApi, resolvedNodeId, routeMode, shouldLoadChildren]);
 
   useEffect(() => {
     let active = true;
@@ -715,7 +716,13 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
     try {
       const response = isTrashRoute
         ? await nodesApi.listTrash({ cursor: nextCursor })
-        : await nodesApi.listChildren({ nodeId: resolvedNodeId, cursor: nextCursor, sort: listChildrenSort, order: listChildrenOrder });
+        : await nodesApi.listChildren({
+            nodeId: resolvedNodeId,
+            cursor: nextCursor,
+            sort: listChildrenSort,
+            order: listChildrenOrder,
+            activeVolumeOnly: routeMode === "files",
+          });
       if (requestToken !== loadMoreGeneration.current) return;
       setChildren((prev) => [...prev, ...(response.items ?? [])]);
       setNextCursor(response.next_cursor ?? null);
@@ -727,7 +734,7 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
         setLoadingMore(false);
       }
     }
-  }, [isTrashRoute, listChildrenOrder, listChildrenSort, nextCursor, nodesApi, resolvedNodeId]);
+  }, [isTrashRoute, listChildrenOrder, listChildrenSort, nextCursor, nodesApi, resolvedNodeId, routeMode]);
 
   const applyTrashRestore = useCallback(async (itemIds: string[]) => {
     setActionId(itemIds[0] ?? null);

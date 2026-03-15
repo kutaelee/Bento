@@ -7,7 +7,6 @@ import { createVolumesApi } from "../api/volumes";
 import { t, type I18nKey, getLocale } from "../i18n/t";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import { getAccessToken } from "./authTokens";
-import { ROOT_NODE_ID } from "./nodes";
 import { SelectionActionBar } from "./SelectionActionBar";
 import { useFolderRefresh } from "./folderRefresh";
 import { useInspectorState } from "./inspectorState";
@@ -19,10 +18,7 @@ import "./MediaPage.css";
 type MediaFilter = "all" | "image" | "video";
 type MediaKind = "image" | "video";
 
-const MEDIA_SCAN_DEPTH = 4;
-const MEDIA_SCAN_LIMIT = 180;
-const MEDIA_NODE_LIMIT = 640;
-const MEDIA_FOLDER_LIMIT = 80;
+const MEDIA_PAGE_SIZE = 60;
 const THUMBNAIL_BATCH_SIZE = 48;
 const THUMBNAIL_MAX_RETRIES = 5;
 
@@ -62,68 +58,6 @@ async function fetchThumbnail(nodeId: string) {
   return { status: "ready" as const, blob: await response.blob() };
 }
 
-async function scanMediaTree(nodesApi: ReturnType<typeof createNodesApi>) {
-  const queue: Array<{ nodeId: string; depth: number }> = [{ nodeId: ROOT_NODE_ID as string, depth: 0 }];
-  const seenFolders = new Set<string>([ROOT_NODE_ID]);
-  const mediaItems: NodeItem[] = [];
-  let scannedNodes = 0;
-  let truncated = false;
-
-  while (queue.length > 0 && mediaItems.length < MEDIA_SCAN_LIMIT && scannedNodes < MEDIA_NODE_LIMIT) {
-    const current = queue.shift();
-    if (!current) break;
-
-    let cursor: string | null = null;
-    do {
-      const response = await nodesApi.listChildren({
-        nodeId: current.nodeId,
-        cursor,
-        limit: 100,
-        sort: "updated_at",
-        order: "desc",
-      });
-
-      for (const item of response.items ?? []) {
-        scannedNodes += 1;
-
-        const mediaKind = getMediaKind(item);
-        if (mediaKind) {
-          mediaItems.push(item);
-        }
-
-        if (
-          item.type === "FOLDER"
-          && current.depth < MEDIA_SCAN_DEPTH
-          && seenFolders.size < MEDIA_FOLDER_LIMIT
-          && !seenFolders.has(item.id)
-        ) {
-          seenFolders.add(item.id);
-          queue.push({ nodeId: item.id, depth: current.depth + 1 });
-        }
-
-        if (mediaItems.length >= MEDIA_SCAN_LIMIT || scannedNodes >= MEDIA_NODE_LIMIT) {
-          truncated = true;
-          break;
-        }
-      }
-
-      if (truncated) break;
-      cursor = response.next_cursor ?? null;
-    } while (cursor);
-
-    if (seenFolders.size >= MEDIA_FOLDER_LIMIT && queue.length > 0) {
-      truncated = true;
-      break;
-    }
-  }
-
-  mediaItems.sort((left, right) =>
-    left.updated_at > right.updated_at ? -1 : left.updated_at < right.updated_at ? 1 : 0,
-  );
-
-  return { mediaItems, truncated };
-}
-
 export function MediaPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -138,11 +72,12 @@ export function MediaPage() {
 
   const [items, setItems] = useState<NodeItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
   const [actionErrorKey, setActionErrorKey] = useState<I18nKey | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<MediaFilter>("all");
-  const [scanTruncated, setScanTruncated] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -155,6 +90,7 @@ export function MediaPage() {
   const [thumbnailFailedIds, setThumbnailFailedIds] = useState<Set<string>>(new Set());
   const [thumbnailRetryCounts, setThumbnailRetryCounts] = useState<Record<string, number>>({});
   const thumbnailUrlsRef = useRef<Record<string, string>>({});
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [thumbnailRetryTick, setThumbnailRetryTick] = useState(0);
   const [activeBasePath, setActiveBasePath] = useState("/");
 
@@ -227,6 +163,8 @@ export function MediaPage() {
     let active = true;
 
     setLoading(true);
+    setLoadingMore(false);
+    setNextCursor(null);
     setErrorKey(null);
     setActionErrorKey(null);
     setPreviewId(null);
@@ -241,14 +179,14 @@ export function MediaPage() {
 
     void (async () => {
       try {
-        const { mediaItems, truncated } = await scanMediaTree(nodesApi);
+        const response = await nodesApi.listMedia({ limit: MEDIA_PAGE_SIZE });
         if (!active) return;
-        setItems(mediaItems);
-        setScanTruncated(truncated);
+        setItems(response.items ?? []);
+        setNextCursor(response.next_cursor ?? null);
       } catch (error) {
         if (!active) return;
         setItems([]);
-        setScanTruncated(false);
+        setNextCursor(null);
         setErrorKey(error instanceof ApiError ? error.key : "err.network");
       } finally {
         if (active) {
@@ -421,6 +359,40 @@ export function MediaPage() {
     triggerRefresh();
   }, [triggerRefresh]);
 
+  const loadMore = useCallback(async () => {
+    if (!nextCursor || loading || loadingMore) return;
+
+    setLoadingMore(true);
+    setErrorKey(null);
+    try {
+      const response = await nodesApi.listMedia({ cursor: nextCursor, limit: MEDIA_PAGE_SIZE });
+      setItems((prev) => {
+        const seen = new Set(prev.map((item) => item.id));
+        const appended = (response.items ?? []).filter((item) => !seen.has(item.id));
+        return [...prev, ...appended];
+      });
+      setNextCursor(response.next_cursor ?? null);
+    } catch (error) {
+      setErrorKey(error instanceof ApiError ? error.key : "err.network");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loading, loadingMore, nextCursor, nodesApi]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !nextCursor || loading || loadingMore) return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        void loadMore();
+      }
+    }, { rootMargin: "320px 0px" });
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [loadMore, loading, loadingMore, nextCursor]);
+
   const handleToggleSelect = useCallback((item: NodeItem) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -582,7 +554,7 @@ export function MediaPage() {
             </button>
           ))}
         </div>
-        {scanTruncated ? <div className="media-page__scan-note">{t("msg.mediaScanPartial")}</div> : null}
+        {nextCursor || loadingMore ? <div className="media-page__scan-note">{loadingMore ? t("msg.loading") : t("action.loadMore")}</div> : null}
       </section>
 
       {actionErrorKey ? <div className="media-page__banner media-page__banner--error">{t(actionErrorKey)}</div> : null}
@@ -659,6 +631,15 @@ export function MediaPage() {
           })}
         </section>
       )}
+
+      {nextCursor || loadingMore ? (
+        <div className="media-page__footer">
+          <div ref={loadMoreRef} className="media-page__load-sentinel" aria-hidden="true" />
+          <Button variant="ghost" onClick={() => void loadMore()} disabled={loadingMore || !nextCursor}>
+            {loadingMore ? t("msg.loading") : t("action.loadMore")}
+          </Button>
+        </div>
+      ) : null}
 
       <SelectionActionBar
         selectedCount={selectedIds.size}

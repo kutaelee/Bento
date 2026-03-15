@@ -136,6 +136,17 @@
   padding: 16px 24px 24px;
 }
 
+.media-page__footer {
+  display: flex;
+  justify-content: center;
+  padding: 0 24px 24px;
+}
+
+.media-page__load-sentinel {
+  width: 1px;
+  height: 1px;
+}
+
 .media-page__card {
   position: relative;
   aspect-ratio: 4 / 3;

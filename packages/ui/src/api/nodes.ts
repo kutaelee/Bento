@@ -21,12 +21,24 @@ export type BreadcrumbItem = components["schemas"]["BreadcrumbItem"];
 
 export type BreadcrumbResponse = components["schemas"]["BreadcrumbResponse"];
 
+export type ListMediaResponse = {
+  items: NodeItem[];
+  next_cursor: string | null;
+};
+
 export type ListChildrenParams = {
   nodeId: string;
   cursor?: string | null;
   limit?: number;
   sort?: "name" | "updated_at" | "size_bytes";
   order?: "asc" | "desc";
+  activeVolumeOnly?: boolean;
+};
+
+export type ListMediaParams = {
+  cursor?: string | null;
+  limit?: number;
+  kind?: "all" | "image" | "video";
 };
 
 export type ListTrashParams = {
@@ -113,17 +125,31 @@ export const createNodesApi = (client: ReturnType<typeof createApiClient>) => {
       limit = 100,
       sort = "name",
       order = "asc",
+      activeVolumeOnly = false,
     }: ListChildrenParams): Promise<ListChildrenResponse> => {
       const params = new URLSearchParams();
       if (cursor) params.set("cursor", cursor);
       if (limit) params.set("limit", String(limit));
       if (sort) params.set("sort", sort);
       if (order) params.set("order", order);
+      if (activeVolumeOnly) params.set("active_volume_only", "true");
 
       const query = params.toString();
       const suffix = query ? `?${query}` : "";
       return client.request<ListChildrenResponse>({
         path: `/nodes/${nodeId}/children${suffix}`,
+      });
+    },
+    listMedia: async ({ cursor, limit = 60, kind = "all" }: ListMediaParams = {}): Promise<ListMediaResponse> => {
+      const params = new URLSearchParams();
+      if (cursor) params.set("cursor", cursor);
+      if (limit) params.set("limit", String(limit));
+      if (kind !== "all") params.set("kind", kind);
+
+      const query = params.toString();
+      const suffix = query ? `?${query}` : "";
+      return client.request<ListMediaResponse>({
+        path: `/media${suffix}`,
       });
     },
     listTrash: async ({ cursor, limit = 100 }: ListTrashParams): Promise<ListTrashResponse> => {

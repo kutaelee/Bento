@@ -1181,7 +1181,7 @@ function buildUploadSessionDefaults(sizeBytes) {
 }
 
 
-function listNodeChildren({ parentId, includeDeleted, limit, sortBy, order, cursor }) {
+function listNodeChildren({ parentId, includeDeleted, limit, sortBy, order, cursor, activeVolumeId = null }) {
   const whereDeleted = includeDeleted ? '' : ' and deleted_at is null';
   const sortDirection = order === 'desc' ? 'DESC' : 'ASC';
   const columnMap = {
@@ -1193,6 +1193,17 @@ function listNodeChildren({ parentId, includeDeleted, limit, sortBy, order, curs
 
   const offset = cursor;
   const queryLimit = limit + 1;
+  const activeVolumeClause = activeVolumeId
+    ? (
+        ` and exists (` +
+          `select 1 from nodes d ` +
+          `join blobs b on b.id=d.blob_id and b.deleted_at is null ` +
+          `where d.deleted_at is null ` +
+            `and d.path <@ nodes.path ` +
+            `and b.volume_id='${quoteSqlLiteral(activeVolumeId)}'::uuid` +
+        `)`
+      )
+    : '';
 
   const rowsJson = execPsql(
     `select coalesce(json_agg(row_to_json(n) order by ${sortColumn} ${sortDirection}, id::text ${sortDirection}) , '[]'::json) from (` +
@@ -1202,7 +1213,7 @@ function listNodeChildren({ parentId, includeDeleted, limit, sortBy, order, curs
         `to_char(updated_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as updated_at, ` +
         `to_char(deleted_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as deleted_at ` +
       `from nodes ` +
-      `where parent_id='${quoteSqlLiteral(parentId)}'::uuid and true ${whereDeleted} ` +
+      `where parent_id='${quoteSqlLiteral(parentId)}'::uuid and true ${whereDeleted}${activeVolumeClause} ` +
       `order by ${sortColumn} ${sortDirection}, id::text ${sortDirection} ` +
       `limit ${queryLimit} offset ${offset}` +
     `) n;`
@@ -1222,6 +1233,52 @@ function listNodeChildren({ parentId, includeDeleted, limit, sortBy, order, curs
   return {
     items,
     next_cursor: hasMore ? String(cursor + limit) : null
+  };
+}
+
+function listMediaNodes({ limit, cursor, volumeId, kind }) {
+  const offset = cursor;
+  const queryLimit = limit + 1;
+  const escapedVolumeId = quoteSqlLiteral(volumeId);
+  const imageKinds = "(lower(coalesce(n.mime_type, b.content_type, '')) like 'image/%' or lower(n.name) ~ '\\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|heif|avif)$')";
+  const videoKinds = "(lower(coalesce(n.mime_type, b.content_type, '')) like 'video/%' or lower(n.name) ~ '\\.(mp4|mov|avi|mkv|webm|m4v)$')";
+  const kindClause = kind === 'image'
+    ? ` and ${imageKinds}`
+    : kind === 'video'
+      ? ` and ${videoKinds}`
+      : ` and (${imageKinds} or ${videoKinds})`;
+
+  const rowsJson = execPsql(
+    `select coalesce(json_agg(row_to_json(n) order by updated_at desc, id::text desc), '[]'::json) from (` +
+      `select n.id::text as id, n.type, n.name, n.parent_id::text as parent_id, n.path::text as path, ` +
+        `n.owner_user_id::text as owner_user_id, n.blob_id::text as blob_id, n.size_bytes, ` +
+        `coalesce(n.mime_type, b.content_type) as mime_type, n.metadata, ` +
+        `to_char(n.created_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as created_at, ` +
+        `to_char(n.updated_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as updated_at, ` +
+        `to_char(n.deleted_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as deleted_at ` +
+      `from nodes n ` +
+      `join blobs b on b.id=n.blob_id and b.deleted_at is null ` +
+      `where n.deleted_at is null and n.type='FILE' and b.volume_id='${escapedVolumeId}'::uuid` +
+      kindClause +
+      ` order by n.updated_at desc, n.id::text desc ` +
+      `limit ${queryLimit} offset ${offset}` +
+    `) n;`
+  ).trim();
+
+  const parsed = rowsJson ? JSON.parse(rowsJson) : [];
+  const safeRows = Array.isArray(parsed) ? parsed : [];
+  const hasMore = safeRows.length > limit;
+  const items = hasMore ? safeRows.slice(0, limit) : safeRows;
+
+  for (const node of items) {
+    if (node && node.deleted_at === null) {
+      delete node.deleted_at;
+    }
+  }
+
+  return {
+    items,
+    next_cursor: hasMore ? String(cursor + limit) : null,
   };
 }
 
@@ -5374,7 +5431,14 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    const activeVolumeOnlyResult = parseBooleanQueryParam(query.get('active_volume_only'), false);
+    if (!activeVolumeOnlyResult.ok) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', activeVolumeOnlyResult.error));
+      return;
+    }
+
     try {
+      const activeVolume = activeVolumeOnlyResult.value ? loadActiveVolume() : null;
       const result = listNodeChildren({
         parentId: nodeId,
         includeDeleted: includeDeletedResult.value,
@@ -5382,6 +5446,7 @@ const server = http.createServer(async (req, res) => {
         sortBy: sortResult.value,
         order: orderResult.value,
         cursor: cursorResult.value,
+        activeVolumeId: activeVolume?.id ?? null,
       });
       sendJson(res, 200, result);
       return;
@@ -5437,6 +5502,55 @@ const server = http.createServer(async (req, res) => {
         name: item.name,
       }));
       sendJson(res, 200, { items });
+      return;
+    } catch (err) {
+      sendJson(res, 500, errorResponse('INTERNAL', String(err)));
+      return;
+    }
+  }
+
+  if (method === 'GET' && pathname === '/media') {
+    const auth = requireBearerAuth(req);
+    if (!auth.ok) {
+      sendJson(res, auth.status, auth.body);
+      return;
+    }
+
+    const caller = loadUserById(auth.user_id);
+    if (!caller) {
+      sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
+      return;
+    }
+
+    const limitResult = parseLimitQueryParam(query.get('limit'), 60);
+    if (!limitResult.ok) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', limitResult.error));
+      return;
+    }
+
+    const cursorResult = parseCursorParam(query.get('cursor'));
+    if (!cursorResult.ok) {
+      sendJson(res, 400, errorResponse('BAD_REQUEST', cursorResult.error));
+      return;
+    }
+
+    const rawKind = String(query.get('kind') || 'all').trim().toLowerCase();
+    const kind = rawKind === 'image' || rawKind === 'video' ? rawKind : 'all';
+
+    try {
+      const activeVolume = loadActiveVolume();
+      if (!activeVolume?.id) {
+        sendJson(res, 200, { items: [], next_cursor: null });
+        return;
+      }
+
+      const result = listMediaNodes({
+        limit: limitResult.value,
+        cursor: cursorResult.value,
+        volumeId: activeVolume.id,
+        kind,
+      });
+      sendJson(res, 200, result);
       return;
     } catch (err) {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
