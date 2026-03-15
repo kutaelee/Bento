@@ -4,6 +4,7 @@ import { t } from "../i18n/t";
 import { SkeletonBlock } from "@nimbus/ui-kit";
 import { formatBytes } from "./format";
 import { FileTypeIcon } from "./FileTypeIcon";
+import { FavoriteIcon } from "./FavoriteIcon";
 
 const gridStyles: {
   container: React.CSSProperties;
@@ -163,9 +164,7 @@ export function GridView({
                   onToggleFavorite(item);
                 }}
               >
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  {isFavorite ? "star" : "star_outline"}
-                </span>
+                <FavoriteIcon active={isFavorite} />
               </span>
             ) : null}
             <div style={gridStyles.icon}>

@@ -17,10 +17,19 @@ const overrides: Record<Locale, Dictionary> = {
   "ko-KR": {
     "err.readOnly": "읽기 전용 모드에서는 이 작업을 실행할 수 없습니다.",
     "err.uploadFailed": "업로드를 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    "action.activateVolume": "볼륨 활성화",
+    "action.deactivateVolume": "볼륨 비활성화",
+    "msg.volumeActivated": "볼륨이 활성화되었습니다.",
+    "msg.volumeCreated": "볼륨이 생성되었습니다.",
+    "msg.volumeDeactivated": "볼륨이 비활성화되었습니다.",
+    "msg.volumeDeleted": "볼륨이 삭제되었습니다.",
   },
   "en-US": {
     "err.readOnly": "This action is unavailable while the system is in read-only mode.",
     "err.uploadFailed": "The upload could not be completed. Please try again.",
+    "action.deactivateVolume": "Deactivate volume",
+    "msg.volumeDeactivated": "Volume deactivated.",
+    "msg.volumeDeleted": "Volume deleted.",
   },
 };
 

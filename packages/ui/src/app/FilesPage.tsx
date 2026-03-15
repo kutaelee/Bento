@@ -19,6 +19,7 @@ import { downloadBlob, formatBytes, formatDate } from "./format";
 import { useNodeFavorites } from "./useNodeFavorites";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { FileTypeIcon } from "./FileTypeIcon";
+import { FavoriteIcon } from "./FavoriteIcon";
 import { buildChildDisplayPath, buildDisplayPath, formatOwnerLabel, type UserIdentity } from "./nodePresentation";
 import "./FilesPage.css";
 
@@ -277,9 +278,7 @@ export function FolderView({
                                 onToggleFavorite(item);
                               }}
                             >
-                              <span className="material-symbols-outlined" aria-hidden="true">
-                                {favoriteIds?.has(item.id) ? "star" : "star_outline"}
-                              </span>
+                              <FavoriteIcon active={favoriteIds?.has(item.id)} className="files-page__favorite-icon" />
                             </span>
                           ) : null}
                         </div>
@@ -796,6 +795,24 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
     );
   }, [actionId, applyTrashRestore, isTrashRoute]);
 
+  const renderFileActions = useCallback((item: NodeItem) => {
+    if (isTrashRoute) return null;
+
+    return (
+      <Button
+        variant="ghost"
+        className="files-page__delete-trigger"
+        onClick={() => {
+          setSelectedIds(new Set([item.id]));
+          setConfirmMode("delete");
+        }}
+        disabled={!!actionId}
+      >
+        {t("action.delete")}
+      </Button>
+    );
+  }, [actionId, isTrashRoute]);
+
   return (
     <section className="files-page">
       <div className="files-page__summary-strip">
@@ -864,7 +881,7 @@ export function FilesPage({ routeMode = "files" }: FilesPageProps) {
         dropTargetId={hoverDropTargetId}
         onToggleSelect={handleToggleSelect}
         onLoadMore={loadMore}
-        rowActionRenderer={isTrashRoute ? renderTrashActions : undefined}
+        rowActionRenderer={isTrashRoute ? renderTrashActions : renderFileActions}
         emptyKey={pageEmptyKey}
         onOpenItem={openItem}
         routeMode={routeMode}

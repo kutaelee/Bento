@@ -256,6 +256,11 @@
   color: var(--bento-shell-muted);
 }
 
+.files-page__favorite-icon {
+  width: 18px;
+  height: 18px;
+}
+
 .files-page__favorite--active {
   color: var(--bento-shell-warning);
 }
@@ -376,6 +381,10 @@
   gap: 8px;
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+.files-page__delete-trigger {
+  color: var(--nd-color-danger-text);
 }
 
 .files-page__footer {

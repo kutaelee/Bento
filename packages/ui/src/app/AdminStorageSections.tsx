@@ -2,7 +2,7 @@ import React from "react";
 import { Button, EmptyState, ErrorState, LoadingSkeleton, TextField } from "@nimbus/ui-kit";
 import type { Job } from "../api/jobs";
 import type { Volume } from "../api/volumes";
-import { getLocale, t, type I18nKey } from "../i18n/t";
+import { t, type I18nKey } from "../i18n/t";
 import { JobDetailsCard } from "./JobDetailsCard";
 
 type ValidateResult = {
@@ -206,11 +206,6 @@ export function ActivateVolumeSection({
   onDeactivate,
   onDelete,
 }: ActivateVolumeSectionProps) {
-  const locale = getLocale();
-  const deactivateLabel = locale === "en-US" ? "Deactivate" : "비활성화";
-  const deactivatedMessage = locale === "en-US" ? "Volume deactivated." : "볼륨을 비활성화했습니다.";
-  const deletedMessage = locale === "en-US" ? "Volume deleted." : "볼륨을 삭제했습니다.";
-
   return (
     <section className="admin-storage__section">
       <h2 className="admin-storage__section-title">{t("admin.storage.activateTitle")}</h2>
@@ -219,8 +214,8 @@ export function ActivateVolumeSection({
       </p>
       {activateErrorKey ? <ErrorState title={t(activateErrorKey)} /> : null}
       {activated ? <p className="admin-storage__muted">{t("msg.volumeActivated")}</p> : null}
-      {deactivated ? <p className="admin-storage__muted">{deactivatedMessage}</p> : null}
-      {deleted ? <p className="admin-storage__muted">{deletedMessage}</p> : null}
+      {deactivated ? <p className="admin-storage__muted">{t("msg.volumeDeactivated")}</p> : null}
+      {deleted ? <p className="admin-storage__muted">{t("msg.volumeDeleted")}</p> : null}
       <div className="admin-storage__actions">
         <Button
           variant="primary"
@@ -236,7 +231,7 @@ export function ActivateVolumeSection({
           disabled={!selectedVolume || !selectedVolume.is_active}
           loading={deactivating}
         >
-          {deactivateLabel}
+          {t("action.deactivateVolume")}
         </Button>
         <Button
           variant="ghost"

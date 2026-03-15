@@ -1,6 +1,7 @@
 {
   "action.acceptInvite": "Accept invite",
   "action.activateVolume": "Activate volume",
+  "action.deactivateVolume": "Deactivate volume",
   "action.apply": "Apply",
   "action.cancel": "Cancel",
   "action.close": "Close",
@@ -267,6 +268,8 @@
   "msg.trashDescription": "Manage recoverable items and permanent deletion with clear safeguards.",
   "msg.volumeActivated": "Volume activated.",
   "msg.volumeCreated": "Volume created.",
+  "msg.volumeDeactivated": "Volume deactivated.",
+  "msg.volumeDeleted": "Volume deleted.",
   "nav.favorites": "Favorites",
   "nav.files": "Files",
   "nav.media": "Media",

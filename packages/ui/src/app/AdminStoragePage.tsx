@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, DataTable, SkeletonBlock, EmptyState, ErrorState, ForbiddenState } from "@nimbus/ui-kit";
 import { createAdminMaintenanceApi } from "../api/adminMaintenance";
@@ -96,30 +96,62 @@ export default function AdminStoragePage() {
   const [scanJobErrorKey, setScanJobErrorKey] = useState<I18nKey | null>(null);
   const [scanRetrying, setScanRetrying] = useState(false);
   const [scanPollingEnabled, setScanPollingEnabled] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedRef = useRef(false);
 
-  const loadVolumes = useCallback(async () => {
-    setLoading(true);
-    setLoadErrorKey(null);
+  const applyVolumeList = useCallback((nextVolumes: Volume[], preferredVolumeId?: string | null) => {
+    setVolumes(nextVolumes);
+    const nextActiveVolume = nextVolumes.find((volume) => volume.is_active);
+    setSelectedVolumeId((current) => {
+      if (preferredVolumeId && nextVolumes.some((volume) => volume.id === preferredVolumeId)) {
+        return preferredVolumeId;
+      }
+      if (current && nextVolumes.some((volume) => volume.id === current)) {
+        return current;
+      }
+      return nextActiveVolume?.id ?? nextVolumes[0]?.id ?? null;
+    });
+    const shouldContinuePolling = nextActiveVolume?.scan_state === "queued" || nextActiveVolume?.scan_state === "running";
+    setScanPollingEnabled(Boolean(shouldContinuePolling));
+  }, []);
+
+  const mergeVolume = useCallback((nextVolume: Volume) => {
+    setVolumes((prev) => {
+      const mergedVolumes = (prev.some((volume) => volume.id === nextVolume.id)
+        ? prev.map((volume) => (volume.id === nextVolume.id ? { ...volume, ...nextVolume } : volume))
+        : [...prev, nextVolume]
+      ).map((volume) => (nextVolume.is_active && volume.id !== nextVolume.id ? { ...volume, is_active: false } : volume));
+      const nextActiveVolume = mergedVolumes.find((volume) => volume.is_active);
+      const shouldContinuePolling = nextActiveVolume?.scan_state === "queued" || nextActiveVolume?.scan_state === "running";
+      setScanPollingEnabled(Boolean(shouldContinuePolling));
+      return mergedVolumes;
+    });
+    setSelectedVolumeId(nextVolume.id);
+  }, []);
+
+  const loadVolumes = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    const shouldShowLoading = !silent || !hasLoadedRef.current;
+    if (shouldShowLoading) {
+      setLoading(true);
+      setLoadErrorKey(null);
+    }
 
     try {
       const response = await volumesApi.listVolumes();
-      setVolumes(response.items);
-      const nextActiveVolume = response.items.find((volume) => volume.is_active);
-      setSelectedVolumeId((current) => {
-        if (current && response.items.some((volume) => volume.id === current)) {
-          return current;
-        }
-        return nextActiveVolume?.id ?? response.items[0]?.id ?? null;
-      });
-      const shouldContinuePolling = nextActiveVolume?.scan_state === "queued" || nextActiveVolume?.scan_state === "running";
-      setScanPollingEnabled(Boolean(shouldContinuePolling));
+      hasLoadedRef.current = true;
+      applyVolumeList(response.items);
+      setLoadErrorKey(null);
     } catch (error) {
-      setLoadErrorKey(error instanceof ApiError ? error.key : "err.network");
+      if (shouldShowLoading) {
+        setLoadErrorKey(error instanceof ApiError ? error.key : "err.network");
+      }
       setScanPollingEnabled(false);
     } finally {
-      setLoading(false);
+      if (shouldShowLoading) {
+        setLoading(false);
+      }
     }
-  }, [volumesApi]);
+  }, [applyVolumeList, volumesApi]);
 
   useEffect(() => {
     void loadVolumes();
@@ -184,10 +216,20 @@ export default function AdminStoragePage() {
     if (activeVolume.scan_state !== "queued" && activeVolume.scan_state !== "running") return;
 
     const timer = window.setTimeout(() => {
-      void loadVolumes();
+      void loadVolumes({ silent: true });
     }, 3000);
     return () => window.clearTimeout(timer);
   }, [activeVolume, loadVolumes, scanPollingEnabled]);
+
+  const handleRefreshVolumes = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await loadVolumes({ silent: true });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadVolumes, refreshing]);
 
   const handleValidate = async () => {
     if (!validatePath || validating) return;
@@ -214,11 +256,12 @@ export default function AdminStoragePage() {
     setCreated(false);
 
     try {
-      await volumesApi.createVolume({ name: createName, base_path: createPath });
+      const createdVolume = await volumesApi.createVolume({ name: createName, base_path: createPath });
       setCreateName("");
       setCreatePath("");
       setCreated(true);
-      await loadVolumes();
+      mergeVolume(createdVolume);
+      void loadVolumes({ silent: true });
     } catch (error) {
       setCreateErrorKey(error instanceof ApiError ? error.key : "err.network");
     } finally {
@@ -236,9 +279,10 @@ export default function AdminStoragePage() {
     setDeleted(false);
 
     try {
-      await volumesApi.activateVolume(selectedVolume.id);
+      const updatedVolume = await volumesApi.activateVolume(selectedVolume.id);
       setActivated(true);
-      await loadVolumes();
+      mergeVolume(updatedVolume);
+      void loadVolumes({ silent: true });
     } catch (error) {
       setActivateErrorKey(error instanceof ApiError ? error.key : "err.network");
     } finally {
@@ -256,9 +300,10 @@ export default function AdminStoragePage() {
     setDeactivated(false);
 
     try {
-      await volumesApi.deactivateVolume(selectedVolume.id);
+      const updatedVolume = await volumesApi.deactivateVolume(selectedVolume.id);
       setDeactivated(true);
-      await loadVolumes();
+      mergeVolume(updatedVolume);
+      void loadVolumes({ silent: true });
     } catch (error) {
       setActivateErrorKey(error instanceof ApiError ? error.key : "err.network");
     } finally {
@@ -277,9 +322,11 @@ export default function AdminStoragePage() {
 
     try {
       await volumesApi.deleteVolume(selectedVolume.id);
-      setSelectedVolumeId(null);
+      setVolumes((prev) => prev.filter((volume) => volume.id !== selectedVolume.id));
+      setSelectedVolumeId((current) => (current === selectedVolume.id ? null : current));
+      setScanPollingEnabled(false);
       setDeleted(true);
-      await loadVolumes();
+      void loadVolumes({ silent: true });
     } catch (error) {
       setActivateErrorKey(error instanceof ApiError ? error.key : "err.network");
     } finally {
@@ -379,7 +426,7 @@ export default function AdminStoragePage() {
           <p className="admin-storage__subtitle">{t("admin.storage.subtitle")}</p>
         </div>
         <div className="admin-storage__hero-actions">
-          <Button variant="secondary" onClick={loadVolumes} disabled={loading || scanJobLoading}>
+          <Button variant="secondary" onClick={() => void handleRefreshVolumes()} disabled={loading || scanJobLoading || refreshing} loading={refreshing}>
             {t("action.refresh")}
           </Button>
         </div>
@@ -412,7 +459,7 @@ export default function AdminStoragePage() {
                 title={t("err.unknown")}
                 detail={t(loadErrorKey)}
                 action={
-                  <Button variant="secondary" onClick={loadVolumes}>
+                  <Button variant="secondary" onClick={() => void loadVolumes()}>
                     {t("action.retry")}
                   </Button>
                 }
@@ -433,13 +480,12 @@ export default function AdminStoragePage() {
                   heightPx={320}
                   rowHeightPx={44}
                   getRowKey={(item) => item.id}
-                  getRowClassName={(item) =>
-                    item.id === selectedVolumeId
-                      ? "nd-table__row--selected admin-storage__row--selected"
-                      : item.is_active
-                        ? "admin-storage__row--active"
-                        : undefined
-                  }
+                  getRowClassName={(item) => {
+                    const classes = [];
+                    if (item.id === selectedVolumeId) classes.push("nd-table__row--selected", "admin-storage__row--selected");
+                    if (item.is_active) classes.push("admin-storage__row--active");
+                    return classes.length ? classes.join(" ") : undefined;
+                  }}
                   onRowClick={(item) => setSelectedVolumeId(item.id)}
                 />
               </div>

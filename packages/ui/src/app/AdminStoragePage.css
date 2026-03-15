@@ -152,32 +152,43 @@
 
 .admin-storage__table .nd-table__row {
   border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--nd-color-border) 82%, transparent);
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 
 .admin-storage__table .nd-table__row:hover {
-  background: color-mix(in srgb, var(--nd-color-accent-default) 12%, var(--nd-color-surface-primary));
+  background: color-mix(in srgb, var(--nd-color-accent-default) 9%, var(--nd-color-surface-primary));
+  border-color: color-mix(in srgb, var(--nd-color-accent-default) 40%, transparent);
   color: var(--nd-color-text-primary);
 }
 
 .admin-storage__row--selected {
-  background: color-mix(in srgb, var(--nd-color-accent-default) 18%, var(--nd-color-surface-primary));
+  background: color-mix(in srgb, var(--nd-color-accent-default) 16%, var(--nd-color-surface-primary));
+  border-color: color-mix(in srgb, var(--nd-color-accent-default) 52%, transparent);
   color: var(--nd-color-text-primary);
 }
 
 .admin-storage__row--selected:hover {
-  background: color-mix(in srgb, var(--nd-color-accent-default) 24%, var(--nd-color-surface-primary));
+  background: color-mix(in srgb, var(--nd-color-accent-default) 20%, var(--nd-color-surface-primary));
+  border-color: color-mix(in srgb, var(--nd-color-accent-default) 60%, transparent);
   color: var(--nd-color-text-primary);
 }
 
 .admin-storage__row--active {
-  background: color-mix(in srgb, var(--nd-color-status-success) 12%, var(--nd-color-surface-primary));
-  border-color: color-mix(in srgb, var(--nd-color-accent-default) 22%, transparent);
+  background: color-mix(in srgb, var(--nd-color-status-success) 10%, var(--nd-color-surface-primary));
+  border-color: color-mix(in srgb, var(--nd-color-status-success) 44%, transparent);
   color: var(--nd-color-text-primary);
 }
 
 .admin-storage__row--active:hover {
-  background: color-mix(in srgb, var(--nd-color-status-success) 18%, var(--nd-color-surface-primary));
+  background: color-mix(in srgb, var(--nd-color-status-success) 14%, var(--nd-color-surface-primary));
+  border-color: color-mix(in srgb, var(--nd-color-status-success) 56%, transparent);
   color: var(--nd-color-text-primary);
+}
+
+.admin-storage__row--selected.admin-storage__row--active {
+  background: color-mix(in srgb, var(--nd-color-accent-default) 12%, color-mix(in srgb, var(--nd-color-status-success) 10%, var(--nd-color-surface-primary)));
+  border-color: color-mix(in srgb, var(--nd-color-accent-default) 56%, var(--nd-color-status-success) 44%);
 }
 
 .admin-storage__row--selected .nd-table__cell,
@@ -187,24 +198,33 @@
 }
 
 .dark .admin-storage__row--active {
-  background: color-mix(in srgb, #4ade80 18%, #1f2937);
+  background: color-mix(in srgb, #4ade80 12%, #1f2937);
+  border-color: color-mix(in srgb, #4ade80 48%, transparent);
   color: #f0f6fc;
 }
 
 .dark .admin-storage__row--active:hover {
-  background: color-mix(in srgb, #4ade80 26%, #1f2937);
+  background: color-mix(in srgb, #4ade80 18%, #1f2937);
+  border-color: color-mix(in srgb, #4ade80 62%, transparent);
   color: #f0f6fc;
 }
 
 .dark .admin-storage__row--selected {
-  background: color-mix(in srgb, #38bdf8 24%, #1f2937);
+  background: color-mix(in srgb, #38bdf8 18%, #1f2937);
+  border-color: color-mix(in srgb, #38bdf8 58%, transparent);
   color: #f0f6fc;
 }
 
 .dark .admin-storage__row--selected:hover,
 .dark .admin-storage__table .nd-table__row:hover {
-  background: color-mix(in srgb, #38bdf8 30%, #1f2937);
+  background: color-mix(in srgb, #38bdf8 22%, #1f2937);
+  border-color: color-mix(in srgb, #7dd3fc 66%, transparent);
   color: #f0f6fc;
+}
+
+.dark .admin-storage__row--selected.admin-storage__row--active {
+  background: color-mix(in srgb, #38bdf8 14%, color-mix(in srgb, #4ade80 10%, #1f2937));
+  border-color: color-mix(in srgb, #7dd3fc 48%, #4ade80 40%);
 }
 
 .admin-storage__actions {
