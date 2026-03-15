@@ -585,7 +585,7 @@ function runVolumeAutoScanBatch(runState) {
   }
 
   if (runState.pendingDirs.length > 0) {
-    setTimeout(() => runVolumeAutoScanBatch(runState), 0);
+    scheduleVolumeAutoScanBatch(runState, 0);
     return;
   }
 
@@ -614,6 +614,28 @@ function runVolumeAutoScanBatch(runState) {
   } catch {
     // ignore volume state update failure for successful completion
   }
+}
+
+function handleVolumeAutoScanFailure(runState, err) {
+  const { job, volumeId } = runState;
+  job.error = { message: String(err && err.message ? err.message : err) };
+  setJobStatus(job, 'FAILED', 1);
+  volumeScanRuns.delete(volumeId);
+  try {
+    updateVolumeScanState({ volumeId, state: 'failed', jobId: job.id, progress: 1, errorMessage: job.error.message });
+  } catch {
+    // ignore scan metadata update failure
+  }
+}
+
+function scheduleVolumeAutoScanBatch(runState, delayMs) {
+  setTimeout(() => {
+    try {
+      runVolumeAutoScanBatch(runState);
+    } catch (err) {
+      handleVolumeAutoScanFailure(runState, err);
+    }
+  }, delayMs);
 }
 
 function createOrReuseVolumeAutoScanJob({ volumeId, ownerUserId, dryRun, trigger }) {
@@ -682,20 +704,7 @@ function createOrReuseVolumeAutoScanJob({ volumeId, ownerUserId, dryRun, trigger
     // ignore metadata update failure at enqueue time
   }
 
-  setTimeout(() => {
-    try {
-      runVolumeAutoScanBatch(runState);
-    } catch (err) {
-      job.error = { message: String(err && err.message ? err.message : err) };
-      setJobStatus(job, 'FAILED', 1);
-      volumeScanRuns.delete(volumeId);
-      try {
-        updateVolumeScanState({ volumeId, state: 'failed', jobId: job.id, progress: 1, errorMessage: job.error.message });
-      } catch {
-        // ignore
-      }
-    }
-  }, 20);
+  scheduleVolumeAutoScanBatch(runState, 20);
 
   return job;
 }
