@@ -25,7 +25,7 @@ const extractKeys = (content: string): string[] => {
 const hasBrokenGlyphs = (value: string) =>
   value.includes("\uFFFD") ||
   value.includes("??") ||
-  /[ÃÂÐÑØÞßðþ]{2,}/.test(value) ||
+  /[횄횂횖횗횠횧횩챨첸]{2,}/.test(value) ||
   /\b(?:[A-Za-z]{1,2}\s+){2,}[A-Za-z]{1,2}\b/.test(value);
 
 const runtimeCoverageKeys = [
@@ -72,7 +72,7 @@ describe("COPY_KEYS_SSOT locales", () => {
   it("returns clean Korean copy for high-visibility runtime strings", () => {
     expect(t("msg.loginHeroTitle", "ko-KR")).toBe("운영 중심 NAS 워크스페이스");
     expect(t("msg.filesDescription", "ko-KR")).toBe(
-      "요약 카드, 메인 데이터 영역, 보조 패널을 활용해 반복 파일 작업을 빠르게 처리하세요.",
+      "요약 카드, 메인 데이터 영역, 보조 패널을 사용해 반복적인 파일 작업을 빠르게 처리하세요.",
     );
     expect(t("err.notFound", "ko-KR")).toBe("항목을 찾을 수 없습니다.");
     expect(t("action.upload", "ko-KR")).toBe("업로드");

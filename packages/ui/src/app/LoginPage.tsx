@@ -6,7 +6,7 @@ import { saveAuthTokens } from "./authTokens";
 import { ApiError } from "../api/errors";
 import { getLocale, t, type I18nKey } from "../i18n/t";
 import { AuthLayout } from "./AuthLayout";
-import { getAppBasePath } from "./basePath";
+import { getAppBasePath, withBasePath } from "./basePath";
 import "./AuthForm.css";
 
 type LoginResponse = {
@@ -35,6 +35,14 @@ export function LoginPage() {
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
   const [capsLockOn, setCapsLockOn] = useState(false);
 
+  const redirectAfterAuth = (destination: string) => {
+    if (typeof window !== "undefined") {
+      window.location.replace(withBasePath(destination));
+      return;
+    }
+    navigate(destination, { replace: true });
+  };
+
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!username.trim() || !password) {
@@ -53,10 +61,10 @@ export function LoginPage() {
       });
       saveAuthTokens(response.tokens);
       const next = new URLSearchParams(location.search).get("next");
-      navigate(next && next.startsWith("/") ? next : "/files", { replace: true });
+      redirectAfterAuth(next && next.startsWith("/") ? next : "/files");
     } catch (error) {
       if (error instanceof ApiError) {
-        setErrorKey(error.key);
+        setErrorKey(error.status === 401 ? "err.invalidCredentials" : error.key);
       } else {
         setErrorKey("err.network");
       }

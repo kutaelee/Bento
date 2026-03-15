@@ -6,7 +6,7 @@ import { createAuthApi } from "../api/auth";
 import { getLocale, t, type I18nKey } from "../i18n/t";
 import { Button, PasswordField, TextField } from "@nimbus/ui-kit";
 import { saveAuthTokens } from "./authTokens";
-import { getAppBasePath } from "./basePath";
+import { getAppBasePath, withBasePath } from "./basePath";
 import { AuthLayout } from "./AuthLayout";
 import "./AuthForm.css";
 
@@ -141,6 +141,14 @@ export function InviteAcceptPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
 
+  const redirectAfterAuth = (destination: string) => {
+    if (typeof window !== "undefined") {
+      window.location.replace(withBasePath(destination));
+      return;
+    }
+    navigate(destination, { replace: true });
+  };
+
   React.useEffect(() => {
     setFormState((prev) => (prev.token === token ? prev : { ...prev, token }));
   }, [token]);
@@ -174,14 +182,10 @@ export function InviteAcceptPage() {
       });
       saveAuthTokens(response.tokens);
       const next = new URLSearchParams(location.search).get("next");
-      navigate(next && next.startsWith("/") ? next : "/files", { replace: true });
+      redirectAfterAuth(next && next.startsWith("/") ? next : "/files");
     } catch (error) {
       if (error instanceof ApiError) {
-        if ([401, 403, 404, 409].includes(error.status)) {
-          setErrorKey("msg.inviteExpired");
-        } else {
-          setErrorKey(error.key);
-        }
+        setErrorKey(error.key);
       } else {
         setErrorKey("err.network");
       }

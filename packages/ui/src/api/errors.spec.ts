@@ -28,6 +28,13 @@ describe("mapStatusToErrorKey", () => {
     expect(mapErrorCodeToKey("CHECKSUM_MISMATCH", 409)).toBe("err.uploadFailed");
   });
 
+  it("maps invite lifecycle codes to specific invite messages", () => {
+    expect(mapErrorCodeToKey("INVITE_NOT_FOUND", 404)).toBe("msg.inviteNotFound");
+    expect(mapErrorCodeToKey("INVITE_EXPIRED", 409)).toBe("msg.inviteExpired");
+    expect(mapErrorCodeToKey("INVITE_ALREADY_USED", 409)).toBe("msg.inviteAlreadyUsed");
+    expect(mapErrorCodeToKey("USERNAME_TAKEN", 409)).toBe("msg.usernameTaken");
+  });
+
   it("maps 429 to err.rateLimited", () => {
     expect(mapStatusToErrorKey(429)).toBe("err.rateLimited");
   });

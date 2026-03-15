@@ -1,4 +1,5 @@
 export type ApiErrorKey =
+  | "err.invalidCredentials"
   | "err.unauthorized"
   | "err.forbidden"
   | "err.notFound"
@@ -8,6 +9,10 @@ export type ApiErrorKey =
   | "err.rateLimited"
   | "err.validation"
   | "err.server"
+  | "msg.inviteNotFound"
+  | "msg.inviteExpired"
+  | "msg.inviteAlreadyUsed"
+  | "msg.usernameTaken"
   | "err.unknown";
 
 export const mapStatusToErrorKey = (status: number): ApiErrorKey => {
@@ -34,6 +39,14 @@ export const mapStatusToErrorKey = (status: number): ApiErrorKey => {
 export const mapErrorCodeToKey = (code: string | null | undefined, status: number): ApiErrorKey => {
   const normalized = String(code || "").trim().toUpperCase();
   switch (normalized) {
+    case "INVITE_NOT_FOUND":
+      return "msg.inviteNotFound";
+    case "INVITE_EXPIRED":
+      return "msg.inviteExpired";
+    case "INVITE_ALREADY_USED":
+      return "msg.inviteAlreadyUsed";
+    case "USERNAME_TAKEN":
+      return "msg.usernameTaken";
     case "READ_ONLY":
       return "err.readOnly";
     case "UPLOAD_INCOMPLETE":
