@@ -61,6 +61,7 @@ export function MediaPage() {
   const [actionErrorKey, setActionErrorKey] = useState<I18nKey | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<MediaFilter>("all");
+  const mediaKindFilter = filter === "all" ? "all" : filter;
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [previewRouteItem, setPreviewRouteItem] = useState<NodeItem | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -166,7 +167,7 @@ export function MediaPage() {
 
     void (async () => {
       try {
-        const response = await nodesApi.listMedia({ limit: MEDIA_PAGE_SIZE });
+        const response = await nodesApi.listMedia({ limit: MEDIA_PAGE_SIZE, kind: mediaKindFilter });
         if (!active) return;
         setItems(response.items ?? []);
         setNextCursor(response.next_cursor ?? null);
@@ -185,7 +186,7 @@ export function MediaPage() {
     return () => {
       active = false;
     };
-  }, [nodesApi, refreshToken, setSelectedNode]);
+  }, [mediaKindFilter, nodesApi, refreshToken, setSelectedNode]);
 
   useEffect(() => {
     const nextSelection = Array.from(selectedIds);
@@ -225,7 +226,8 @@ export function MediaPage() {
       try {
         const item = await nodesApi.getNode(routeNodeId);
         if (!active) return;
-        if (!getNodePreviewKind(item)) {
+        const itemKind = getNodePreviewKind(item);
+        if (!itemKind || (mediaKindFilter !== "all" && itemKind !== mediaKindFilter)) {
           navigate({ pathname: "/media", search: preservedSearch }, { replace: true });
           return;
         }
@@ -239,7 +241,7 @@ export function MediaPage() {
     return () => {
       active = false;
     };
-  }, [itemsById, navigate, nodesApi, preservedSearch, routeNodeId]);
+  }, [itemsById, mediaKindFilter, navigate, nodesApi, preservedSearch, routeNodeId]);
 
   useEffect(() => {
     let active = true;
@@ -378,7 +380,7 @@ export function MediaPage() {
     setLoadingMore(true);
     setErrorKey(null);
     try {
-      const response = await nodesApi.listMedia({ cursor: nextCursor, limit: MEDIA_PAGE_SIZE });
+      const response = await nodesApi.listMedia({ cursor: nextCursor, limit: MEDIA_PAGE_SIZE, kind: mediaKindFilter });
       setItems((prev) => {
         const seen = new Set(prev.map((item) => item.id));
         const appended = (response.items ?? []).filter((item) => !seen.has(item.id));
@@ -390,7 +392,7 @@ export function MediaPage() {
     } finally {
       setLoadingMore(false);
     }
-  }, [loading, loadingMore, nextCursor, nodesApi]);
+  }, [loading, loadingMore, mediaKindFilter, nextCursor, nodesApi]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
