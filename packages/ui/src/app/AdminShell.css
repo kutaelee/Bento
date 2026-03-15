@@ -113,6 +113,12 @@
   backdrop-filter: blur(16px);
 }
 
+.admin-shell__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .admin-shell__eyebrow {
   margin: 0 0 6px;
   color: var(--bento-shell-muted);
@@ -146,6 +152,24 @@
 
 .admin-shell__header-meta strong {
   color: var(--bento-shell-accent);
+}
+
+.admin-shell__logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--bento-shell-border);
+  border-radius: 12px;
+  background: var(--bento-shell-panel);
+  color: var(--bento-shell-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-shell__logout:hover {
+  background: var(--bento-shell-surface-muted);
 }
 
 .admin-shell__body {

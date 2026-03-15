@@ -5,6 +5,7 @@ import { InviteAcceptView, type InviteAcceptFormState } from "./InviteAcceptPage
 import { t } from "../i18n/t";
 
 const baseState: InviteAcceptFormState = {
+  token: "invite-token",
   username: "user",
   password: "password123",
   displayName: "",

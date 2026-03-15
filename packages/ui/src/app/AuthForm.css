@@ -32,7 +32,9 @@
 
 .auth-form__actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: var(--nd-space-3);
 }
 
 .auth-form__split {

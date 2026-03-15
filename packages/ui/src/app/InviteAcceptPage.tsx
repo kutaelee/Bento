@@ -11,6 +11,7 @@ import { AuthLayout } from "./AuthLayout";
 import "./AuthForm.css";
 
 export type InviteAcceptFormState = {
+  token: string;
   username: string;
   password: string;
   displayName: string;
@@ -26,6 +27,7 @@ export type InviteAcceptViewProps = {
 };
 
 const defaultFormState: InviteAcceptFormState = {
+  token: "",
   username: "",
   password: "",
   displayName: "",
@@ -62,6 +64,16 @@ export function InviteAcceptView({
     >
       <form className="auth-form" onSubmit={onSubmit}>
         <div className="auth-form__fields">
+          <TextField
+            name="token"
+            autoComplete="off"
+            label={t("field.inviteCode")}
+            value={formState.token}
+            onChange={onFieldChange("token")}
+            disabled={submitting}
+            aria-label={t("field.inviteCode")}
+            error={activeErrorKey === "msg.inviteMissingToken" && !formState.token.trim() ? t(activeErrorKey) : undefined}
+          />
           <div className="auth-form__split">
             <TextField
               name="username"
@@ -124,10 +136,14 @@ export function InviteAcceptPage() {
   const token = useMemo(() => {
     return new URLSearchParams(location.search).get("token")?.trim() ?? "";
   }, [location.search]);
-  const tokenMissing = !token;
-  const [formState, setFormState] = useState<InviteAcceptFormState>(defaultFormState);
+  const [formState, setFormState] = useState<InviteAcceptFormState>({ ...defaultFormState, token });
+  const tokenMissing = !formState.token.trim();
   const [submitting, setSubmitting] = useState(false);
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
+
+  React.useEffect(() => {
+    setFormState((prev) => (prev.token === token ? prev : { ...prev, token }));
+  }, [token]);
 
   const onFieldChange = (key: keyof InviteAcceptFormState) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormState((prev) => ({ ...prev, [key]: event.target.value }));
@@ -151,7 +167,7 @@ export function InviteAcceptPage() {
 
     try {
       const response = await authApi.acceptInvite({
-        token,
+        token: formState.token.trim(),
         username: formState.username.trim(),
         password: formState.password,
         display_name: formState.displayName.trim() || undefined,

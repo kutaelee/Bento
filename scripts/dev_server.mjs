@@ -1133,6 +1133,7 @@ const UPLOAD_CHUNK_SIZE_BYTES_DEFAULT = 8_388_608; // 8 MiB
 const UPLOAD_CHUNK_SIZE_MIN = 1_048_576;
 const UPLOAD_CHUNK_SIZE_MAX = 33_554_432;
 const UPLOAD_SESSION_TTL_SECONDS = 172_800;
+const GLOBAL_ROOT_NODE_ID = '00000000-0000-0000-0000-000000000001';
 const SHARE_DEFAULT_EXPIRES_SECONDS = 604_800; // SSOT: x-constants.shares.default_expires_in_seconds
 const SHARE_MAX_EXPIRES_SECONDS = 31_536_000; // SSOT: x-constants.shares.max_expires_in_seconds
 const SHARE_PASSWORD_MIN_LENGTH = 6; // SSOT: x-constants.shares.password_min_length
@@ -1367,6 +1368,21 @@ function searchNodes({ queryText, parentId, type, limit, cursor, ownerUserId, in
     items,
     next_cursor: hasMore ? String(cursor + limit) : null
   };
+}
+
+function searchAccessibleNodes({ queryText, parentId, type, limit, cursor, includeMetadata, caller }) {
+  const raw = searchNodes({
+    queryText,
+    parentId,
+    type,
+    limit: 100000,
+    cursor: 0,
+    ownerUserId: caller.id,
+    includeAll: true,
+    includeMetadata,
+  });
+  const filtered = raw.items.filter((node) => canReadNode(caller, node));
+  return paginateRows(filtered, limit, cursor);
 }
 function statFsBytes(basePath) {
   // Node.js v18+ supports statfsSync.
@@ -1702,23 +1718,228 @@ function resolveBlobAbsolutePath(blob) {
   return { ok: true, value: resolvedFile };
 }
 
-function ensureRootFolderForUser(userId) {
-  const rootId = '00000000-0000-0000-0000-000000000001';
-  const escapedRootId = quoteSqlLiteral(rootId);
-  const escapedUserId = quoteSqlLiteral(userId);
+function ensureGlobalRootFolder(seedOwnerUserId) {
+  const escapedRootId = quoteSqlLiteral(GLOBAL_ROOT_NODE_ID);
+  const escapedUserId = quoteSqlLiteral(seedOwnerUserId);
 
   execPsql(
     `insert into nodes (id, type, parent_id, name, path, owner_user_id, size_bytes, metadata, created_at, updated_at, deleted_at)` +
       ` values ('${escapedRootId}'::uuid, 'FOLDER', NULL, 'root', 'root'::ltree, '${escapedUserId}'::uuid, 0, '{}'::jsonb, now(), now(), NULL)` +
     ` on conflict (id) do update set` +
-      ` type='FOLDER', parent_id=NULL, name='root', path='root', owner_user_id=EXCLUDED.owner_user_id, size_bytes=0, metadata='{}'::jsonb, updated_at=now(), deleted_at=NULL`
+      ` type='FOLDER', parent_id=NULL, name='root', path='root', size_bytes=0, metadata='{}'::jsonb, updated_at=now(), deleted_at=NULL`
   );
 
-  const existing = loadNodeById(rootId);
+  const existing = loadNodeById(GLOBAL_ROOT_NODE_ID);
   return existing && existing.type === 'FOLDER' ? existing : null;
 }
 
-function createFolderNode({ parent, name, owner_user_id }) {
+function loadUserHomeFolder(userId) {
+  const escapedUserId = quoteSqlLiteral(userId);
+  const rowJson = execPsql(
+    "select row_to_json(n) from (" +
+      "select id::text as id, type, name, parent_id::text as parent_id, path::text as path, " +
+        "owner_user_id::text as owner_user_id, blob_id::text as blob_id, size_bytes, mime_type, metadata, " +
+        "to_char(created_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as created_at, " +
+        "to_char(updated_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as updated_at, " +
+        "to_char(deleted_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as deleted_at " +
+      "from nodes where parent_id='" + quoteSqlLiteral(GLOBAL_ROOT_NODE_ID) + "'::uuid and owner_user_id='" + escapedUserId + "'::uuid and type='FOLDER' and deleted_at is null " +
+      "order by created_at asc limit 1" +
+    ") n;"
+  ).trim();
+
+  if (!rowJson) return null;
+  const node = JSON.parse(rowJson);
+  if (node && node.deleted_at === null) delete node.deleted_at;
+  return node;
+}
+
+function ensureUserHomeFolder(userId) {
+  const existing = loadUserHomeFolder(userId);
+  if (existing) return existing;
+
+  const root = ensureGlobalRootFolder(userId);
+  if (!root) return null;
+
+  const user = loadUserById(userId);
+  const baseName = (user?.username || user?.display_name || `user-${String(userId).slice(0, 8)}`).trim() || `user-${String(userId).slice(0, 8)}`;
+  const homeName = ensureUniqueInParent(root.id, baseName);
+  const activeVolume = loadActiveVolume();
+  return createFolderNode({
+    parent: root,
+    name: homeName,
+    owner_user_id: userId,
+    metadata: {
+      sandbox_kind: 'user-home',
+      sandbox_user_id: String(userId),
+      sandbox_volume_id: activeVolume?.id ?? null,
+    },
+  });
+}
+
+function ensureRootFolderForUser(userId) {
+  ensureGlobalRootFolder(userId);
+  return ensureUserHomeFolder(userId);
+}
+
+function getNodeAllowedPermissions(caller, node) {
+  const allPermissions = new Set(['READ', 'WRITE', 'DELETE', 'SHARE']);
+  if (!caller || !node) return new Set();
+  if (caller.role === 'ADMIN' || String(caller.id) === String(node.owner_user_id)) {
+    return allPermissions;
+  }
+
+  const allowed = new Set();
+  const ancestors = loadNodeAncestorsByPath(node.path);
+  for (const ancestor of ancestors) {
+    const isSelf = String(ancestor.id) === String(node.id);
+    const entries = loadAclEntriesForPrincipal(ancestor.id, 'USER', caller.id, !isSelf);
+    for (const entry of entries) {
+      const effect = entry && entry.effect ? String(entry.effect) : '';
+      const permissions = Array.isArray(entry && entry.permissions) ? entry.permissions : [];
+      if (effect === 'ALLOW') {
+        for (const permission of permissions) allowed.add(permission);
+      } else if (effect === 'DENY') {
+        for (const permission of permissions) allowed.delete(permission);
+      }
+    }
+  }
+  return allowed;
+}
+
+function canReadNode(caller, node) {
+  return getNodeAllowedPermissions(caller, node).has('READ');
+}
+
+function canWriteNode(caller, node) {
+  return getNodeAllowedPermissions(caller, node).has('WRITE');
+}
+
+function loadDirectChildren({ parentId, includeDeleted, sortBy, order, activeVolumeId = null }) {
+  const whereDeleted = includeDeleted ? '' : ' and deleted_at is null';
+  const sortDirection = order === 'desc' ? 'DESC' : 'ASC';
+  const columnMap = {
+    name: 'name',
+    updated_at: 'updated_at',
+    size_bytes: 'size_bytes',
+  };
+  const sortColumn = columnMap[sortBy] || 'name';
+  const activeVolumeClause = activeVolumeId
+    ? (
+        ` and exists (` +
+          `select 1 from nodes d ` +
+          `join blobs b on b.id=d.blob_id and b.deleted_at is null ` +
+          `where d.deleted_at is null and d.path <@ nodes.path and b.volume_id='${quoteSqlLiteral(activeVolumeId)}'::uuid` +
+        `)`
+      )
+    : '';
+
+  const rowsJson = execPsql(
+    `select coalesce(json_agg(row_to_json(n) order by ${sortColumn} ${sortDirection}, id::text ${sortDirection}), '[]'::json) from (` +
+      `select id::text as id, type, name, parent_id::text as parent_id, path::text as path, ` +
+        `owner_user_id::text as owner_user_id, blob_id::text as blob_id, size_bytes, mime_type, metadata, ` +
+        `to_char(created_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as created_at, ` +
+        `to_char(updated_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as updated_at, ` +
+        `to_char(deleted_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as deleted_at ` +
+      `from nodes where parent_id='${quoteSqlLiteral(parentId)}'::uuid and true ${whereDeleted}${activeVolumeClause} ` +
+      `order by ${sortColumn} ${sortDirection}, id::text ${sortDirection}` +
+    `) n;`
+  ).trim();
+
+  const parsed = rowsJson ? JSON.parse(rowsJson) : [];
+  const safeRows = Array.isArray(parsed) ? parsed : [];
+  for (const node of safeRows) {
+    if (node && node.deleted_at === null) delete node.deleted_at;
+  }
+  return safeRows;
+}
+
+function paginateRows(rows, limit, cursor) {
+  const offset = Number(cursor || 0);
+  const items = rows.slice(offset, offset + limit);
+  const nextOffset = offset + limit;
+  return {
+    items,
+    next_cursor: nextOffset < rows.length ? String(nextOffset) : null,
+  };
+}
+
+function sortNodeRows(rows, sortBy, order) {
+  const direction = order === 'desc' ? -1 : 1;
+  const next = [...rows];
+  next.sort((left, right) => {
+    let primary = 0;
+    if (sortBy === 'updated_at') {
+      primary = String(left.updated_at || '').localeCompare(String(right.updated_at || ''));
+    } else if (sortBy === 'size_bytes') {
+      primary = Number(left.size_bytes || 0) - Number(right.size_bytes || 0);
+    } else {
+      primary = String(left.name || '').localeCompare(String(right.name || ''));
+    }
+
+    if (primary !== 0) return primary * direction;
+    return String(left.id || '').localeCompare(String(right.id || '')) * direction;
+  });
+  return next;
+}
+
+function loadDirectlySharedNodesForUser({ userId, activeVolumeId = null }) {
+  const activeVolumeClause = activeVolumeId
+    ? (
+        ` and exists (` +
+          `select 1 from nodes d ` +
+          `join blobs b on b.id=d.blob_id and b.deleted_at is null ` +
+          `where d.deleted_at is null and d.path <@ n.path and b.volume_id='${quoteSqlLiteral(activeVolumeId)}'::uuid` +
+        `)`
+      )
+    : '';
+
+  const rowsJson = execPsql(
+    `select coalesce(json_agg(row_to_json(n)), '[]'::json) from (` +
+      `select distinct n.id::text as id, n.type, n.name, n.parent_id::text as parent_id, n.path::text as path, ` +
+        `n.owner_user_id::text as owner_user_id, n.blob_id::text as blob_id, n.size_bytes, n.mime_type, n.metadata, ` +
+        `to_char(n.created_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as created_at, ` +
+        `to_char(n.updated_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as updated_at, ` +
+        `to_char(n.deleted_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as deleted_at ` +
+      `from nodes n ` +
+      `join acl_entries acl on acl.node_id=n.id ` +
+      `where n.deleted_at is null and acl.principal_type='USER' and acl.principal_id='${quoteSqlLiteral(userId)}' ` +
+        `and acl.effect='ALLOW' and acl.permissions && ARRAY['READ','WRITE','DELETE','SHARE']::text[]${activeVolumeClause}` +
+    `) n;`
+  ).trim();
+
+  const parsed = rowsJson ? JSON.parse(rowsJson) : [];
+  const safeRows = Array.isArray(parsed) ? parsed : [];
+  for (const node of safeRows) {
+    if (node && node.deleted_at === null) delete node.deleted_at;
+  }
+  return safeRows;
+}
+
+function listAccessibleNodeChildren({ parentId, includeDeleted, limit, sortBy, order, cursor, activeVolumeId, caller }) {
+  if (parentId === GLOBAL_ROOT_NODE_ID) {
+    const home = loadUserHomeFolder(caller.id);
+    const shared = loadDirectlySharedNodesForUser({ userId: caller.id, activeVolumeId });
+    const merged = new Map();
+    if (home) merged.set(home.id, home);
+    for (const node of shared) {
+      if (String(node.owner_user_id) === String(caller.id) && home && node.id === home.id) continue;
+      merged.set(node.id, node);
+    }
+    return paginateRows(sortNodeRows(Array.from(merged.values()), sortBy, order), limit, cursor);
+  }
+
+  const rows = loadDirectChildren({ parentId, includeDeleted, sortBy, order, activeVolumeId });
+  const filtered = rows.filter((node) => canReadNode(caller, node));
+  return paginateRows(filtered, limit, cursor);
+}
+
+function listAccessibleMediaNodes({ limit, cursor, volumeId, kind, caller }) {
+  const raw = listMediaNodes({ limit: 100000, cursor: 0, volumeId, kind });
+  const filtered = raw.items.filter((node) => canReadNode(caller, node));
+  return paginateRows(filtered, limit, cursor);
+}
+
+function createFolderNode({ parent, name, owner_user_id, metadata = {} }) {
   const id = crypto.randomUUID();
   const label = uuidToLtreeLabel(id);
   const parentPath = String(parent.path);
@@ -1729,11 +1950,12 @@ function createFolderNode({ parent, name, owner_user_id }) {
   const escapedParent = String(parent.id).replace(/'/g, "''");
   const escapedId = String(id).replace(/'/g, "''");
   const escapedPath = String(fullPath).replace(/'/g, "''");
+  const escapedMetadata = JSON.stringify(metadata || {}).replace(/'/g, "''");
 
   // Insert; rely on unique index (parent_id,name) where deleted_at is null for 409.
   const rowJson = execPsql(
     "insert into nodes (id, type, parent_id, name, path, owner_user_id, size_bytes, metadata, created_at, updated_at) values (" +
-      "'" + escapedId + "'::uuid, 'FOLDER', '" + escapedParent + "'::uuid, '" + escapedName + "', '" + escapedPath + "'::ltree, '" + escapedOwner + "'::uuid, 0, '{}'::jsonb, now(), now()" +
+      "'" + escapedId + "'::uuid, 'FOLDER', '" + escapedParent + "'::uuid, '" + escapedName + "', '" + escapedPath + "'::ltree, '" + escapedOwner + "'::uuid, 0, '" + escapedMetadata + "'::jsonb, now(), now()" +
     ") returning json_build_object(" +
       "'id', id::text, " +
       "'type', type, " +
@@ -2584,6 +2806,12 @@ const server = http.createServer(async (req, res) => {
       const tokens = makeTokens();
       rememberTokens(tokens, userId);
 
+      try {
+        ensureRootFolderForUser(userId);
+      } catch (seedErr) {
+        console.warn('[accept-invite] sandbox home seed failed:', String(seedErr && seedErr.message ? seedErr.message : seedErr));
+      }
+
       sendJson(res, 201, {
         user: {
           id: userId,
@@ -2751,8 +2979,8 @@ const server = http.createServer(async (req, res) => {
     let parent;
     try {
       parent = loadNodeById(parentId);
-      if (!parent && parentId === '00000000-0000-0000-0000-000000000001') {
-        parent = ensureRootFolderForUser(auth.user_id);
+      if (!parent && parentId === GLOBAL_ROOT_NODE_ID) {
+        parent = ensureGlobalRootFolder(auth.user_id);
       }
     } catch (err) {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
@@ -2766,7 +2994,7 @@ const server = http.createServer(async (req, res) => {
 
     // Authorization: must be able to write under the parent folder.
     // Minimal rule until ACLs are introduced: owner or admin.
-    if (caller.role !== 'ADMIN' && String(parent.owner_user_id) !== String(auth.user_id)) {
+    if (!canWriteNode(caller, parent)) {
       sendJson(res, 403, errorResponse('FORBIDDEN', 'No write permission for parent folder'));
       return;
     }
@@ -3262,7 +3490,7 @@ const server = http.createServer(async (req, res) => {
         sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
         return;
       }
-      if (caller.role !== 'ADMIN' && String(parentNode.owner_user_id) !== String(auth.user_id)) {
+      if (!canWriteNode(caller, parentNode)) {
         sendJson(res, 403, errorResponse('FORBIDDEN', 'No write permission for parent folder'));
         return;
       }
@@ -4072,7 +4300,7 @@ const server = http.createServer(async (req, res) => {
 
     // Authorization: must be able to write under the parent folder.
     // Minimal rule until ACLs are introduced: owner or admin.
-    if (caller.role !== 'ADMIN' && String(parent.owner_user_id) !== String(auth.user_id)) {
+    if (!canWriteNode(caller, parent)) {
       sendJson(res, 403, errorResponse('FORBIDDEN', 'No write permission for parent folder'));
       return;
     }
@@ -5337,16 +5565,26 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      const result = searchNodes({
-        queryText: trimmedQuery,
-        parentId,
-        type: nodeType,
-        limit: limitResult.value,
-        cursor: cursorResult.value,
-        ownerUserId: caller.id,
-        includeAll: caller.role === 'ADMIN',
-        includeMetadata: includeMetadataResult.value
-      });
+      const result = caller.role === 'ADMIN'
+        ? searchNodes({
+            queryText: trimmedQuery,
+            parentId,
+            type: nodeType,
+            limit: limitResult.value,
+            cursor: cursorResult.value,
+            ownerUserId: caller.id,
+            includeAll: true,
+            includeMetadata: includeMetadataResult.value
+          })
+        : searchAccessibleNodes({
+            queryText: trimmedQuery,
+            parentId,
+            type: nodeType,
+            limit: limitResult.value,
+            cursor: cursorResult.value,
+            includeMetadata: includeMetadataResult.value,
+            caller,
+          });
       sendJson(res, 200, result);
       return;
     } catch (err) {
@@ -5382,8 +5620,8 @@ const server = http.createServer(async (req, res) => {
     let parent;
     try {
       parent = loadNodeById(nodeId);
-      if (!parent && nodeId === '00000000-0000-0000-0000-000000000001') {
-        parent = ensureRootFolderForUser(auth.user_id);
+      if (!parent && nodeId === GLOBAL_ROOT_NODE_ID) {
+        parent = ensureGlobalRootFolder(auth.user_id);
       }
     } catch (err) {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
@@ -5395,8 +5633,8 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const isGlobalRootNode = nodeId === '00000000-0000-0000-0000-000000000001';
-    if (!isGlobalRootNode && caller.role !== 'ADMIN' && String(parent.owner_user_id) !== String(auth.user_id)) {
+    const isGlobalRootNode = nodeId === GLOBAL_ROOT_NODE_ID;
+    if (!isGlobalRootNode && !canReadNode(caller, parent)) {
       sendJson(res, 403, errorResponse('FORBIDDEN', 'No read permission for node'));
       return;
     }
@@ -5439,15 +5677,26 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const activeVolume = activeVolumeOnlyResult.value ? loadActiveVolume() : null;
-      const result = listNodeChildren({
-        parentId: nodeId,
-        includeDeleted: includeDeletedResult.value,
-        limit: limitResult.value,
-        sortBy: sortResult.value,
-        order: orderResult.value,
-        cursor: cursorResult.value,
-        activeVolumeId: activeVolume?.id ?? null,
-      });
+      const result = caller.role === 'ADMIN'
+        ? listNodeChildren({
+            parentId: nodeId,
+            includeDeleted: includeDeletedResult.value,
+            limit: limitResult.value,
+            sortBy: sortResult.value,
+            order: orderResult.value,
+            cursor: cursorResult.value,
+            activeVolumeId: activeVolume?.id ?? null,
+          })
+        : listAccessibleNodeChildren({
+            parentId: nodeId,
+            includeDeleted: includeDeletedResult.value,
+            limit: limitResult.value,
+            sortBy: sortResult.value,
+            order: orderResult.value,
+            cursor: cursorResult.value,
+            activeVolumeId: activeVolume?.id ?? null,
+            caller,
+          });
       sendJson(res, 200, result);
       return;
     } catch (err) {
@@ -5482,8 +5731,8 @@ const server = http.createServer(async (req, res) => {
 
     try {
       let node = loadNodeById(nodeId);
-      if (!node && nodeId === '00000000-0000-0000-0000-000000000001') {
-        node = ensureRootFolderForUser(auth.user_id);
+      if (!node && nodeId === GLOBAL_ROOT_NODE_ID) {
+        node = ensureGlobalRootFolder(auth.user_id);
       }
 
       if (!node) {
@@ -5491,7 +5740,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      if (caller.role !== 'ADMIN' && String(node.owner_user_id) !== String(auth.user_id)) {
+      if (node.id !== GLOBAL_ROOT_NODE_ID && !canReadNode(caller, node)) {
         sendJson(res, 403, errorResponse('FORBIDDEN', 'No read permission for node'));
         return;
       }
@@ -5544,12 +5793,20 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const result = listMediaNodes({
-        limit: limitResult.value,
-        cursor: cursorResult.value,
-        volumeId: activeVolume.id,
-        kind,
-      });
+      const result = caller.role === 'ADMIN'
+        ? listMediaNodes({
+            limit: limitResult.value,
+            cursor: cursorResult.value,
+            volumeId: activeVolume.id,
+            kind,
+          })
+        : listAccessibleMediaNodes({
+            limit: limitResult.value,
+            cursor: cursorResult.value,
+            volumeId: activeVolume.id,
+            kind,
+            caller,
+          });
       sendJson(res, 200, result);
       return;
     } catch (err) {
@@ -5581,6 +5838,15 @@ const server = http.createServer(async (req, res) => {
 
     if (!node) {
       sendJson(res, 404, errorResponse('NOT_FOUND', 'Node not found'));
+      return;
+    }
+    const caller = loadUserById(auth.user_id);
+    if (!caller) {
+      sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
+      return;
+    }
+    if (!canReadNode(caller, node)) {
+      sendJson(res, 403, errorResponse('FORBIDDEN', 'No read permission for node'));
       return;
     }
 
@@ -5645,6 +5911,15 @@ const server = http.createServer(async (req, res) => {
 
     if (!node) {
       sendJson(res, 404, errorResponse('NOT_FOUND', 'Node not found'));
+      return;
+    }
+    const caller = loadUserById(auth.user_id);
+    if (!caller) {
+      sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
+      return;
+    }
+    if (!canReadNode(caller, node)) {
+      sendJson(res, 403, errorResponse('FORBIDDEN', 'No read permission for node'));
       return;
     }
 
@@ -5749,12 +6024,22 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
+      const caller = loadUserById(auth.user_id);
+      if (!caller) {
+        sendJson(res, 401, errorResponse('UNAUTHORIZED', 'Invalid access token'));
+        return;
+      }
+
       let node = loadNodeById(nodeId);
-      if (!node && nodeId === '00000000-0000-0000-0000-000000000001') {
-        node = ensureRootFolderForUser(auth.user_id);
+      if (!node && nodeId === GLOBAL_ROOT_NODE_ID) {
+        node = ensureGlobalRootFolder(auth.user_id);
       }
       if (!node) {
         sendJson(res, 404, errorResponse('NOT_FOUND', 'Node not found'));
+        return;
+      }
+      if (node.id !== GLOBAL_ROOT_NODE_ID && !canReadNode(caller, node)) {
+        sendJson(res, 403, errorResponse('FORBIDDEN', 'No read permission for node'));
         return;
       }
 

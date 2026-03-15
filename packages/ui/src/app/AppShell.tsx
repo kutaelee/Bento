@@ -6,6 +6,7 @@ import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import { useFolderRefresh } from "./folderRefresh";
 import { UploadQueuePanel, useUploadQueue } from "./uploadQueue";
 import { ApiError } from "../api/errors";
+import { createAuthApi } from "../api/auth";
 import { createNodesApi } from "../api/nodes";
 import { InspectorPanel } from "./InspectorPanel";
 import { useInspectorState } from "./inspectorState";
@@ -13,6 +14,7 @@ import { ShareDialog } from "./ShareDialog";
 import { adminSettingsLink, quickLinks } from "../nav";
 import { Button, Dialog, DetailInspector, TextField } from "@nimbus/ui-kit";
 import { t, type I18nKey } from "../i18n/t";
+import { clearAuthTokens } from "./authTokens";
 import { getVisualFixtureSearch } from "./visualFixtures";
 import "./AppShell.css";
 
@@ -38,6 +40,7 @@ export function AppShell() {
 
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const nodesApi = useMemo(() => createNodesApi(apiClient), [apiClient]);
+  const authApi = useMemo(() => createAuthApi(apiClient), [apiClient]);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [folderName, setFolderName] = useState("");
@@ -97,6 +100,17 @@ export function AppShell() {
   const handleTriggerUpload = () => {
     if (!activeFolderId) return;
     uploadInputRef.current?.click();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Clear local tokens even if the current session is already invalid.
+    } finally {
+      clearAuthTokens();
+      navigate("/login", { replace: true });
+    }
   };
 
   const handleUploadChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,6 +206,7 @@ export function AppShell() {
             <Button variant="ghost" onClick={handleOpenCreate} disabled={!canCreateFolder}>{t("action.newFolder")}</Button>
             <Button variant="primary" onClick={handleTriggerUpload} disabled={!canCreateFolder}>{t("action.upload")}</Button>
             <Button variant="ghost" onClick={handleOpenShare} disabled={!selectedNode}>{t("action.share")}</Button>
+            <Button variant="secondary" onClick={() => void handleLogout()}>{t("action.signOut")}</Button>
           </div>
           <NavLink
             to={{ pathname: adminSettingsLink.path, search: preservedSearch }}

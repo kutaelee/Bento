@@ -1,7 +1,10 @@
 import React from "react";
 import { ForbiddenState } from "@nimbus/ui-kit";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { createAuthApi } from "../api/auth";
 import { adminSections, adminSettingsLink } from "../nav";
+import { clearAuthTokens } from "./authTokens";
+import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import { getVisualFixtureSearch, getVisualState } from "./visualFixtures";
 import { t, type I18nKey } from "../i18n/t";
 import "./AdminShell.css";
@@ -24,15 +27,29 @@ const sectionIcons: Record<string, string> = {
 };
 
 export function AdminShell({ titleKey, children }: AdminShellProps) {
+  const navigate = useNavigate();
   const location = useLocation();
   const visualState = getVisualState();
   const preservedSearch = React.useMemo(() => getVisualFixtureSearch(location.search), [location.search]);
+  const apiClient = React.useMemo(() => getAuthenticatedApiClient(), []);
+  const authApi = React.useMemo(() => createAuthApi(apiClient), [apiClient]);
   const sections = [adminSettingsLink, ...adminSections];
   const body = visualState === "forbidden" ? (
     <ForbiddenState title={t("err.forbidden")} descKey={t("msg.forbiddenAdmin")} />
   ) : (
     children
   );
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Clear local session even if the backend already revoked it.
+    } finally {
+      clearAuthTokens();
+      navigate("/login", { replace: true });
+    }
+  };
 
   return (
     <div className="admin-shell">
@@ -75,9 +92,14 @@ export function AdminShell({ titleKey, children }: AdminShellProps) {
             <p className="admin-shell__eyebrow">{t("nav.settings")}</p>
             <h1 className="admin-shell__title">{t(titleKey)}</h1>
           </div>
-          <div className="admin-shell__header-meta">
-            <span>{t("admin.home.quickLinksTitle")}</span>
-            <strong>{sections.length}</strong>
+          <div className="admin-shell__header-actions">
+            <div className="admin-shell__header-meta">
+              <span>{t("admin.home.quickLinksTitle")}</span>
+              <strong>{sections.length}</strong>
+            </div>
+            <button type="button" className="admin-shell__logout" onClick={() => void handleLogout()}>
+              {t("action.signOut")}
+            </button>
           </div>
         </header>
 
