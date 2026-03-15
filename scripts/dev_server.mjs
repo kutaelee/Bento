@@ -457,7 +457,8 @@ function runVolumeAutoScanBatch(runState) {
   }
 
   if (Date.now() > runState.deadlineAtMs) {
-    throw new Error('volume auto-scan timed out');
+    handleVolumeAutoScanFailure(runState, new Error('volume auto-scan timed out'));
+    return;
   }
 
   const MAX_BATCH_DIRS = 24;
