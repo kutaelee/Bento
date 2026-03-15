@@ -2355,28 +2355,24 @@ const server = http.createServer(async (req, res) => {
             "now() + interval '" + expiresInSeconds + " seconds', " +
             "NULL, NULL" +
           ") " +
-          "returning id::text as id, to_char(expires_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as expires_at, to_char(created_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') as created_at;"
+          "returning json_build_object(" +
+            "'id', id::text, " +
+            "'expires_at', to_char(expires_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'), " +
+            "'created_at', to_char(created_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"')" +
+          ")::text;"
       ).trim();
 
       if (!rowJson) {
         throw new Error('failed to insert invite');
       }
 
-      const firstLine = rowJson
-        .split('\n')
-        .map((l) => l.trim())
-        .filter(Boolean)[0];
-
-      const parts = String(firstLine || '').split('|').map((s) => s.trim());
-      const id = parts[0];
-      const expiresAt = parts[1];
-      const createdAt = parts[2];
+      const invite = JSON.parse(rowJson);
 
       sendJson(res, 201, {
-        id,
+        id: invite.id,
         token,
-        expires_at: expiresAt,
-        created_at: createdAt,
+        expires_at: invite.expires_at,
+        created_at: invite.created_at,
       });
     } catch (err) {
       sendJson(res, 500, errorResponse('INTERNAL', String(err)));
@@ -2505,12 +2501,15 @@ const server = http.createServer(async (req, res) => {
           "where exists (select 1 from updated) " +
           "returning 1" +
         ") " +
-        "select (select count(*) from updated) as updated, (select count(*) from inserted) as inserted;"
+        "select json_build_object(" +
+          "'updated', (select count(*) from updated), " +
+          "'inserted', (select count(*) from inserted)" +
+        ")::text;"
       ).trim();
 
-      const [updatedStr, insertedStr] = String(consumeAndCreateRow).split('|').map((s) => s.trim());
-      const updatedCount = Number(updatedStr);
-      const insertedCount = Number(insertedStr);
+      const consumeResult = JSON.parse(consumeAndCreateRow || '{}');
+      const updatedCount = Number(consumeResult.updated);
+      const insertedCount = Number(consumeResult.inserted);
 
       if (updatedCount !== 1 || insertedCount !== 1) {
         // updatedCount=0 indicates the invite was consumed concurrently.
@@ -2836,24 +2835,25 @@ const server = http.createServer(async (req, res) => {
           escapedChunkSize + ", " +
           escapedTotalChunks + ", '{}'::int[], " +
           "'" + escapedTempDir + "', now(), now(), " + expiresAtExpr + ") " +
-          "returning id::text as upload_id, status, chunk_size_bytes, total_chunks;"
+          "returning json_build_object(" +
+            "'upload_id', id::text, " +
+            "'status', status, " +
+            "'chunk_size_bytes', chunk_size_bytes, " +
+            "'total_chunks', total_chunks" +
+          ")::text;"
       ).trim();
 
       if (!rowJson) {
         throw new Error('Failed to create upload session');
       }
 
-      const parts = String(rowJson).split('|').map((s) => s.trim());
-      const responseUploadId = parts[0];
-      const responseStatus = parts[1];
-      const responseChunk = Number(parts[2]);
-      const responseTotal = Number(parts[3]);
+      const createdUpload = JSON.parse(rowJson);
 
       sendJson(res, 201, {
-        upload_id: responseUploadId,
-        status: responseStatus,
-        chunk_size_bytes: responseChunk,
-        total_chunks: responseTotal,
+        upload_id: createdUpload.upload_id,
+        status: createdUpload.status,
+        chunk_size_bytes: Number(createdUpload.chunk_size_bytes),
+        total_chunks: Number(createdUpload.total_chunks),
         dedup_hit: dedupHit,
       });
       return;
