@@ -1,45 +1,146 @@
 .admin-migration {
   display: grid;
+  gap: 20px;
+}
+
+.admin-migration__hero {
+  display: flex;
+  justify-content: space-between;
   gap: 16px;
-}
-
-.admin-migration__section {
-  display: grid;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--nd-color-border-default);
-  border-radius: 12px;
-  background: var(--nd-color-surface-primary);
-}
-
-.admin-migration__section--dense {
+  padding: 24px 28px;
+  border: 1px solid color-mix(in srgb, var(--nd-color-border-default) 82%, transparent);
+  border-radius: 24px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--nd-color-surface-primary) 94%, white), var(--nd-color-surface-primary));
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.92));
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
 }
 
-.admin-migration__section-title {
+.dark .admin-migration__hero {
+  background-image: none;
+  background-color: #1f2937;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.28);
+}
+
+.admin-migration__hero-copy {
+  display: grid;
+  gap: 8px;
+  max-width: 720px;
+}
+
+.admin-migration__eyebrow,
+.admin-migration__panel-eyebrow {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--nd-color-text-primary);
-}
-
-.admin-migration__muted {
-  margin: 4px 0 0;
-  font-size: 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--nd-color-text-secondary);
 }
 
-.admin-migration__alert,
-.admin-migration__warning {
+.admin-migration__title,
+.admin-migration__panel-title {
   margin: 0;
-  font-size: 0.9rem;
+  color: var(--nd-color-text-primary);
+}
+
+.admin-migration__title {
+  font-size: clamp(1.7rem, 2vw, 2.3rem);
+  line-height: 1.1;
+}
+
+.admin-migration__subtitle,
+.admin-migration__panel-copy {
+  margin: 0;
+  color: var(--nd-color-text-secondary);
+  line-height: 1.6;
+}
+
+.admin-migration__hero-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-migration__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-migration__summary-card,
+.admin-migration__panel {
+  border: 1px solid color-mix(in srgb, var(--nd-color-border-default) 84%, transparent);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
+}
+
+.admin-migration__summary-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px 20px;
+}
+
+.admin-migration__summary-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--nd-color-text-secondary);
+}
+
+.admin-migration__summary-value {
+  font-size: 1.35rem;
+  line-height: 1.2;
+  color: var(--nd-color-text-primary);
+}
+
+.admin-migration__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.admin-migration__stack {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-migration__panel {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.admin-migration__panel--jobs {
+  min-height: 100%;
+}
+
+.admin-migration__panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.admin-migration__panel-title {
+  font-size: 1.15rem;
+  line-height: 1.3;
+}
+
+.admin-migration__alert {
+  margin: 0;
+  font-size: 0.92rem;
   color: var(--nd-color-status-danger);
 }
 
 .admin-migration__success {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--nd-color-status-success);
 }
 
@@ -59,5 +160,33 @@
 
 .admin-migration__column {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+}
+
+@media (max-width: 980px) {
+  .admin-migration__hero,
+  .admin-migration__panel-header {
+    flex-direction: column;
+  }
+
+  .admin-migration__layout,
+  .admin-migration__summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-migration__hero,
+  .admin-migration__panel,
+  .admin-migration__summary-card {
+    padding: 18px;
+    border-radius: 18px;
+  }
+}
+
+.dark .admin-migration__summary-card,
+.dark .admin-migration__panel {
+  background: var(--nd-color-surface-secondary);
+  border-color: var(--nd-color-border-default);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
 }

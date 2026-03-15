@@ -3,7 +3,8 @@
   "compilerOptions": {
     "resolveJsonModule": true,
     "types": [
-      "node"
+      "node",
+      "vite/client"
     ]
   },
   "include": [

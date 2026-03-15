@@ -3,6 +3,8 @@
 
 # IA_NAV_SSOT — Bento Navigation & IA (SSOT)
 
+> 2026-03-13 update: The legacy left navigation in `AppShell` is deprecated residue and is no longer the active shell contract. Core user navigation now uses the topbar as the single primary nav, while the right inspector remains contextual.
+
 이 문서는 **메뉴/내비게이션/설정 섹션 구조의 단일 진실 원천(SSOT)** 입니다.  
 
 

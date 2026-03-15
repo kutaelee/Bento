@@ -16,7 +16,7 @@ function getVariantClassName(variant: ButtonVariant): string {
     case "ghost":
       return "nd-btn nd-btn--ghost";
     case "danger":
-      return "nd-btn nd-btn--primary";
+      return "nd-btn nd-btn--danger";
     case "outline":
       return "nd-btn nd-btn--secondary";
   }

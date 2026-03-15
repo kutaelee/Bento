@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, DataTable, SkeletonBlock, EmptyState, ErrorState, ForbiddenState, PageHeader, Toolbar } from "@nimbus/ui-kit";
+import { Button, DataTable, SkeletonBlock, EmptyState, ErrorState, ForbiddenState } from "@nimbus/ui-kit";
 import { createAdminMaintenanceApi } from "../api/adminMaintenance";
 import { ApiError } from "../api/errors";
 import { createJobsApi, type Job } from "../api/jobs";
 import { createVolumesApi, type Volume } from "../api/volumes";
-import { t, type I18nKey } from "../i18n/t";
+import { getLocale, t, type I18nKey } from "../i18n/t";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import {
   ActivateVolumeSection,
@@ -46,6 +46,7 @@ const formatBytes = (value?: number) => {
 };
 
 export default function AdminStoragePage() {
+  const locale = getLocale();
   const navigate = useNavigate();
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const maintenanceApi = useMemo(() => createAdminMaintenanceApi(apiClient), [apiClient]);
@@ -81,6 +82,10 @@ export default function AdminStoragePage() {
   const [activateErrorKey, setActivateErrorKey] = useState<I18nKey | null>(null);
   const [activating, setActivating] = useState(false);
   const [activated, setActivated] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deactivated, setDeactivated] = useState(false);
+  const [deleted, setDeleted] = useState(false);
 
   const [scanDeleteFiles, setScanDeleteFiles] = useState(false);
   const [scanDeleteRows, setScanDeleteRows] = useState(false);
@@ -113,6 +118,27 @@ export default function AdminStoragePage() {
   const selectedVolume = useMemo(
     () => volumes.find((volume) => volume.id === selectedVolumeId) ?? null,
     [selectedVolumeId, volumes],
+  );
+  const summaryItems = useMemo(
+    () => [
+      {
+        label: t("admin.storage.summary.volumes"),
+        value: String(volumes.length),
+      },
+      {
+        label: t("admin.storage.summary.active"),
+        value: activeVolume?.name ?? "-",
+      },
+      {
+        label: t("admin.storage.summary.free"),
+        value: activeVolume ? formatBytes(activeVolume.free_bytes) : "-",
+      },
+      {
+        label: t("admin.storage.summary.scan"),
+        value: activeVolume?.scan_state ? t(scanStatusKeyMap[activeVolume.scan_state]) : "-",
+      },
+    ],
+    [activeVolume, locale, volumes.length],
   );
 
   const fetchScanJob = useCallback(
@@ -190,6 +216,8 @@ export default function AdminStoragePage() {
     setActivating(true);
     setActivateErrorKey(null);
     setActivated(false);
+    setDeactivated(false);
+    setDeleted(false);
 
     try {
       await volumesApi.activateVolume(selectedVolume.id);
@@ -199,6 +227,47 @@ export default function AdminStoragePage() {
       setActivateErrorKey(error instanceof ApiError ? error.key : "err.network");
     } finally {
       setActivating(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (!selectedVolume || !selectedVolume.is_active || deactivating) return;
+
+    setDeactivating(true);
+    setActivateErrorKey(null);
+    setActivated(false);
+    setDeleted(false);
+    setDeactivated(false);
+
+    try {
+      await volumesApi.deactivateVolume(selectedVolume.id);
+      setDeactivated(true);
+      await loadVolumes();
+    } catch (error) {
+      setActivateErrorKey(error instanceof ApiError ? error.key : "err.network");
+    } finally {
+      setDeactivating(false);
+    }
+  };
+
+  const handleDeleteVolume = async () => {
+    if (!selectedVolume || selectedVolume.is_active || deleting) return;
+
+    setDeleting(true);
+    setActivateErrorKey(null);
+    setActivated(false);
+    setDeactivated(false);
+    setDeleted(false);
+
+    try {
+      await volumesApi.deleteVolume(selectedVolume.id);
+      setSelectedVolumeId(null);
+      setDeleted(true);
+      await loadVolumes();
+    } catch (error) {
+      setActivateErrorKey(error instanceof ApiError ? error.key : "err.network");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -280,106 +349,139 @@ export default function AdminStoragePage() {
         renderCell: (item: Volume) => (item.is_active ? t("status.active") : "-"),
       },
     ],
-    [],
+    [locale],
   );
 
   return (
     <section className="admin-storage">
-      <PageHeader
-        title={t("admin.storage.title")}
-        actions={
-          <Toolbar>
-            <Button variant="ghost" onClick={loadVolumes} disabled={loading}>
-              {t("action.refresh")}
-            </Button>
-          </Toolbar>
-        }
-      />
-
-      <ActiveVolumeSection
-        loading={loading}
-        activeVolume={activeVolume}
-        statusKeyMap={statusKeyMap}
-        scanStatusKeyMap={scanStatusKeyMap}
-        scanRetrying={scanRetrying}
-        onRetryScan={handleRetryAutoScan}
-      />
-
-      <div className="admin-storage__section">
-        <div className="admin-storage__row">
-          <h2 className="admin-storage__section-title">{t("admin.storage.listTitle")}</h2>
-          <Button variant="ghost" onClick={loadVolumes} disabled={loading}>
+      <header className="admin-storage__hero">
+        <div className="admin-storage__hero-copy">
+          <p className="admin-storage__eyebrow">{t("admin.home.quickLinksTitle")}</p>
+          <h1 className="admin-storage__title">{t("admin.storage.title")}</h1>
+          <p className="admin-storage__subtitle">{t("admin.storage.subtitle")}</p>
+        </div>
+        <div className="admin-storage__hero-actions">
+          <Button variant="secondary" onClick={loadVolumes} disabled={loading || scanJobLoading}>
             {t("action.refresh")}
           </Button>
         </div>
-        {loadErrorKey === "err.forbidden" ? (
-          <ForbiddenState titleKey="err.forbidden" descKey="msg.forbiddenAdmin" actionLabelKey="action.goHome" onAction={() => navigate("/files")} />
-        ) : loadErrorKey ? (
-          <ErrorState titleKey="err.unknown" descKey={loadErrorKey} retryLabelKey="action.retry" onRetry={loadVolumes} />
-        ) : loading ? (
-          <div className="admin-storage__loading">
-            <SkeletonBlock height={44} width="100%" />
-            <SkeletonBlock height={44} width="100%" />
-            <SkeletonBlock height={44} width="100%" />
-          </div>
-        ) : volumes.length === 0 ? (
-          <EmptyState titleKey="msg.emptyVolumes" />
-        ) : (
-          <div className="admin-storage__table">
-            <DataTable
-              items={volumes}
-              columns={columns}
-              heightPx={280}
-              rowHeightPx={44}
-              getRowKey={(item) => item.id}
-              onRowClick={(item) => setSelectedVolumeId(item.id)}
-            />
-          </div>
-        )}
-      </div>
+      </header>
 
-      <ValidatePathSection
-        validatePath={validatePath}
-        validating={validating}
-        validateErrorKey={validateErrorKey}
-        validateResult={validateResult}
-        setValidatePath={setValidatePath}
-        onValidate={handleValidate}
-        formatBytes={formatBytes}
-      />
+      <section className="admin-storage__summary">
+        {summaryItems.map((item) => (
+          <article key={item.label} className="admin-storage__summary-card">
+            <span className="admin-storage__summary-label">{item.label}</span>
+            <strong className="admin-storage__summary-value">{item.value}</strong>
+          </article>
+        ))}
+      </section>
 
-      <CreateVolumeSection
-        createName={createName}
-        createPath={createPath}
-        creating={creating}
-        createErrorKey={createErrorKey}
-        created={created}
-        setCreateName={setCreateName}
-        setCreatePath={setCreatePath}
-        onCreate={handleCreate}
-      />
+      <section className="admin-storage__layout">
+        <div className="admin-storage__main">
+          <section className="admin-storage__panel">
+            <div className="admin-storage__panel-header">
+              <div>
+                <p className="admin-storage__panel-eyebrow">{t("admin.storage.listTitle")}</p>
+                <h2 className="admin-storage__panel-title">{t("admin.storage.listTitle")}</h2>
+              </div>
+              <span className="admin-storage__panel-count">{volumes.length}</span>
+            </div>
 
-      <ActivateVolumeSection
-        selectedVolume={selectedVolume}
-        activateErrorKey={activateErrorKey}
-        activated={activated}
-        activating={activating}
-        onActivate={handleActivate}
-      />
+            {loadErrorKey === "err.forbidden" ? (
+              <ForbiddenState title={t("err.forbidden")} detail={t("msg.forbiddenAdmin")} />
+            ) : loadErrorKey ? (
+              <ErrorState
+                title={t("err.unknown")}
+                detail={t(loadErrorKey)}
+                action={
+                  <Button variant="secondary" onClick={loadVolumes}>
+                    {t("action.retry")}
+                  </Button>
+                }
+              />
+            ) : loading ? (
+              <div className="admin-storage__loading">
+                <SkeletonBlock height={44} width="100%" />
+                <SkeletonBlock height={44} width="100%" />
+                <SkeletonBlock height={44} width="100%" />
+              </div>
+            ) : volumes.length === 0 ? (
+              <EmptyState title={t("msg.emptyVolumes")} />
+            ) : (
+              <div className="admin-storage__table">
+                <DataTable
+                  items={volumes}
+                  columns={columns}
+                  heightPx={320}
+                  rowHeightPx={44}
+                  getRowKey={(item) => item.id}
+                  onRowClick={(item) => setSelectedVolumeId(item.id)}
+                />
+              </div>
+            )}
+          </section>
 
-      <ScanCleanupSection
-        scanDeleteFiles={scanDeleteFiles}
-        scanDeleteRows={scanDeleteRows}
-        scanSubmitting={scanSubmitting}
-        scanErrorKey={scanErrorKey}
-        scanJobLoading={scanJobLoading}
-        scanJobErrorKey={scanJobErrorKey}
-        scanJob={scanJob}
-        onToggleDeleteFiles={setScanDeleteFiles}
-        onToggleDeleteRows={setScanDeleteRows}
-        onStartScan={handleStartScan}
-        onRefreshJob={(jobId) => void fetchScanJob(jobId)}
-      />
+          <ActiveVolumeSection
+            loading={loading}
+            activeVolume={activeVolume}
+            statusKeyMap={statusKeyMap}
+            scanStatusKeyMap={scanStatusKeyMap}
+            scanRetrying={scanRetrying}
+            onRetryScan={handleRetryAutoScan}
+          />
+        </div>
+
+        <div className="admin-storage__aside">
+          <ValidatePathSection
+            validatePath={validatePath}
+            validating={validating}
+            validateErrorKey={validateErrorKey}
+            validateResult={validateResult}
+            setValidatePath={setValidatePath}
+            onValidate={handleValidate}
+            formatBytes={formatBytes}
+          />
+
+          <CreateVolumeSection
+            createName={createName}
+            createPath={createPath}
+            creating={creating}
+            createErrorKey={createErrorKey}
+            created={created}
+            setCreateName={setCreateName}
+            setCreatePath={setCreatePath}
+            onCreate={handleCreate}
+          />
+
+          <ActivateVolumeSection
+            selectedVolume={selectedVolume}
+            activateErrorKey={activateErrorKey}
+            activated={activated}
+            deactivated={deactivated}
+            deleted={deleted}
+            activating={activating}
+            deactivating={deactivating}
+            deleting={deleting}
+            onActivate={handleActivate}
+            onDeactivate={handleDeactivate}
+            onDelete={handleDeleteVolume}
+          />
+
+          <ScanCleanupSection
+            scanDeleteFiles={scanDeleteFiles}
+            scanDeleteRows={scanDeleteRows}
+            scanSubmitting={scanSubmitting}
+            scanErrorKey={scanErrorKey}
+            scanJobLoading={scanJobLoading}
+            scanJobErrorKey={scanJobErrorKey}
+            scanJob={scanJob}
+            onToggleDeleteFiles={setScanDeleteFiles}
+            onToggleDeleteRows={setScanDeleteRows}
+            onStartScan={handleStartScan}
+            onRefreshJob={(jobId) => void fetchScanJob(jobId)}
+          />
+        </div>
+      </section>
     </section>
   );
 }

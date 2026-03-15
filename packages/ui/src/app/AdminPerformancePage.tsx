@@ -5,12 +5,10 @@ import {
   EmptyState,
   ErrorState,
   LoadingSkeleton,
-  PageHeader,
   TextField,
-  Toolbar,
 } from "@nimbus/ui-kit";
 import { ApiError } from "../api/errors";
-import { t } from "../i18n/t";
+import { getLocale, t } from "../i18n/t";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import "./AdminPerformancePage.css";
 import type { components } from "../api/schema";
@@ -48,25 +46,25 @@ type UpdatePerformanceRequest = {
   };
 };
 
-const presets: QoSProfile[] = [
+const buildPresets = (locale: ReturnType<typeof getLocale>): QoSProfile[] => [
   {
     id: "ECO",
     name: "ECO",
-    throughput: "Conservative",
+    throughput: locale === "en-US" ? "Conservative" : "안정 우선",
     thumbnailRps: "8/s",
     transcodeConcurrency: "1",
   },
   {
     id: "BALANCED",
     name: "BALANCED",
-    throughput: "Balanced",
+    throughput: locale === "en-US" ? "Balanced" : "균형",
     thumbnailRps: "14/s",
     transcodeConcurrency: "2",
   },
   {
     id: "PERFORMANCE",
     name: "PERFORMANCE",
-    throughput: "High",
+    throughput: locale === "en-US" ? "High" : "고성능",
     thumbnailRps: "24/s",
     transcodeConcurrency: "3",
   },
@@ -78,6 +76,8 @@ const formatNumber = (value?: number | null) => {
 };
 
 export default function AdminPerformancePage() {
+  const locale = getLocale();
+  const presets = useMemo(() => buildPresets(locale), [locale]);
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
 
   const performanceApi = useMemo(
@@ -138,6 +138,31 @@ export default function AdminPerformancePage() {
     () => presets.find((profile) => profile.id === selectedProfileId) ?? presets[1],
     [selectedProfileId],
   );
+  const summaryItems = useMemo(
+    () => [
+      {
+        label: t("admin.performance.summary.profile"),
+        value: performanceState?.profile ?? selectedProfile.name,
+      },
+      {
+        label: t("admin.performance.summary.concurrency"),
+        value: formatNumber(
+          performanceState?.allowed?.bg_worker_concurrency ??
+            performanceState?.limits?.bg_worker_concurrency_max ??
+            Number(customConcurrency),
+        ),
+      },
+      {
+        label: t("admin.performance.summary.thumbnail"),
+        value: formatNumber(performanceState?.limits?.thumbnail_rps_max),
+      },
+      {
+        label: t("admin.performance.summary.latency"),
+        value: formatNumber(performanceState?.pressure?.api_p95_ms),
+      },
+    ],
+    [customConcurrency, locale, performanceState, selectedProfile.name],
+  );
 
   const profileColumns = useMemo(
     () => [
@@ -164,7 +189,7 @@ export default function AdminPerformancePage() {
         renderCell: (item: QoSProfile) => item.transcodeConcurrency,
       },
     ],
-    [],
+    [locale],
   );
 
   const snapshotRows: MetricRow[] = useMemo(() => {
@@ -196,7 +221,7 @@ export default function AdminPerformancePage() {
         status: formatNumber(performanceState?.pressure?.api_p95_ms),
       },
     ];
-  }, [performanceState, selectedProfile]);
+  }, [locale, performanceState, selectedProfile]);
 
   const snapshotColumns = useMemo(
     () => [
@@ -222,7 +247,7 @@ export default function AdminPerformancePage() {
         renderCell: (item: MetricRow) => item.status,
       },
     ],
-    [],
+    [locale],
   );
 
   const onSave = async () => {
@@ -280,82 +305,113 @@ export default function AdminPerformancePage() {
 
   return (
     <section className="admin-performance">
-      <PageHeader
-        title={t("admin.performance.title")}
-        actions={
-          <Toolbar>
-            <Button variant="ghost" onClick={onReload} disabled={loading || saving}>
-              {t("action.refresh")}
-            </Button>
-          </Toolbar>
-        }
-      />
-
-      <section className="admin-performance__section">
-        <h2 className="admin-performance__section-title">{t("admin.performance.profileSection")}</h2>
-        {loading ? <LoadingSkeleton lines={6} /> : null}
-
-        {!loading &&
-          (presets.length === 0 ? (
-            <EmptyState
-              title={t("admin.performance.message.noProfiles")}
-              detail={t("admin.performance.message.noProfilesDetail")}
-            />
-          ) : (
-            <DataTable
-              items={presets}
-              columns={profileColumns}
-              heightPx={220}
-              rowHeightPx={48}
-              getRowKey={(item) => item.id}
-              onRowClick={onProfileSelect}
-            />
-          ))}
-      </section>
-
-      <section className="admin-performance__section">
-        <h2 className="admin-performance__section-title">{t("admin.performance.settingSection")}</h2>
-
-        {loading ? <LoadingSkeleton lines={3} /> : null}
-
-        {(!loading && inputError) ? <ErrorState title={inputError} /> : null}
-
-        <TextField
-          label={t("admin.performance.input.concurrency")}
-          value={customConcurrency}
-          onChange={onConcurrencyChange}
-          placeholder="2"
-        />
-
-        <div className="admin-performance__actions">
-            <Button
-              variant="primary"
-              onClick={() => void onSave()}
-              disabled={!selectedProfile || loading || saving}
-            >
-            {saving ? t("admin.performance.saving") : t("action.save")}
-            </Button>
+      <header className="admin-performance__hero">
+        <div className="admin-performance__hero-copy">
+          <p className="admin-performance__eyebrow">{t("admin.home.quickLinksTitle")}</p>
+          <h1 className="admin-performance__title">{t("admin.performance.title")}</h1>
+          <p className="admin-performance__subtitle">{t("admin.performance.subtitle")}</p>
         </div>
+        <div className="admin-performance__hero-actions">
+          <Button variant="ghost" onClick={onReload} disabled={loading || saving}>
+            {t("action.refresh")}
+          </Button>
+        </div>
+      </header>
 
-        {saved ? <p className="admin-performance__muted">{t("admin.performance.message.saveDone")}</p> : null}
+      <section className="admin-performance__summary">
+        {summaryItems.map((item) => (
+          <article key={item.label} className="admin-performance__summary-card">
+            <span className="admin-performance__summary-label">{item.label}</span>
+            <strong className="admin-performance__summary-value">{item.value}</strong>
+          </article>
+        ))}
       </section>
 
-      <section className="admin-performance__section">
-        <h2 className="admin-performance__section-title">{t("admin.performance.snapshotSection")}</h2>
+      <section className="admin-performance__layout">
+        <section className="admin-performance__panel">
+          <div className="admin-performance__panel-header">
+            <div>
+              <p className="admin-performance__panel-eyebrow">{t("admin.performance.profileSection")}</p>
+              <h2 className="admin-performance__panel-title">{t("admin.performance.profileSection")}</h2>
+            </div>
+          </div>
 
-        {loading ? <LoadingSkeleton lines={5} /> : null}
+          {loading ? <LoadingSkeleton lines={6} /> : null}
 
-        {!loading && snapshotRows.length === 0 ? <EmptyState title={t("msg.noJobs")} /> : null}
+          {!loading &&
+            (presets.length === 0 ? (
+              <EmptyState
+                title={t("admin.performance.message.noProfiles")}
+                detail={t("admin.performance.message.noProfilesDetail")}
+              />
+            ) : (
+              <DataTable
+                items={presets}
+                columns={profileColumns}
+                heightPx={280}
+                rowHeightPx={48}
+                getRowKey={(item) => item.id}
+                onRowClick={onProfileSelect}
+              />
+            ))}
+        </section>
 
-        {!loading && snapshotRows.length > 0 ? (
-          <DataTable
-            items={snapshotRows}
-            columns={snapshotColumns}
-            heightPx={160}
-            rowHeightPx={48}
-            getRowKey={(item) => item.id}
-          />
-        ) : null}
+        <div className="admin-performance__stack">
+          <section className="admin-performance__panel">
+            <div className="admin-performance__panel-header">
+              <div>
+                <p className="admin-performance__panel-eyebrow">{t("admin.performance.settingSection")}</p>
+                <h2 className="admin-performance__panel-title">{t("admin.performance.settingSection")}</h2>
+              </div>
+            </div>
+
+            {loading ? <LoadingSkeleton lines={3} /> : null}
+
+            {!loading && inputError ? <ErrorState title={inputError} /> : null}
+
+            <TextField
+              label={t("admin.performance.input.concurrency")}
+              value={customConcurrency}
+              onChange={onConcurrencyChange}
+              placeholder="2"
+            />
+
+            <div className="admin-performance__actions">
+              <Button
+                variant="primary"
+                onClick={() => void onSave()}
+                disabled={!selectedProfile || loading || saving}
+              >
+                {saving ? t("admin.performance.saving") : t("action.save")}
+              </Button>
+            </div>
+
+            {saved ? <p className="admin-performance__muted">{t("admin.performance.message.saveDone")}</p> : null}
+          </section>
+
+          <section className="admin-performance__panel">
+            <div className="admin-performance__panel-header">
+              <div>
+                <p className="admin-performance__panel-eyebrow">{t("admin.performance.snapshotSection")}</p>
+                <h2 className="admin-performance__panel-title">{t("admin.performance.snapshotSection")}</h2>
+              </div>
+            </div>
+
+            {loading ? <LoadingSkeleton lines={5} /> : null}
+
+            {!loading && snapshotRows.length === 0 ? <EmptyState title={t("msg.noJobs")} /> : null}
+
+            {!loading && snapshotRows.length > 0 ? (
+              <DataTable
+                items={snapshotRows}
+                columns={snapshotColumns}
+                heightPx={200}
+                rowHeightPx={48}
+                getRowKey={(item) => item.id}
+              />
+            ) : null}
+          </section>
+        </div>
       </section>
     </section>
   );

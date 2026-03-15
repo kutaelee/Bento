@@ -7,6 +7,11 @@
     linear-gradient(180deg, color-mix(in srgb, var(--nd-color-surface-secondary) 92%, #d8e7f7 8%), var(--nd-color-surface-secondary));
 }
 
+.dark .auth-layout {
+  background-image: none;
+  background-color: #1f2937;
+}
+
 .auth-layout__hero,
 .auth-layout__content {
   display: flex;

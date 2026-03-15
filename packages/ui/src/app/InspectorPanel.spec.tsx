@@ -1,21 +1,39 @@
 import React from "react";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { InspectorPanel } from "./InspectorPanel";
-
-
 import { FolderRefreshProvider } from "./folderRefresh";
 import { InspectorProvider } from "./inspectorState";
 import { t } from "../i18n/t";
 import type { NodeItem } from "../api/nodes";
 
+const renderWithSuppressedLayoutEffectWarning = (element: React.ReactElement) => {
+  const originalError = console.error;
+  console.error = (...args: unknown[]) => {
+    const [message] = args;
+    if (typeof message === "string" && message.includes("useLayoutEffect does nothing on the server")) {
+      return;
+    }
+    originalError(...args);
+  };
+
+  try {
+    return renderToStaticMarkup(element);
+  } finally {
+    console.error = originalError;
+  }
+};
+
 const renderPanel = (selectedNode: NodeItem | null) =>
-  renderToStaticMarkup(
-    <FolderRefreshProvider>
-      <InspectorProvider initialSelectedNode={selectedNode}>
-        <InspectorPanel />
-      </InspectorProvider>
-    </FolderRefreshProvider>,
+  renderWithSuppressedLayoutEffectWarning(
+    <MemoryRouter>
+      <FolderRefreshProvider>
+        <InspectorProvider initialSelectedNode={selectedNode}>
+          <InspectorPanel />
+        </InspectorProvider>
+      </FolderRefreshProvider>
+    </MemoryRouter>,
   );
 
 describe("InspectorPanel", () => {

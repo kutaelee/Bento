@@ -5,6 +5,23 @@ import { createMemoryRouter, MemoryRouter } from "react-router-dom";
 import { BreadcrumbTrail } from "./Breadcrumbs";
 import { ROOT_NODE_ID } from "./nodes";
 
+const renderWithSuppressedLayoutEffectWarning = (element: React.ReactElement) => {
+  const originalError = console.error;
+  console.error = (...args: unknown[]) => {
+    const [message] = args;
+    if (typeof message === "string" && message.includes("useLayoutEffect does nothing on the server")) {
+      return;
+    }
+    originalError(...args);
+  };
+
+  try {
+    return renderToStaticMarkup(element);
+  } finally {
+    console.error = originalError;
+  }
+};
+
 describe("BreadcrumbTrail", () => {
   it("links to parent paths and supports route change", async () => {
     const items = [
@@ -12,7 +29,7 @@ describe("BreadcrumbTrail", () => {
       { id: "node-1", name: "Design" },
     ];
 
-    const html = renderToStaticMarkup(
+    const html = renderWithSuppressedLayoutEffectWarning(
       <MemoryRouter initialEntries={["/files/node-1"]}>
         <BreadcrumbTrail items={items} />
       </MemoryRouter>,

@@ -50,12 +50,6 @@ export function Dialog({
     }
   };
 
-  const handleDialogRef = (node: HTMLDivElement | null) => {
-    if (node && open) {
-      node.focus();
-    }
-  };
-
   if (!open) {
     return null;
   }
@@ -69,9 +63,7 @@ export function Dialog({
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         tabIndex={-1}
-        autoFocus
         onKeyDown={handleKeyDown}
-        ref={handleDialogRef}
       >
         <div className="nd-dialog__header">
           <div className="nd-dialog__heading">

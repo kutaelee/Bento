@@ -1,0 +1,62 @@
+[
+    {
+        "route":  "/login",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    },
+    {
+        "route":  "/setup?visualFixtures=1",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    },
+    {
+        "route":  "/invite/accept?token=visual-invite-token\u0026visualFixtures=1",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    },
+    {
+        "route":  "/files?visualFixtures=1",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    },
+    {
+        "route":  "/search?visualFixtures=1",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    },
+    {
+        "route":  "/trash?visualFixtures=1",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    },
+    {
+        "route":  "/admin?visualFixtures=1",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    },
+    {
+        "route":  "/admin/storage?visualFixtures=1",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    },
+    {
+        "route":  "/admin/users?visualFixtures=1",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    },
+    {
+        "route":  "/admin/migration?visualFixtures=1",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    },
+    {
+        "route":  "/admin/security?visualFixtures=1",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    },
+    {
+        "route":  "/admin/appearance?visualFixtures=1",
+        "status":  200,
+        "contentType":  "text/html; charset=utf-8"
+    }
+]

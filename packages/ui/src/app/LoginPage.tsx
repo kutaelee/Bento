@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { createApiClient } from "../api/client";
 import { Button, PasswordField, TextField } from "@nimbus/ui-kit";
 import { saveAuthTokens } from "./authTokens";
 import { ApiError } from "../api/errors";
-import { t, type I18nKey } from "../i18n/t";
+import { getLocale, t, type I18nKey } from "../i18n/t";
 import { AuthLayout } from "./AuthLayout";
+import { getAppBasePath } from "./basePath";
 import "./AuthForm.css";
 
 type LoginResponse = {
@@ -25,7 +26,8 @@ type LoginResponse = {
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const api = useMemo(() => createApiClient({ baseUrl: "" }), []);
+  const location = useLocation();
+  const api = useMemo(() => createApiClient({ baseUrl: getAppBasePath(), getLocale }), []);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -49,7 +51,8 @@ export function LoginPage() {
         body: { username: username.trim(), password },
       });
       saveAuthTokens(response.tokens);
-      navigate("/files", { replace: true });
+      const next = new URLSearchParams(location.search).get("next");
+      navigate(next && next.startsWith("/") ? next : "/files", { replace: true });
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorKey(error.key);

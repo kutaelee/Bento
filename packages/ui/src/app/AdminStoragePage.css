@@ -1,20 +1,136 @@
 .admin-storage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nd-space-5);
+  padding: var(--nd-space-6);
+}
+
+.admin-storage__hero,
+.admin-storage__panel,
+.admin-storage__section {
+  border: 1px solid rgb(148 163 184 / 0.14);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top right, rgb(19 127 236 / 0.1), transparent 28%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.9), rgb(255 255 255 / 0.76));
+  box-shadow: 0 20px 40px rgb(15 23 42 / 0.07);
+}
+
+.admin-storage__hero {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--nd-space-4);
+  padding: clamp(1.25rem, 2vw, 2rem);
+}
+
+.admin-storage__hero-copy {
+  max-width: 42rem;
+}
+
+.admin-storage__eyebrow,
+.admin-storage__panel-eyebrow {
+  margin: 0 0 var(--nd-space-2);
+  color: var(--nd-color-accent-default);
+  font-size: var(--nd-font-size-xs);
+  font-weight: var(--nd-font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-storage__title {
+  margin: 0;
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
+  line-height: 1.02;
+}
+
+.admin-storage__subtitle {
+  margin: var(--nd-space-2) 0 0;
+  color: var(--nd-color-text-secondary);
+}
+
+.admin-storage__hero-actions {
+  display: flex;
+  align-items: flex-end;
+}
+
+.admin-storage__summary {
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--nd-space-3);
+}
+
+.admin-storage__summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nd-space-2);
+  padding: 18px 20px;
+  border: 1px solid rgb(148 163 184 / 0.14);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 0.76);
+  box-shadow: 0 14px 30px rgb(15 23 42 / 0.05);
+}
+
+.admin-storage__summary-label {
+  color: var(--nd-color-text-secondary);
+  font-size: var(--nd-font-size-xs);
+}
+
+.admin-storage__summary-value {
+  font-size: var(--nd-font-size-h2);
+}
+
+.admin-storage__layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 1.05fr) minmax(340px, 0.95fr);
+  gap: var(--nd-space-4);
+}
+
+.admin-storage__main,
+.admin-storage__aside {
+  display: grid;
+  gap: var(--nd-space-4);
+}
+
+.admin-storage__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nd-space-4);
+  padding: 24px;
+}
+
+.admin-storage__panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--nd-space-3);
+}
+
+.admin-storage__panel-title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.admin-storage__panel-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: rgb(15 23 42 / 0.08);
+  color: #0f172a;
+  font-weight: 800;
 }
 
 .admin-storage__section {
   display: grid;
   gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--nd-color-border-weak);
-  border-radius: 12px;
-  background: var(--nd-color-surface);
+  padding: 24px;
 }
 
 .admin-storage__section-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--nd-color-text);
 }
@@ -31,8 +147,7 @@
 }
 
 .admin-storage__table {
-  border-top: 1px solid var(--nd-color-border-weak);
-  padding-top: 12px;
+  padding-top: 4px;
 }
 
 .admin-storage__actions {
@@ -65,4 +180,41 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .admin-storage__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-storage {
+    padding: var(--nd-space-3);
+  }
+
+  .admin-storage__hero,
+  .admin-storage__panel-header,
+  .admin-storage__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-storage__hero-actions {
+    align-items: stretch;
+  }
+}
+
+.dark .admin-storage__hero,
+.dark .admin-storage__panel,
+.dark .admin-storage__section,
+.dark .admin-storage__summary-card {
+  background: var(--nd-color-surface-secondary);
+  border-color: var(--nd-color-border-default);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
+}
+
+.dark .admin-storage__panel-count {
+  background: #21262d;
+  color: #f0f6fc;
 }

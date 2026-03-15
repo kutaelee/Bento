@@ -3,24 +3,24 @@
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: var(--nd-color-text-primary);
+  color: var(--bento-shell-text);
 }
 
 .breadcrumbs__separator {
-  color: var(--nd-color-text-disabled);
+  color: var(--bento-shell-muted);
 }
 
 .breadcrumbs__link {
-  color: var(--nd-color-accent-hover);
+  color: var(--bento-shell-accent);
   text-decoration: none;
 }
 
 .breadcrumbs__current {
-  color: var(--nd-color-text-primary);
-  font-weight: 600;
+  color: var(--bento-shell-text);
+  font-weight: 700;
 }
 
 .breadcrumbs__error {
-  color: var(--nd-color-status-danger);
+  color: var(--bento-shell-error);
   font-size: 12px;
 }

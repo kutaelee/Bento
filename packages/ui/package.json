@@ -7,12 +7,15 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:visual": "bash ../../scripts/run_route_snapshot_harness.sh",
+    "test:visual": "node scripts/visual_route_snapshot.mjs",
+    "verify:browser": "node scripts/runtime_browser_audit.mjs",
+    "verify:slice": "node scripts/verify_ui_slice.mjs",
+    "verify:slice:full": "node scripts/verify_ui_slice.mjs --with-visual",
     "build": "tsc -p tsconfig.json --noEmit",
     "generate:api-types": "openapi-typescript ../../openapi/openapi.yaml -o src/api/schema.d.ts",
     "dev": "vite --host 0.0.0.0 --port 13000",
     "preview": "vite preview --host 0.0.0.0 --port 13000",
-    "test:visual:config": "bash ../../scripts/validate_visual_config.sh"
+    "test:visual:config": "node scripts/validate_visual_config.mjs"
   },
   "dependencies": {
     "@nimbus/ui-kit": "workspace:*",
@@ -27,6 +30,7 @@
     "@typescript-eslint/eslint-plugin": "^7.17.0",
     "@typescript-eslint/parser": "^7.17.0",
     "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.27",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.4",
     "eslint-plugin-react-hooks": "^4.6.0",
@@ -34,6 +38,8 @@
     "pixelmatch": "^7.1.0",
     "playwright": "^1.58.2",
     "pngjs": "^7.0.0",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5.5.4",
     "vite": "^5.4.10",
     "vitest": "^2.0.5"

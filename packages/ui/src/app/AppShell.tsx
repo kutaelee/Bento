@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 import { Breadcrumbs } from "./Breadcrumbs";
-import { FolderTree } from "./FolderTree";
 import { ROOT_NODE_ID } from "./nodes";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import { useFolderRefresh } from "./folderRefresh";
@@ -14,6 +13,7 @@ import { ShareDialog } from "./ShareDialog";
 import { adminSettingsLink, quickLinks } from "../nav";
 import { Button, Dialog, DetailInspector, TextField } from "@nimbus/ui-kit";
 import { t, type I18nKey } from "../i18n/t";
+import { getVisualFixtureSearch } from "./visualFixtures";
 import "./AppShell.css";
 
 export function AppShell() {
@@ -23,11 +23,18 @@ export function AppShell() {
   const { enqueueFiles, items: uploadItems } = useUploadQueue();
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const filesMatch = useMatch("/files/:nodeId");
-  const rootMatch = useMatch("/files");
-  const activeFolderId = filesMatch?.params.nodeId ?? (rootMatch ? ROOT_NODE_ID : null);
+  const filesRootMatch = useMatch("/files");
+  const mediaMatch = useMatch("/media/:nodeId");
+  const mediaRootMatch = useMatch("/media");
+  const activeFolderId =
+    filesMatch?.params.nodeId ??
+    mediaMatch?.params.nodeId ??
+    (filesRootMatch || mediaRootMatch ? ROOT_NODE_ID : null);
   const canCreateFolder = Boolean(activeFolderId);
   const { selectedNode } = useInspectorState();
+  const showInspector = Boolean(selectedNode);
   const [searchValue, setSearchValue] = useState("");
+  const preservedSearch = useMemo(() => getVisualFixtureSearch(location.search), [location.search]);
 
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const nodesApi = useMemo(() => createNodesApi(apiClient), [apiClient]);
@@ -42,6 +49,32 @@ export function AppShell() {
     const params = new URLSearchParams(location.search);
     setSearchValue(params.get("q") ?? "");
   }, [location.search]);
+
+  useEffect(() => {
+    const handleCreateFolder = () => {
+      if (!activeFolderId) return;
+      setIsCreateOpen(true);
+      setFolderName("");
+      setErrorKey(null);
+    };
+    const handleUploadFiles = () => {
+      if (!activeFolderId) return;
+      uploadInputRef.current?.click();
+    };
+    const handleShareSelected = () => {
+      if (!selectedNode) return;
+      setIsShareOpen(true);
+    };
+
+    window.addEventListener("bento:create-folder", handleCreateFolder as EventListener);
+    window.addEventListener("bento:upload-files", handleUploadFiles as EventListener);
+    window.addEventListener("bento:share-selected", handleShareSelected as EventListener);
+    return () => {
+      window.removeEventListener("bento:create-folder", handleCreateFolder as EventListener);
+      window.removeEventListener("bento:upload-files", handleUploadFiles as EventListener);
+      window.removeEventListener("bento:share-selected", handleShareSelected as EventListener);
+    };
+  }, [activeFolderId, selectedNode]);
 
   const handleOpenCreate = () => {
     if (!activeFolderId) return;
@@ -103,75 +136,78 @@ export function AppShell() {
   const handleSearchSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     const nextQuery = searchValue.trim();
+    const params = new URLSearchParams(preservedSearch);
     if (!nextQuery) {
-      navigate("/search", { replace: false });
+      navigate({ pathname: "/search", search: params.toString() ? `?${params.toString()}` : "" }, { replace: false });
       return;
     }
-    navigate(`/search?q=${encodeURIComponent(nextQuery)}`);
+    params.set("q", nextQuery);
+    navigate({ pathname: "/search", search: `?${params.toString()}` });
   };
 
   const pendingUploads = uploadItems.filter((item) => item.status !== "COMPLETED").length;
+  const activeQuickLink = quickLinks.find((item) => location.pathname.startsWith(item.path)) ?? quickLinks[0];
 
   return (
     <div className="app-shell">
-      <div className="app-shell__main">
-        <aside className="app-shell__sidebar">
-          <div className="app-shell__sidebar-header">
-            <div className="app-shell__sidebar-brand">{t("app.brand")}</div>
-            <div className="app-shell__sidebar-meta">{t("msg.shellSidebarBody")}</div>
-          </div>
-          <FolderTree nodesApi={nodesApi} />
-        </aside>
-        <header className="app-shell__topbar">
-          <div className="app-shell__topbar-left">
-            <NavLink to="/files" className="app-shell__brand" aria-label={t("nav.files")}>
-              {t("app.brand")}
-            </NavLink>
-            <form className="app-shell__search-form" onSubmit={handleSearchSubmit}>
-              <TextField
-                aria-label={t("field.search")}
-                value={searchValue}
-                onChange={(event) => setSearchValue(event.target.value)}
-                placeholder={t("msg.searchPlaceholder")}
-              />
-            </form>
-            <nav className="app-shell__topbar-tabs">
-              {quickLinks.map((item) => (
-                <NavLink
-                  key={item.id}
-                  to={item.path}
-                  className={({ isActive }: { isActive: boolean }) =>
-                    isActive ? "app-shell__topbar-tab app-shell__topbar-tab--active" : "app-shell__topbar-tab"
-                  }
-                >
-                  {t(item.labelKey)}
-                </NavLink>
-              ))}
-            </nav>
-          </div>
-          <div className="app-shell__topbar-right">
-            <div className="app-shell__status-chip">
-              <span>{t("action.upload")}</span>
-              <strong>{pendingUploads}</strong>
+      <header className="app-shell__topbar">
+        <div className="app-shell__topbar-left">
+          <NavLink to={{ pathname: "/files", search: preservedSearch }} className="app-shell__brand-lockup" aria-label={t("nav.files")}>
+            <div className="app-shell__brand-mark">BN</div>
+            <div className="app-shell__brand-copy">
+              <span className="app-shell__eyebrow">{t("app.brand")}</span>
+              <strong>{t(activeQuickLink.labelKey)}</strong>
             </div>
-            <div className="app-shell__action-row">
-              <Button variant="ghost" onClick={handleOpenCreate} disabled={!canCreateFolder}>{t("action.newFolder")}</Button>
-              <Button variant="primary" onClick={handleTriggerUpload} disabled={!canCreateFolder}>{t("action.upload")}</Button>
-              <Button variant="ghost" onClick={handleOpenShare} disabled={!selectedNode}>{t("action.share")}</Button>
-            </div>
-            <NavLink
-              to={adminSettingsLink.path}
-              aria-label={t(adminSettingsLink.labelKey)}
-              title={t(adminSettingsLink.labelKey)}
-              className={({ isActive }: { isActive: boolean }) =>
-                isActive ? "app-shell__icon-button app-shell__icon-button--active" : "app-shell__icon-button"
-              }
-            >
-              {t("nav.settings")}
-            </NavLink>
+          </NavLink>
+          <form className="app-shell__search-form" onSubmit={handleSearchSubmit}>
+            <TextField
+              id="app-shell-search"
+              name="search"
+              aria-label={t("field.search")}
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
+              placeholder={t("msg.searchPlaceholder")}
+            />
+          </form>
+        </div>
+        <div className="app-shell__topbar-right">
+          <nav className="app-shell__topbar-tabs no-scrollbar">
+            {quickLinks.map((item) => (
+              <NavLink
+                key={item.id}
+                to={{ pathname: item.path, search: preservedSearch }}
+                className={({ isActive }: { isActive: boolean }) =>
+                  isActive ? "app-shell__topbar-tab app-shell__topbar-tab--active" : "app-shell__topbar-tab"
+                }
+              >
+                {t(item.labelKey)}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="app-shell__status-chip">
+            <span>{t("msg.filesSummaryUploads")}</span>
+            <strong>{pendingUploads}</strong>
           </div>
-          <input ref={uploadInputRef} type="file" multiple className="app-shell__hidden-input" onChange={handleUploadChange} />
-        </header>
+          <div className="app-shell__action-row">
+            <Button variant="ghost" onClick={handleOpenCreate} disabled={!canCreateFolder}>{t("action.newFolder")}</Button>
+            <Button variant="primary" onClick={handleTriggerUpload} disabled={!canCreateFolder}>{t("action.upload")}</Button>
+            <Button variant="ghost" onClick={handleOpenShare} disabled={!selectedNode}>{t("action.share")}</Button>
+          </div>
+          <NavLink
+            to={{ pathname: adminSettingsLink.path, search: preservedSearch }}
+            aria-label={t(adminSettingsLink.labelKey)}
+            title={t(adminSettingsLink.labelKey)}
+            className={({ isActive }: { isActive: boolean }) =>
+              isActive ? "app-shell__icon-button app-shell__icon-button--active" : "app-shell__icon-button"
+            }
+          >
+            {t("nav.settings")}
+          </NavLink>
+        </div>
+        <input ref={uploadInputRef} type="file" multiple className="app-shell__hidden-input" onChange={handleUploadChange} />
+      </header>
+
+      <div className="app-shell__body">
         <Dialog
           open={isCreateOpen}
           title={t("action.newFolder")}
@@ -186,6 +222,8 @@ export function AppShell() {
         >
           <form id="create-folder-form" onSubmit={handleSubmitCreate}>
             <TextField
+              id="create-folder-name"
+              name="folderName"
               label={t("field.name")}
               value={folderName}
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => setFolderName(event.target.value)}
@@ -195,15 +233,27 @@ export function AppShell() {
           </form>
         </Dialog>
         <ShareDialog open={isShareOpen} node={selectedNode} onClose={() => setIsShareOpen(false)} />
-        <div className="app-shell__content">
+        <div className={showInspector ? "app-shell__content app-shell__content--with-inspector" : "app-shell__content"}>
           <main className="app-shell__canvas">
-            <UploadQueuePanel />
-            <Breadcrumbs />
+            <div className="app-shell__canvas-header">
+              <div className="app-shell__breadcrumbs">
+                <Breadcrumbs />
+              </div>
+              <div className="app-shell__canvas-actions">
+                <Button variant="ghost" onClick={handleTriggerUpload} disabled={!canCreateFolder}>{t("action.upload")}</Button>
+                <Button variant="ghost" onClick={handleOpenShare} disabled={!selectedNode}>{t("action.share")}</Button>
+              </div>
+            </div>
+            <div className="app-shell__queue">
+              <UploadQueuePanel />
+            </div>
             <Outlet />
           </main>
-          <DetailInspector className="app-shell__inspector">
-            <InspectorPanel />
-          </DetailInspector>
+          {showInspector ? (
+            <DetailInspector className="app-shell__inspector">
+              <InspectorPanel />
+            </DetailInspector>
+          ) : null}
         </div>
       </div>
     </div>

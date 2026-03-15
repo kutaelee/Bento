@@ -38,7 +38,14 @@ import { AdminHomePage } from "./AdminHomePage";
 
 export const adminRoutes = (
   <>
-    <Route path="admin" element={<AdminHomePage />} />
+    <Route
+      path="admin"
+      element={
+        <AdminShellPage titleKey="admin.home.title">
+          <AdminHomePage />
+        </AdminShellPage>
+      }
+    />
     <Route
       path="admin/users"
       element={

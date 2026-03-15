@@ -1,12 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button, TextField } from "@nimbus/ui-kit";
 import { t, type I18nKey } from "../i18n/t";
 import type { NodeItem } from "../api/nodes";
 import { createNodesApi } from "../api/nodes";
+import { createMePreferencesApi } from "../api/mePreferences";
+import { createVolumesApi } from "../api/volumes";
 import { ApiError } from "../api/errors";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
+import { downloadBlob, formatDate } from "./format";
 import { useFolderRefresh } from "./folderRefresh";
 import { useInspectorState } from "./inspectorState";
+import { useNodeFavorites } from "./useNodeFavorites";
+import { buildDisplayPath, formatOwnerLabel, type UserIdentity } from "./nodePresentation";
 import "./InspectorPanel.css";
 
 const formatSize = (size?: number) => {
@@ -22,24 +28,13 @@ const formatSize = (size?: number) => {
   return `${value.toFixed(1)} ${units[unitIndex]}`;
 };
 
-const formatDate = (value?: string) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-};
-
-const InspectorDetails = ({ node }: { node: NodeItem }) => {
+const InspectorDetails = ({ node, ownerValue, pathValue }: { node: NodeItem; ownerValue: string; pathValue: string }) => {
   const rows: Array<{ label: string; value: string }> = [
     { label: t("field.name"), value: node.name },
     { label: t("field.modifiedAt"), value: formatDate(node.updated_at) },
     { label: t("field.size"), value: formatSize(node.size_bytes) },
-    { label: t("field.owner"), value: node.owner_user_id ?? "-" },
-    { label: t("field.path"), value: node.path },
+    { label: t("field.owner"), value: ownerValue },
+    { label: t("field.path"), value: pathValue },
   ];
 
   return (
@@ -57,9 +52,13 @@ const InspectorDetails = ({ node }: { node: NodeItem }) => {
 export function InspectorPanel() {
   const { selectedNode, setSelectedNode } = useInspectorState();
   const { triggerRefresh } = useFolderRefresh();
+  const navigate = useNavigate();
+  const { isFavorite, toggleFavorite } = useNodeFavorites();
 
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
   const nodesApi = useMemo(() => createNodesApi(apiClient), [apiClient]);
+  const meApi = useMemo(() => createMePreferencesApi(apiClient), [apiClient]);
+  const volumesApi = useMemo(() => createVolumesApi(apiClient), [apiClient]);
 
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
@@ -72,6 +71,9 @@ export function InspectorPanel() {
   const [copyErrorKey, setCopyErrorKey] = useState<I18nKey | null>(null);
   const [copyNoticeKey, setCopyNoticeKey] = useState<I18nKey | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionNoticeKey, setActionNoticeKey] = useState<I18nKey | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserIdentity | null>(null);
+  const [resolvedPath, setResolvedPath] = useState<string>("-");
 
   useEffect(() => {
     setIsRenameOpen(false);
@@ -85,7 +87,96 @@ export function InspectorPanel() {
     setCopyErrorKey(null);
     setCopyNoticeKey(null);
     setIsSubmitting(false);
+    setActionNoticeKey(null);
   }, [selectedNode?.id]);
+
+  useEffect(() => {
+    let active = true;
+
+    void (async () => {
+      try {
+        const me = await meApi.getPreferences();
+        if (!active) return;
+        setCurrentUser({
+          id: String(me.id),
+          username: me.username,
+          display_name: me.display_name,
+        });
+      } catch {
+        if (!active) return;
+        setCurrentUser(null);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [meApi]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!selectedNode) {
+      setResolvedPath("-");
+      return () => {
+        active = false;
+      };
+    }
+
+    void (async () => {
+      try {
+        const [breadcrumbResponse, volumesResponse] = await Promise.all([
+          nodesApi.getBreadcrumb(selectedNode.id),
+          volumesApi.listVolumes(),
+        ]);
+        if (!active) return;
+        const activeVolume = volumesResponse.items.find((item) => item.is_active);
+        setResolvedPath(buildDisplayPath(activeVolume?.base_path ?? "/", breadcrumbResponse.items ?? []));
+      } catch {
+        if (!active) return;
+        setResolvedPath(selectedNode.path);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [nodesApi, selectedNode, volumesApi]);
+
+  const handleOpenSelected = () => {
+    if (!selectedNode) return;
+    if (selectedNode.type === "FOLDER") {
+      navigate(`/files/${selectedNode.id}`);
+      return;
+    }
+    void handleDownloadSelected();
+  };
+
+  const handleDownloadSelected = async () => {
+    if (!selectedNode || selectedNode.type === "FOLDER") return;
+    setActionNoticeKey(null);
+    try {
+      const blob = await nodesApi.downloadNode({ nodeId: selectedNode.id });
+      await downloadBlob(blob, selectedNode.name);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setActionNoticeKey(error.key);
+      } else {
+        setActionNoticeKey("err.network");
+      }
+    }
+  };
+
+  const handleShareSelected = () => {
+    if (!selectedNode) return;
+    window.dispatchEvent(new CustomEvent("bento:share-selected"));
+  };
+
+  const handleToggleFavorite = () => {
+    if (!selectedNode) return;
+    toggleFavorite(selectedNode);
+    setActionNoticeKey(isFavorite(selectedNode.id) ? "msg.favoriteRemoved" : "msg.favoriteAdded");
+  };
 
   const handleOpenRename = () => {
     if (!selectedNode) return;
@@ -234,12 +325,37 @@ export function InspectorPanel() {
     }
   };
 
+  const ownerValue = selectedNode
+    ? formatOwnerLabel(selectedNode.owner_user_id, currentUser, new Map())
+    : "-";
+
   return (
     <section className="inspector-panel">
       <div className="inspector-panel__title">{t("msg.detailsTitle")}</div>
       {selectedNode ? (
         <>
-          <InspectorDetails node={selectedNode} />
+          <div className="inspector-panel__hero">
+            <div className="inspector-panel__hero-copy">
+              <p className="inspector-panel__title">{t("msg.detailsTitle")}</p>
+              <strong className="inspector-panel__headline">{selectedNode.name}</strong>
+              <span className="inspector-panel__pill">
+                {isFavorite(selectedNode.id) ? t("action.removeFavorite") : t("action.favorite")}
+              </span>
+            </div>
+            <div className="inspector-panel__quick-actions">
+              <Button type="button" variant="secondary" onClick={handleOpenSelected}>
+                {selectedNode.type === "FOLDER" ? t("action.open") : t("action.download")}
+              </Button>
+              <Button type="button" variant="secondary" onClick={handleShareSelected}>
+                {t("action.share")}
+              </Button>
+              <Button type="button" variant="secondary" onClick={handleToggleFavorite}>
+                {isFavorite(selectedNode.id) ? t("action.removeFavorite") : t("action.favorite")}
+              </Button>
+            </div>
+          </div>
+          <InspectorDetails node={selectedNode} ownerValue={ownerValue} pathValue={resolvedPath} />
+          {actionNoticeKey ? <div className="inspector-panel__notice">{t(actionNoticeKey)}</div> : null}
           <div className="inspector-panel__actions">
             <Button type="button" variant="secondary" onClick={handleOpenRename}>
               {t("action.rename")}
@@ -260,6 +376,8 @@ export function InspectorPanel() {
           <div className="inspector-panel__dialog-title">{t("modal.rename.title")}</div>
           <form id="rename-node-form" onSubmit={handleSubmitRename} className="inspector-panel__dialog-body">
             <TextField
+              id="inspector-rename-name"
+              name="renameName"
               label={t("field.name")}
               value={renameValue}
               onChange={(event) => setRenameValue(event.target.value)}
@@ -287,6 +405,8 @@ export function InspectorPanel() {
           <div className="inspector-panel__dialog-title">{t("modal.move.title")}</div>
           <form id="move-node-form" onSubmit={handleSubmitMove} className="inspector-panel__dialog-body">
             <TextField
+              id="inspector-move-destination"
+              name="moveDestination"
               label={t("field.destination")}
               value={moveParentId}
               onChange={(event) => setMoveParentId(event.target.value)}
@@ -314,6 +434,8 @@ export function InspectorPanel() {
           <div className="inspector-panel__dialog-title">{t("modal.copy.title")}</div>
           <form id="copy-node-form" onSubmit={handleSubmitCopy} className="inspector-panel__dialog-body">
             <TextField
+              id="inspector-copy-destination"
+              name="copyDestination"
               label={t("field.destination")}
               value={copyParentId}
               onChange={(event) => setCopyParentId(event.target.value)}

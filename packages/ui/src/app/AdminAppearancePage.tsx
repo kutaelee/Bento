@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Button, ErrorState, LoadingSkeleton, PageHeader, Toolbar } from "@nimbus/ui-kit";
+import { Button, ErrorState, LoadingSkeleton } from "@nimbus/ui-kit";
 import type { I18nKey } from "../i18n/t";
 import { setLocale, t } from "../i18n/t";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
@@ -26,6 +26,20 @@ const THEME_OPTIONS: Array<{ value: ThemeMode; labelKey: I18nKey }> = [
   { value: "light", labelKey: "admin.appearance.themeLight" },
   { value: "dark", labelKey: "admin.appearance.themeDark" },
 ];
+
+function getLocaleLabel(locale: LocaleCode) {
+  return t(locale === "ko-KR" ? "admin.appearance.languageKo" : "admin.appearance.languageEn");
+}
+
+function getThemeLabel(theme: ThemeMode) {
+  return t(
+    theme === "system"
+      ? "admin.appearance.themeSystem"
+      : theme === "light"
+        ? "admin.appearance.themeLight"
+        : "admin.appearance.themeDark",
+  );
+}
 
 export default function AdminAppearancePage() {
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
@@ -98,95 +112,150 @@ export default function AdminAppearancePage() {
     void loadProfile();
   }, [loadProfile]);
 
-  if (loading) {
-    return <LoadingSkeleton lines={8} />;
-  }
-
-  if (errorKey) {
-    return <ErrorState title={t("admin.appearance.error")} detail={t(errorKey)} />;
-  }
+  const summaryItems = useMemo(
+    () => [
+      {
+        label: t("admin.appearance.summary.language"),
+        value: getLocaleLabel(draft.locale),
+      },
+      {
+        label: t("admin.appearance.summary.theme"),
+        value: getThemeLabel(draft.theme),
+      },
+      {
+        label: t("admin.appearance.summary.status"),
+        value: hasChanges ? t("admin.appearance.summary.pending") : t("admin.appearance.summary.synced"),
+      },
+    ],
+    [draft.locale, draft.theme, hasChanges],
+  );
 
   return (
     <section className="admin-appearance">
-      <PageHeader
-        title={t("admin.appearance.title")}
-        actions={
-          <Toolbar>
-            <Button variant="ghost" disabled={!hasChanges || saving} onClick={onReset}>
-              {t("admin.appearance.reset")}
-            </Button>
-            <Button disabled={!hasChanges || saving} onClick={onSave}>
-              {saving ? t("admin.appearance.saving") : t("action.save")}
-            </Button>
-          </Toolbar>
-        }
-      />
+      <header className="admin-appearance__hero">
+        <div className="admin-appearance__hero-copy">
+          <p className="admin-appearance__eyebrow">{t("admin.home.quickLinksTitle")}</p>
+          <h1 className="admin-appearance__title">{t("admin.appearance.title")}</h1>
+          <p className="admin-appearance__subtitle">{t("admin.appearance.subtitle")}</p>
+        </div>
+        <div className="admin-appearance__hero-actions">
+          <Button variant="secondary" disabled={!hasChanges || saving} onClick={onReset}>
+            {t("admin.appearance.reset")}
+          </Button>
+          <Button disabled={!hasChanges || saving} onClick={onSave}>
+            {saving ? t("admin.appearance.saving") : t("action.save")}
+          </Button>
+        </div>
+      </header>
 
-      <section className="admin-appearance__overview">
-        <div className="admin-appearance__overview-card">
-          <span>{t("admin.appearance.languageTitle")}</span>
-          <strong>{t(draft.locale === "ko-KR" ? "admin.appearance.languageKo" : "admin.appearance.languageEn")}</strong>
-        </div>
-        <div className="admin-appearance__overview-card">
-          <span>{t("admin.appearance.themeTitle")}</span>
-          <strong>
-            {t(
-              draft.theme === "system"
-                ? "admin.appearance.themeSystem"
-                : draft.theme === "light"
-                  ? "admin.appearance.themeLight"
-                  : "admin.appearance.themeDark",
-            )}
-          </strong>
-        </div>
+      <section className="admin-appearance__summary">
+        {summaryItems.map((item) => (
+          <article key={item.label} className="admin-appearance__summary-card">
+            <span className="admin-appearance__summary-label">{item.label}</span>
+            <strong className="admin-appearance__summary-value">{item.value}</strong>
+          </article>
+        ))}
       </section>
 
       {messageKey ? <p className="admin-appearance__message">{t(messageKey)}</p> : null}
 
-      <section className="admin-appearance__section">
-        <h2>{t("admin.appearance.languageTitle")}</h2>
-        <p>{t("admin.appearance.languageDescription")}</p>
-        <div className="admin-appearance__segmented" role="radiogroup" aria-label={t("admin.appearance.languageTitle")}>
-          {LANG_OPTIONS.map((option) => {
-            const isSelected = option.value === draft.locale;
-            return (
-              <Button
-                key={option.value}
-                variant={isSelected ? "primary" : "ghost"}
-                onClick={() => setDraft((prev) => ({ ...prev, locale: option.value }))}
-                aria-checked={isSelected}
-                role="radio"
-              >
-                {t(option.labelKey)}
-              </Button>
-            );
-          })}
-        </div>
-      </section>
+      {loading ? <LoadingSkeleton lines={8} /> : null}
+      {!loading && errorKey ? <ErrorState title={t("admin.appearance.error")} detail={t(errorKey)} /> : null}
 
-      <section className="admin-appearance__section">
-        <h2>{t("admin.appearance.themeTitle")}</h2>
-        <p>{t("admin.appearance.themeDescription")}</p>
-        <div className="admin-appearance__segmented" role="radiogroup" aria-label={t("admin.appearance.themeTitle")}>
-          {THEME_OPTIONS.map((option) => {
-            const isSelected = option.value === draft.theme;
-            return (
-              <Button
-                key={option.value}
-                variant={isSelected ? "primary" : "ghost"}
-                onClick={() => setDraft((prev) => ({ ...prev, theme: option.value }))}
-                aria-checked={isSelected}
-                role="radio"
-              >
-                {t(option.labelKey)}
-              </Button>
-            );
-          })}
-        </div>
-      </section>
+      {!loading && !errorKey ? (
+        <div className="admin-appearance__layout">
+          <section className="admin-appearance__panel admin-appearance__panel--primary">
+            <div className="admin-appearance__panel-header">
+              <div>
+                <p className="admin-appearance__panel-eyebrow">{t("admin.appearance.title")}</p>
+                <h2 className="admin-appearance__panel-title">{t("admin.appearance.languageTitle")}</h2>
+              </div>
+            </div>
+            <p className="admin-appearance__panel-copy">{t("admin.appearance.languageDescription")}</p>
+            <div
+              className="admin-appearance__segmented"
+              role="radiogroup"
+              aria-label={t("admin.appearance.languageTitle")}
+            >
+              {LANG_OPTIONS.map((option) => {
+                const isSelected = option.value === draft.locale;
+                return (
+                  <Button
+                    key={option.value}
+                    variant={isSelected ? "primary" : "ghost"}
+                    onClick={() => setDraft((prev) => ({ ...prev, locale: option.value }))}
+                    aria-checked={isSelected}
+                    role="radio"
+                  >
+                    {t(option.labelKey)}
+                  </Button>
+                );
+              })}
+            </div>
+          </section>
 
-      <p className="admin-appearance__hint">{t("admin.appearance.themeHint")}</p>
-      {!hasChanges ? <p className="admin-appearance__hint">{t("admin.appearance.noChanges")}</p> : null}
+          <section className="admin-appearance__stack">
+            <article className="admin-appearance__panel">
+              <div className="admin-appearance__panel-header">
+                <div>
+                  <p className="admin-appearance__panel-eyebrow">{t("admin.appearance.title")}</p>
+                  <h2 className="admin-appearance__panel-title">{t("admin.appearance.themeTitle")}</h2>
+                </div>
+              </div>
+              <p className="admin-appearance__panel-copy">{t("admin.appearance.themeDescription")}</p>
+              <div
+                className="admin-appearance__segmented"
+                role="radiogroup"
+                aria-label={t("admin.appearance.themeTitle")}
+              >
+                {THEME_OPTIONS.map((option) => {
+                  const isSelected = option.value === draft.theme;
+                return (
+                  <Button
+                    key={option.value}
+                    variant={isSelected ? "primary" : "ghost"}
+                    onClick={() => {
+                      setDraft((prev) => ({ ...prev, theme: option.value }));
+                      toggleTheme(option.value);
+                    }}
+                    aria-checked={isSelected}
+                    role="radio"
+                  >
+                      {t(option.labelKey)}
+                    </Button>
+                  );
+                })}
+              </div>
+            </article>
+
+            <article className="admin-appearance__panel admin-appearance__panel--secondary">
+              <div className="admin-appearance__panel-header">
+                <div>
+                  <p className="admin-appearance__panel-eyebrow">{t("admin.appearance.title")}</p>
+                  <h2 className="admin-appearance__panel-title">{t("admin.appearance.overviewTitle")}</h2>
+                </div>
+              </div>
+              <p className="admin-appearance__panel-copy">{t("admin.appearance.overviewDescription")}</p>
+              <dl className="admin-appearance__details">
+                <div>
+                  <dt>{t("admin.appearance.summary.language")}</dt>
+                  <dd>{getLocaleLabel(current.locale)}</dd>
+                </div>
+                <div>
+                  <dt>{t("admin.appearance.summary.theme")}</dt>
+                  <dd>{getThemeLabel(current.theme)}</dd>
+                </div>
+                <div>
+                  <dt>{t("admin.appearance.summary.status")}</dt>
+                  <dd>{hasChanges ? t("admin.appearance.summary.pending") : t("admin.appearance.summary.synced")}</dd>
+                </div>
+              </dl>
+              <p className="admin-appearance__hint">{t("admin.appearance.themeHint")}</p>
+              {!hasChanges ? <p className="admin-appearance__hint">{t("admin.appearance.noChanges")}</p> : null}
+            </article>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }

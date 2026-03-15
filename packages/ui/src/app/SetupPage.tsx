@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { createApiClient } from "../api/client";
 import { ApiError } from "../api/errors";
 import { createSetupApi } from "../api/setup";
 import { Button, PasswordField, TextField } from "@nimbus/ui-kit";
-import { t, type I18nKey } from "../i18n/t";
+import { getLocale, t, type I18nKey } from "../i18n/t";
 import { saveAuthTokens } from "./authTokens";
+import { getAppBasePath } from "./basePath";
 import { getSetupGateDecision } from "./setupGate";
 import { AuthLayout } from "./AuthLayout";
 import "./AuthForm.css";
@@ -24,11 +25,12 @@ const defaultFormState: SetupFormState = {
 
 export function SetupPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const apiClient = useMemo(
     () =>
       createApiClient({
-        baseUrl: "",
-        getLocale: () => "ko-KR",
+        baseUrl: getAppBasePath(),
+        getLocale,
       }),
     [],
   );
@@ -86,10 +88,11 @@ export function SetupPage() {
         username: formState.username.trim(),
         password: formState.password,
         display_name: formState.displayName.trim() || undefined,
-        locale: "ko-KR",
+        locale: getLocale(),
       });
       saveAuthTokens(response.tokens);
-      navigate("/files", { replace: true });
+      const next = new URLSearchParams(location.search).get("next");
+      navigate(next && next.startsWith("/") ? next : "/files", { replace: true });
     } catch (error) {
       if (error instanceof ApiError) {
         setFormErrorKey(error.key);

@@ -28,7 +28,7 @@ export type UploadChunkParams = {
   uploadId: string;
   chunkIndex: number;
   chunk: Blob;
-  chunkHash: string;
+  chunkHash: string | null;
   idempotencyKey?: string;
   signal?: AbortSignal;
 };
@@ -90,7 +90,7 @@ export const createUploadsApi = ({ client }: UploadsApiOptions) => {
         rawBody: chunk,
         headers: {
           "Content-Type": "application/octet-stream",
-          "X-Chunk-SHA256": chunkHash,
+          ...(chunkHash ? { "X-Chunk-SHA256": chunkHash } : {}),
           ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
         },
         signal,

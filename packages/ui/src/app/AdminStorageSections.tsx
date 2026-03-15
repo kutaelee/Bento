@@ -2,7 +2,7 @@ import React from "react";
 import { Button, EmptyState, ErrorState, LoadingSkeleton, TextField } from "@nimbus/ui-kit";
 import type { Job } from "../api/jobs";
 import type { Volume } from "../api/volumes";
-import { t, type I18nKey } from "../i18n/t";
+import { getLocale, t, type I18nKey } from "../i18n/t";
 import { JobDetailsCard } from "./JobDetailsCard";
 
 type ValidateResult = {
@@ -171,12 +171,7 @@ export function CreateVolumeSection({
       {createErrorKey ? <ErrorState title={t(createErrorKey)} /> : null}
       {created ? <p className="admin-storage__muted">{t("msg.volumeCreated")}</p> : null}
       <div className="admin-storage__actions">
-        <Button
-          variant="primary"
-          onClick={onCreate}
-          disabled={!createName || !createPath || creating}
-          loading={creating}
-        >
+        <Button variant="primary" onClick={onCreate} disabled={!createName || !createPath || creating} loading={creating}>
           {t("action.createVolume")}
         </Button>
       </div>
@@ -188,17 +183,34 @@ type ActivateVolumeSectionProps = {
   selectedVolume: Volume | null;
   activateErrorKey: I18nKey | null;
   activated: boolean;
+  deactivated: boolean;
+  deleted: boolean;
   activating: boolean;
+  deactivating: boolean;
+  deleting: boolean;
   onActivate: () => void;
+  onDeactivate: () => void;
+  onDelete: () => void;
 };
 
 export function ActivateVolumeSection({
   selectedVolume,
   activateErrorKey,
   activated,
+  deactivated,
+  deleted,
   activating,
+  deactivating,
+  deleting,
   onActivate,
+  onDeactivate,
+  onDelete,
 }: ActivateVolumeSectionProps) {
+  const locale = getLocale();
+  const deactivateLabel = locale === "en-US" ? "Deactivate" : "비활성화";
+  const deactivatedMessage = locale === "en-US" ? "Volume deactivated." : "볼륨을 비활성화했습니다.";
+  const deletedMessage = locale === "en-US" ? "Volume deleted." : "볼륨을 삭제했습니다.";
+
   return (
     <section className="admin-storage__section">
       <h2 className="admin-storage__section-title">{t("admin.storage.activateTitle")}</h2>
@@ -207,6 +219,8 @@ export function ActivateVolumeSection({
       </p>
       {activateErrorKey ? <ErrorState title={t(activateErrorKey)} /> : null}
       {activated ? <p className="admin-storage__muted">{t("msg.volumeActivated")}</p> : null}
+      {deactivated ? <p className="admin-storage__muted">{deactivatedMessage}</p> : null}
+      {deleted ? <p className="admin-storage__muted">{deletedMessage}</p> : null}
       <div className="admin-storage__actions">
         <Button
           variant="primary"
@@ -215,6 +229,22 @@ export function ActivateVolumeSection({
           loading={activating}
         >
           {t("action.activateVolume")}
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={onDeactivate}
+          disabled={!selectedVolume || !selectedVolume.is_active}
+          loading={deactivating}
+        >
+          {deactivateLabel}
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={onDelete}
+          disabled={!selectedVolume || selectedVolume.is_active}
+          loading={deleting}
+        >
+          {t("action.delete")}
         </Button>
       </div>
     </section>

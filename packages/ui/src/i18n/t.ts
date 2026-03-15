@@ -4,36 +4,64 @@ import en from "./locales/en-US.json";
 export type Locale = "ko-KR" | "en-US";
 
 const LOCALE_KEY = "ui.appearance.locale";
+export const LOCALE_CHANGE_EVENT = "bento:locale-change";
 
-const dictionaries = {
-  "ko-KR": ko,
-  "en-US": en,
-} as const;
+type Dictionary = Record<string, string>;
 
-export type I18nKey = keyof typeof dictionaries["ko-KR"];
+const dictionaries: Record<Locale, Dictionary> = {
+  "ko-KR": ko as Dictionary,
+  "en-US": en as Dictionary,
+};
 
-let currentLocale: Locale = "ko-KR";
+export type I18nKey = string;
 
-if (typeof window !== "undefined") {
-  const saved = window.localStorage.getItem(LOCALE_KEY);
-  if (saved === "ko-KR" || saved === "en-US") {
-    currentLocale = saved;
-  }
-}
+const suspiciousLatin1Run = /[\u00C0-\u00FF]{2,}/;
+const suspiciousSpacedAscii = /\b(?:[A-Za-z]{1,2}\s+){2,}[A-Za-z]{1,2}\b/;
+const suspiciousHanForKorean = /[\u4E00-\u9FFF]/;
+
+const isSuspiciousTranslation = (value: string, locale: Locale) => {
+  if (!value.trim()) return true;
+  if (value.includes("\uFFFD")) return true;
+  if (value.includes("??")) return true;
+  if (suspiciousLatin1Run.test(value)) return true;
+  if (locale === "ko-KR" && suspiciousHanForKorean.test(value)) return true;
+  if (locale === "en-US" && suspiciousSpacedAscii.test(value)) return true;
+  return false;
+};
+
+const humanizeKey = (key: string | number): string =>
+  String(key)
+    .split(".")
+    .at(-1)
+    ?.replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[-_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() ?? String(key);
 
 export function getLocale(): Locale {
-  return currentLocale;
+  if (typeof window === "undefined") return "ko-KR";
+  const locale = window.localStorage.getItem(LOCALE_KEY);
+  return locale === "en-US" ? "en-US" : "ko-KR";
 }
 
 export function setLocale(locale: Locale) {
-  currentLocale = locale;
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(LOCALE_KEY, locale);
-  }
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(LOCALE_KEY, locale);
+  window.dispatchEvent(new CustomEvent(LOCALE_CHANGE_EVENT, { detail: locale }));
 }
 
-export const t = (key: I18nKey, locale?: Locale): string => {
-  const effectiveLocale = locale ?? currentLocale;
-  const dict = dictionaries[effectiveLocale] ?? dictionaries["ko-KR"];
-  return dict[key] ?? key;
-};
+export function t(key: I18nKey | string, locale: Locale = getLocale()): string {
+  const normalizedKey = String(key);
+  const primaryValue = dictionaries[locale][normalizedKey];
+  if (typeof primaryValue === "string" && !isSuspiciousTranslation(primaryValue, locale)) {
+    return primaryValue;
+  }
+
+  const fallbackLocale: Locale = locale === "ko-KR" ? "en-US" : "ko-KR";
+  const fallbackValue = dictionaries[fallbackLocale][normalizedKey];
+  if (typeof fallbackValue === "string" && !isSuspiciousTranslation(fallbackValue, fallbackLocale)) {
+    return fallbackValue;
+  }
+
+  return humanizeKey(normalizedKey);
+}

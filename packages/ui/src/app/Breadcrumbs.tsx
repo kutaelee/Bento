@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { ApiError } from "../api/errors";
 import { createNodesApi, type BreadcrumbItem } from "../api/nodes";
+import { createVolumesApi } from "../api/volumes";
 import { t, type I18nKey } from "../i18n/t";
 import { getAuthenticatedApiClient } from "./authenticatedApiClient";
 import { ROOT_NODE_ID } from "./nodes";
+import "./Breadcrumbs.css";
 
 const breadcrumbStyles: {
   list: React.CSSProperties;
@@ -22,17 +24,17 @@ const breadcrumbStyles: {
     alignItems: "center",
     gap: 8,
     fontSize: 14,
-    color: "var(--nd-color-text-primary)",
+    color: "var(--bento-shell-text)",
   },
   separator: {
-    color: "var(--nd-color-text-disabled)",
+    color: "var(--bento-shell-muted)",
   },
   link: {
-    color: "var(--nd-color-accent-hover)",
+    color: "var(--bento-shell-accent)",
     textDecoration: "none",
   },
   current: {
-    color: "var(--nd-color-text-primary)",
+    color: "var(--bento-shell-text)",
     fontWeight: 600,
   },
   ellipsis: {
@@ -44,7 +46,7 @@ const breadcrumbStyles: {
     background: "transparent",
     padding: 0,
     cursor: "pointer",
-    color: "var(--nd-color-text-primary)",
+    color: "var(--bento-shell-text)",
     fontSize: "inherit",
     lineHeight: "inherit",
   },
@@ -53,8 +55,8 @@ const breadcrumbStyles: {
     top: "100%",
     left: 0,
     marginTop: 4,
-    background: "var(--nd-color-surface-current)",
-    border: "1px solid var(--nd-color-border-default)",
+    background: "var(--bento-shell-panel)",
+    border: "1px solid var(--bento-shell-border)",
     borderRadius: 8,
     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
     display: "flex",
@@ -63,14 +65,14 @@ const breadcrumbStyles: {
     zIndex: 50,
   },
   dropdownLink: {
-    color: "var(--nd-color-text-primary)",
+    color: "var(--bento-shell-text)",
     textDecoration: "none",
     padding: "6px 12px",
     whiteSpace: "nowrap",
     borderRadius: 6,
   },
   error: {
-    color: "var(--nd-color-status-danger)",
+    color: "var(--bento-shell-error)",
     fontSize: 12,
   },
 };
@@ -78,9 +80,10 @@ const breadcrumbStyles: {
 type BreadcrumbTrailProps = {
   items: BreadcrumbItem[];
   rootId?: string;
+  search?: string;
 };
 
-export function BreadcrumbTrail({ items, rootId = ROOT_NODE_ID }: BreadcrumbTrailProps) {
+export function BreadcrumbTrail({ items, rootId = ROOT_NODE_ID, search = "" }: BreadcrumbTrailProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   if (!items.length) return null;
@@ -116,7 +119,7 @@ export function BreadcrumbTrail({ items, rootId = ROOT_NODE_ID }: BreadcrumbTrai
                     {collapsedItems.map((cItem) => (
                       <Link
                         key={cItem.id}
-                        to={cItem.id === rootId ? "/files" : `/files/${cItem.id}`}
+                        to={{ pathname: cItem.id === rootId ? "/files" : `/files/${cItem.id}`, search }}
                         style={breadcrumbStyles.dropdownLink}
                       >
                         {cItem.name}
@@ -137,7 +140,7 @@ export function BreadcrumbTrail({ items, rootId = ROOT_NODE_ID }: BreadcrumbTrai
                 {item.name}
               </span>
             ) : (
-              <Link to={path} className="breadcrumbs__link">
+              <Link to={{ pathname: path, search }} className="breadcrumbs__link">
                 {item.name}
               </Link>
             )}
@@ -156,16 +159,40 @@ export function Breadcrumbs() {
 
   const [items, setItems] = useState<BreadcrumbItem[]>([]);
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
+  const [activeBasePath, setActiveBasePath] = useState<string | null>(null);
 
   const apiClient = useMemo(() => getAuthenticatedApiClient(), []);
 
   const nodesApi = useMemo(() => createNodesApi(apiClient), [apiClient]);
+  const volumesApi = useMemo(() => createVolumesApi(apiClient), [apiClient]);
+
+  useEffect(() => {
+    if (!isFilesRoute) return;
+
+    let active = true;
+
+    void (async () => {
+      try {
+        const response = await volumesApi.listVolumes();
+        if (!active) return;
+        const activeVolume = response.items.find((item) => item.is_active);
+        setActiveBasePath(activeVolume?.base_path ?? null);
+      } catch {
+        if (!active) return;
+        setActiveBasePath(null);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [isFilesRoute, volumesApi]);
 
   useEffect(() => {
     if (!isFilesRoute) return;
 
     if (!nodeId) {
-      setItems([{ id: ROOT_NODE_ID, name: t("nav.files") }]);
+      setItems([{ id: ROOT_NODE_ID, name: activeBasePath ?? t("nav.files") }]);
       setErrorKey(null);
       return;
     }
@@ -177,8 +204,12 @@ export function Breadcrumbs() {
         const response = await nodesApi.getBreadcrumb(nodeId);
         if (!active) return;
         const nextItems = response.items?.length
-          ? response.items
-          : [{ id: ROOT_NODE_ID, name: t("nav.files") }];
+          ? response.items.map((item, index) =>
+              index === 0 && item.id === ROOT_NODE_ID
+                ? { ...item, name: activeBasePath ?? t("nav.files") }
+                : item,
+            )
+          : [{ id: ROOT_NODE_ID, name: activeBasePath ?? t("nav.files") }];
         setItems(nextItems);
       } catch (error) {
         if (!active) return;
@@ -187,7 +218,7 @@ export function Breadcrumbs() {
         } else {
           setErrorKey("err.network");
         }
-        setItems([{ id: ROOT_NODE_ID, name: t("nav.files") }]);
+        setItems([{ id: ROOT_NODE_ID, name: activeBasePath ?? t("nav.files") }]);
       }
     };
 
@@ -196,12 +227,12 @@ export function Breadcrumbs() {
     return () => {
       active = false;
     };
-  }, [isFilesRoute, nodeId, nodesApi]);
+  }, [activeBasePath, isFilesRoute, nodeId, nodesApi]);
 
   if (!isFilesRoute) return null;
   if (errorKey) {
     return <div className="breadcrumbs__error">{t(errorKey)}</div>;
   }
 
-  return <BreadcrumbTrail items={items} />;
+  return <BreadcrumbTrail items={items} search={location.search} />;
 }

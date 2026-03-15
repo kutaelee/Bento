@@ -5,12 +5,10 @@ import {
   EmptyState,
   ErrorState,
   LoadingSkeleton,
-  PageHeader,
   TextField,
-  Toolbar,
 } from "@nimbus/ui-kit";
 import type { I18nKey } from "../i18n/t";
-import { t } from "../i18n/t";
+import { getLocale, t } from "../i18n/t";
 import "./AdminSecurityPage.css";
 
 type PolicyScope = "sharing" | "security";
@@ -63,7 +61,7 @@ function makeColumns() {
     {
       id: "policy",
       header: t("admin.security.policy"),
-      renderCell: (item: PolicyRow) => t(item.policyKey),
+      renderCell: (item: SecurityPolicyRow) => t(item.policyKey),
     },
     {
       id: "detail",
@@ -79,13 +77,16 @@ function makeColumns() {
   ];
 }
 
+type SecurityPolicyRow = PolicyRow & { scopeBadge?: string };
+
 export default function AdminSecurityPage() {
+  const locale = getLocale();
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [errorKey, setErrorKey] = useState<I18nKey | null>(null);
-  const [rows, setRows] = useState<PolicyRow[]>([]);
+  const [rows, setRows] = useState<SecurityPolicyRow[]>([]);
 
-  const columns = useMemo(() => makeColumns(), []);
+  const columns = useMemo(() => makeColumns(), [locale]);
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -93,13 +94,21 @@ export default function AdminSecurityPage() {
 
     try {
       await Promise.resolve();
-      setRows(POLICY_ROWS);
+      setRows(
+        POLICY_ROWS.map((row) => ({
+          ...row,
+          scopeBadge:
+            row.scope === "sharing"
+              ? t("admin.security.section.share.title")
+              : t("admin.security.section.security.title"),
+        })),
+      );
     } catch {
       setErrorKey("err.network");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     void loadRows();
@@ -114,38 +123,55 @@ export default function AdminSecurityPage() {
       const detailLabel = t(row.detailKey).toLowerCase();
       return policyLabel.includes(queryValue) || detailLabel.includes(queryValue);
     });
-  }, [queryValue, rows]);
+  }, [locale, queryValue, rows]);
 
   const sharedPolicies = useMemo(() => filteredRows.filter((row) => row.scope === "sharing"), [filteredRows]);
   const securePolicies = useMemo(() => filteredRows.filter((row) => row.scope === "security"), [filteredRows]);
+  const summaryItems = useMemo(
+    () => [
+      {
+        label: t("admin.security.summary.visible"),
+        value: String(filteredRows.length),
+      },
+      {
+        label: t("admin.security.summary.sharing"),
+        value: String(sharedPolicies.length),
+      },
+      {
+        label: t("admin.security.summary.enforced"),
+        value: String(filteredRows.filter((row) => row.state === "enabled").length),
+      },
+    ],
+    [filteredRows, locale, sharedPolicies.length],
+  );
 
   return (
     <section className="admin-security">
-      <PageHeader
-        title={t("admin.security.title")}
-        actions={
-          <Toolbar>
-            <TextField
-              value={query}
-              onChange={(event) => setQuery(event.currentTarget.value)}
-              placeholder={t("admin.security.searchPlaceholder")}
-            />
-            <Button variant="ghost" onClick={() => void loadRows()}>
-              {t("action.refresh")}
-            </Button>
-          </Toolbar>
-        }
-      />
+      <header className="admin-security__hero">
+        <div className="admin-security__hero-copy">
+          <p className="admin-security__eyebrow">{t("admin.home.quickLinksTitle")}</p>
+          <h1 className="admin-security__title">{t("admin.security.title")}</h1>
+          <p className="admin-security__subtitle">{t("admin.security.subtitle")}</p>
+        </div>
+        <div className="admin-security__hero-actions">
+          <TextField
+            value={query}
+            onChange={(event) => setQuery(event.currentTarget.value)}
+            placeholder={t("admin.security.searchPlaceholder")}
+          />
+          <Button variant="secondary" onClick={() => void loadRows()} disabled={loading}>
+            {t("action.refresh")}
+          </Button>
+        </div>
+      </header>
 
       <section className="admin-security__summary">
-        <div className="admin-security__summary-card">
-          <span>{t("admin.security.section.share.title")}</span>
-          <strong>{sharedPolicies.length}</strong>
-        </div>
-        <div className="admin-security__summary-card">
-          <span>{t("admin.security.section.security.title")}</span>
-          <strong>{securePolicies.length}</strong>
-        </div>
+        {summaryItems.map((item) => (
+          <article key={item.label} className="admin-security__summary-card">
+            <span className="admin-security__summary-label">{item.label}</span>
+            <strong className="admin-security__summary-value">{item.value}</strong>
+          </article>
+        ))}
       </section>
 
       {loading ? <LoadingSkeleton lines={6} /> : null}
@@ -153,35 +179,59 @@ export default function AdminSecurityPage() {
       {!loading && !errorKey && filteredRows.length === 0 ? <EmptyState title={t("admin.security.empty")} /> : null}
 
       {!loading && !errorKey && filteredRows.length > 0 ? (
-        <>
-          <section className="admin-security__section">
-            <h2>{t("admin.security.section.share.title")}</h2>
-            <p>{t("admin.security.section.share.description")}</p>
-            <div className="admin-security__panel">
-              <DataTable
-                items={sharedPolicies}
-                columns={columns}
-                getRowKey={(item) => item.id}
-                heightPx={190}
-                rowHeightPx={48}
-              />
+        <div className="admin-security__layout">
+          <section className="admin-security__panel admin-security__panel--list">
+            <div className="admin-security__panel-header">
+              <div>
+                <p className="admin-security__panel-eyebrow">{t("admin.security.title")}</p>
+                <h2 className="admin-security__panel-title">{t("admin.security.section.share.title")}</h2>
+              </div>
+              <span className="admin-security__panel-meta">{sharedPolicies.length}</span>
             </div>
+            <p className="admin-security__panel-copy">{t("admin.security.section.share.description")}</p>
+            <DataTable
+              items={sharedPolicies}
+              columns={columns}
+              getRowKey={(item) => item.id}
+              heightPx={220}
+              rowHeightPx={48}
+            />
           </section>
 
-          <section className="admin-security__section">
-            <h2>{t("admin.security.section.security.title")}</h2>
-            <p>{t("admin.security.section.security.description")}</p>
-            <div className="admin-security__panel">
+          <section className="admin-security__stack">
+            <article className="admin-security__panel">
+              <div className="admin-security__panel-header">
+                <div>
+                  <p className="admin-security__panel-eyebrow">{t("admin.security.title")}</p>
+                  <h2 className="admin-security__panel-title">{t("admin.security.section.security.title")}</h2>
+                </div>
+              </div>
+              <p className="admin-security__panel-copy">{t("admin.security.section.security.description")}</p>
               <DataTable
                 items={securePolicies}
                 columns={columns}
                 getRowKey={(item) => item.id}
-                heightPx={190}
+                heightPx={220}
                 rowHeightPx={48}
               />
-            </div>
+            </article>
+
+            <article className="admin-security__panel admin-security__panel--notice">
+              <div className="admin-security__panel-header">
+                <div>
+                  <p className="admin-security__panel-eyebrow">{t("admin.security.title")}</p>
+                  <h2 className="admin-security__panel-title">{t("admin.security.overviewTitle")}</h2>
+                </div>
+              </div>
+              <p className="admin-security__panel-copy">{t("admin.security.overviewDescription")}</p>
+              <ul className="admin-security__signal-list">
+                <li>{t("admin.security.policies.shareLinkDefaultExpiry.policy")}</li>
+                <li>{t("admin.security.policies.shareLinkPassword.policy")}</li>
+                <li>{t("admin.security.policies.login2Fa.policy")}</li>
+              </ul>
+            </article>
           </section>
-        </>
+        </div>
       ) : null}
     </section>
   );

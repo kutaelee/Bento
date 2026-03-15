@@ -189,9 +189,11 @@ async function getFreePort() {
   const port = await getFreePort();
   const devLogs = { out: [], err: [] };
 
-  const devProc = spawn('pnpm', ['-C', 'packages/ui', 'dev', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
+  const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+  const devProc = spawn(pnpmCommand, ['-C', 'packages/ui', 'dev', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
     cwd: rootDir,
     stdio: ['ignore', 'pipe', 'pipe'],
+    shell: process.platform === 'win32',
     env: { ...process.env, BROWSER: 'none', VISUAL_FIXTURES: '1', VITE_DISABLE_PROXY: '1' },
   });
 
@@ -309,9 +311,9 @@ async function getFreePort() {
         // Give the client app time to render deterministically.
         await page.waitForSelector('#root', { state: 'attached', timeout: 15000 }).catch(() => {});
         if (routePath === '/files') {
-          // For /files, wait for the AppShell frame (except loading state).
+          // For /files, wait for the topbar-first AppShell frame (except loading state).
           if (state !== 'loading') {
-            await page.waitForSelector('header,aside', { state: 'attached', timeout: 15000 }).catch(() => {});
+            await page.waitForSelector('header,main', { state: 'attached', timeout: 15000 }).catch(() => {});
           }
         }
         if ((routePath === '/files' || routePath.startsWith('/files/')) && state !== 'loading') {
@@ -330,22 +332,20 @@ async function getFreePort() {
         if (shouldCheckStructure) {
           const structure = await page.evaluate(() => {
             const topbar = document.querySelector('header,[data-ui=topbar],[aria-label="Topbar"]');
-            const left = document.querySelector('aside,[data-ui=leftnav],[aria-label="Folder Tree"]');
             const inspector = document.querySelector('[data-ui=inspector],aside[aria-label="Inspector"],.nd-detail-inspector');
             const main = document.querySelector('main,[role="main"]');
             const breadcrumb = document.querySelector('nav[aria-label="breadcrumb"],[aria-label="breadcrumb"]');
             const actionable = document.querySelector('button,[role="button"],a[href],input,select,textarea');
             return {
               hasTopbar: !!topbar,
-              hasLeft: !!left,
               hasInspector: !!inspector,
               hasMain: !!main,
               hasBreadcrumb: !!breadcrumb,
               hasActionable: !!actionable,
             };
           });
-          if (!structure.hasTopbar || !structure.hasLeft) {
-            errors.push(`${routePath}:${state}:structure-missing(topbar=${structure.hasTopbar},left=${structure.hasLeft})`);
+          if (!structure.hasTopbar) {
+            errors.push(`${routePath}:${state}:structure-missing(topbar=${structure.hasTopbar})`);
           }
           if (!structure.hasMain || !structure.hasBreadcrumb || !structure.hasActionable) {
             errors.push(`${routePath}:${state}:basic-a11y-missing(main=${structure.hasMain},breadcrumb=${structure.hasBreadcrumb},actionable=${structure.hasActionable})`);

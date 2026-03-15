@@ -5,9 +5,7 @@ import {
   EmptyState,
   ErrorState,
   LoadingSkeleton,
-  PageHeader,
   TextField,
-  Toolbar,
 } from "@nimbus/ui-kit";
 import { t } from "../i18n/t";
 import type { I18nKey } from "../i18n/t";
@@ -76,6 +74,48 @@ export default function AdminAuditPage() {
         row.detail.toLowerCase().includes(normalized),
     );
   }, [events, query]);
+  const summaryItems = useMemo(
+    () => [
+      {
+        label: t("admin.audit.summary.visible"),
+        value: String(filteredEvents.length),
+      },
+      {
+        label: t("admin.audit.summary.actors"),
+        value: String(new Set(filteredEvents.map((event) => event.actor)).size),
+      },
+      {
+        label: t("admin.audit.summary.latest"),
+        value: filteredEvents[0]?.time ?? "-",
+      },
+    ],
+    [filteredEvents],
+  );
+  const columns = useMemo(
+    () => [
+      {
+        id: "actor",
+        header: t("admin.audit.column.actor"),
+        renderCell: (item: AuditEvent) => item.actor,
+      },
+      {
+        id: "action",
+        header: t("admin.audit.column.action"),
+        renderCell: (item: AuditEvent) => item.action,
+      },
+      {
+        id: "target",
+        header: t("admin.audit.column.target"),
+        renderCell: (item: AuditEvent) => item.target,
+      },
+      {
+        id: "time",
+        header: t("admin.audit.column.time"),
+        renderCell: (item: AuditEvent) => item.time,
+      },
+    ],
+    [],
+  );
 
   const onQueryChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(event.currentTarget.value);
@@ -97,21 +137,32 @@ export default function AdminAuditPage() {
 
   return (
     <section className="admin-audit">
-      <PageHeader
-        title={t("admin.audit.title")}
-        actions={
-          <Toolbar>
-            <TextField
-              value={query}
-              onChange={onQueryChange}
-              placeholder={t("admin.audit.searchPlaceholder")}
-            />
-            <Button variant="ghost" onClick={refresh} disabled={loading}>
-              {t("admin.audit.reload")}
-            </Button>
-          </Toolbar>
-        }
-      />
+      <header className="admin-audit__hero">
+        <div className="admin-audit__hero-copy">
+          <p className="admin-audit__eyebrow">{t("admin.home.quickLinksTitle")}</p>
+          <h1 className="admin-audit__title">{t("admin.audit.title")}</h1>
+          <p className="admin-audit__subtitle">{t("admin.audit.subtitle")}</p>
+        </div>
+        <div className="admin-audit__hero-actions">
+          <TextField
+            value={query}
+            onChange={onQueryChange}
+            placeholder={t("admin.audit.searchPlaceholder")}
+          />
+          <Button variant="ghost" onClick={refresh} disabled={loading}>
+            {t("admin.audit.reload")}
+          </Button>
+        </div>
+      </header>
+
+      <section className="admin-audit__summary">
+        {summaryItems.map((item) => (
+          <article key={item.label} className="admin-audit__summary-card">
+            <span className="admin-audit__summary-label">{item.label}</span>
+            <strong className="admin-audit__summary-value">{item.value}</strong>
+          </article>
+        ))}
+      </section>
 
       {loading ? <LoadingSkeleton lines={6} /> : null}
 
@@ -123,33 +174,18 @@ export default function AdminAuditPage() {
 
       {!loading && !errorKey && filteredEvents.length > 0 ? (
         <div className="admin-audit__panel">
+          <div className="admin-audit__panel-header">
+            <div>
+              <p className="admin-audit__panel-eyebrow">{t("admin.audit.title")}</p>
+              <h2 className="admin-audit__panel-title">{t("admin.audit.title")}</h2>
+            </div>
+          </div>
           <DataTable
             items={filteredEvents}
             getRowKey={(item) => item.id}
-            heightPx={260}
+            heightPx={320}
             rowHeightPx={44}
-            columns={[
-              {
-                id: "actor",
-                header: t("admin.audit.column.actor"),
-                renderCell: (item: AuditEvent) => item.actor,
-              },
-              {
-                id: "action",
-                header: t("admin.audit.column.action"),
-                renderCell: (item: AuditEvent) => item.action,
-              },
-              {
-                id: "target",
-                header: t("admin.audit.column.target"),
-                renderCell: (item: AuditEvent) => item.target,
-              },
-              {
-                id: "time",
-                header: t("admin.audit.column.time"),
-                renderCell: (item: AuditEvent) => item.time,
-              },
-            ]}
+            columns={columns}
           />
           {filteredEvents.length > 0 ? (
             <p className="admin-audit__detail">

@@ -1,0 +1,53 @@
+:root {
+  --bento-shell-bg: #f8f9fa;
+  --bento-shell-surface: #ffffff;
+  --bento-shell-surface-muted: #f1f4f8;
+  --bento-shell-border: rgb(107 119 140 / 0.22);
+  --bento-shell-text: #172b4d;
+  --bento-shell-subtle: #6b778c;
+  --bento-shell-muted: #6b778c;
+  --bento-shell-strong: #0052cc;
+  --bento-shell-accent: #0052cc;
+  --bento-shell-secondary: #4c5264;
+  --bento-shell-success: #1db954;
+  --bento-shell-warning: #ffab00;
+  --bento-shell-error: #de350b;
+  --bento-shell-panel: #ffffff;
+  --bento-shell-panel-strong: #ffffff;
+  --bento-shell-canvas: #f8f9fa;
+  --bento-shell-shadow-soft: 0 18px 48px rgb(23 43 77 / 0.08);
+  --bento-shell-shadow-card: 0 10px 30px rgb(23 43 77 / 0.06);
+}
+
+html.dark {
+  --bento-shell-bg: #0b0e14;
+  --bento-shell-surface: #161b22;
+  --bento-shell-surface-muted: #1b222d;
+  --bento-shell-border: rgb(139 148 158 / 0.26);
+  --bento-shell-text: #f0f6fc;
+  --bento-shell-subtle: #8b949e;
+  --bento-shell-muted: #8b949e;
+  --bento-shell-strong: #38bdf8;
+  --bento-shell-accent: #38bdf8;
+  --bento-shell-secondary: #8b949e;
+  --bento-shell-success: #4ade80;
+  --bento-shell-warning: #facc15;
+  --bento-shell-error: #f87171;
+  --bento-shell-panel: #161b22;
+  --bento-shell-panel-strong: #1b2330;
+  --bento-shell-canvas: #0b0e14;
+  --bento-shell-shadow-soft: 0 24px 64px rgb(0 0 0 / 0.36);
+  --bento-shell-shadow-card: 0 14px 34px rgb(0 0 0 / 0.3);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bento-shell-bg);
+  color: var(--bento-shell-text);
+}

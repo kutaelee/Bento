@@ -128,4 +128,43 @@ describe("volumes api", () => {
     const body = JSON.parse(String(init?.body));
     expect(body).toEqual({ dry_run: false });
   });
+
+  it("deactivates volume", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      jsonResponse(200, {
+        id: "22222222-2222-2222-2222-222222222222",
+        name: "Backup",
+        base_path: "/mnt/backup",
+        is_active: false,
+        status: "OK",
+        created_at: "2026-03-01T00:00:00Z",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    const client = createApiClient({ baseUrl: "http://localhost:1234" });
+    const api = createVolumesApi(client);
+
+    const result = await api.deactivateVolume("22222222-2222-2222-2222-222222222222");
+
+    expect(result.is_active).toBe(false);
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("http://localhost:1234/admin/volumes/22222222-2222-2222-2222-222222222222/deactivate");
+    expect(init?.method).toBe("POST");
+  });
+
+  it("deletes volume", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    const client = createApiClient({ baseUrl: "http://localhost:1234" });
+    const api = createVolumesApi(client);
+
+    const result = await api.deleteVolume("22222222-2222-2222-2222-222222222222");
+
+    expect(result.ok).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("http://localhost:1234/admin/volumes/22222222-2222-2222-2222-222222222222");
+    expect(init?.method).toBe("DELETE");
+  });
 });

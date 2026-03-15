@@ -3,9 +3,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { createApiClient } from "../api/client";
 import { ApiError } from "../api/errors";
 import { createAuthApi } from "../api/auth";
-import { t, type I18nKey } from "../i18n/t";
+import { getLocale, t, type I18nKey } from "../i18n/t";
 import { Button, PasswordField, TextField } from "@nimbus/ui-kit";
 import { saveAuthTokens } from "./authTokens";
+import { getAppBasePath } from "./basePath";
 import { AuthLayout } from "./AuthLayout";
 import "./AuthForm.css";
 
@@ -114,8 +115,8 @@ export function InviteAcceptPage() {
   const apiClient = useMemo(
     () =>
       createApiClient({
-        baseUrl: "",
-        getLocale: () => "ko-KR",
+        baseUrl: getAppBasePath(),
+        getLocale,
       }),
     [],
   );
@@ -156,7 +157,8 @@ export function InviteAcceptPage() {
         display_name: formState.displayName.trim() || undefined,
       });
       saveAuthTokens(response.tokens);
-      navigate("/files", { replace: true });
+      const next = new URLSearchParams(location.search).get("next");
+      navigate(next && next.startsWith("/") ? next : "/files", { replace: true });
     } catch (error) {
       if (error instanceof ApiError) {
         if ([401, 403, 404, 409].includes(error.status)) {

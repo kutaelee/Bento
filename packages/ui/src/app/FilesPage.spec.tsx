@@ -16,8 +16,25 @@ const baseItem: NodeItem = {
   updated_at: "2026-02-28T00:00:00Z",
 };
 
+const renderWithSuppressedLayoutEffectWarning = (element: React.ReactElement) => {
+  const originalError = console.error;
+  console.error = (...args: unknown[]) => {
+    const [message] = args;
+    if (typeof message === "string" && message.includes("useLayoutEffect does nothing on the server")) {
+      return;
+    }
+    originalError(...args);
+  };
+
+  try {
+    return renderToStaticMarkup(element);
+  } finally {
+    console.error = originalError;
+  }
+};
+
 const renderView = (overrides: Partial<React.ComponentProps<typeof FolderView>> = {}) =>
-  renderToStaticMarkup(
+  renderWithSuppressedLayoutEffectWarning(
     <MemoryRouter>
       <FolderView
         title="Files"

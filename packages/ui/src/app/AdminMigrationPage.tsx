@@ -5,9 +5,7 @@ import {
   ErrorState,
   ForbiddenState,
   LoadingSkeleton,
-  PageHeader,
   TextField,
-  Toolbar,
 } from "@nimbus/ui-kit";
 import { useNavigate } from "react-router-dom";
 import { createAdminMaintenanceApi } from "../api/adminMaintenance";
@@ -117,13 +115,29 @@ export default function AdminMigrationPage() {
     }
   };
 
+  const summaryItems = useMemo(
+    () => [
+      {
+        label: t("admin.migration.summary.mode"),
+        value: readOnly ? t("admin.migration.summary.readOnly") : t("admin.migration.summary.readWrite"),
+      },
+      {
+        label: t("admin.migration.summary.integrity"),
+        value: verifySha256 ? t("admin.migration.summary.enabled") : t("admin.migration.summary.disabled"),
+      },
+      {
+        label: t("admin.migration.summary.cleanup"),
+        value: deleteSourceAfter ? t("admin.migration.summary.enabled") : t("admin.migration.summary.disabled"),
+      },
+    ],
+    [deleteSourceAfter, readOnly, verifySha256],
+  );
+
   if (loadErrorKey === "err.forbidden") {
     return (
       <ForbiddenState
-        titleKey="err.forbidden"
-        descKey="msg.forbiddenAdmin"
-        actionLabelKey="action.goHome"
-        onAction={() => navigate("/files")}
+        title={t("err.forbidden")}
+        detail={t("msg.forbiddenAdmin")}
       />
     );
   }
@@ -131,125 +145,155 @@ export default function AdminMigrationPage() {
   if (loadErrorKey) {
     return (
       <ErrorState
-        titleKey="err.unknown"
-        descKey={loadErrorKey}
-        retryLabelKey="action.retry"
-        onRetry={() => void loadStatus()}
+        title={t("err.unknown")}
+        detail={t(loadErrorKey)}
+        action={
+          <Button variant="secondary" onClick={() => void loadStatus()}>
+            {t("action.retry")}
+          </Button>
+        }
       />
     );
   }
 
   return (
     <section className="admin-migration">
-      <PageHeader
-        title={t("admin.migration.title")}
-        actions={
-          <Toolbar>
-            <Button variant="ghost" onClick={() => void loadStatus()} disabled={loading || submitting}>
-              {t("action.refresh")}
-            </Button>
-          </Toolbar>
-        }
-      />
-
-      <section className="admin-migration__section admin-migration__section--dense">
-        <div>
-          <h2 className="admin-migration__section-title">{t("status.readOnly")}</h2>
+      <header className="admin-migration__hero">
+        <div className="admin-migration__hero-copy">
+          <p className="admin-migration__eyebrow">{t("admin.home.quickLinksTitle")}</p>
+          <h1 className="admin-migration__title">{t("admin.migration.title")}</h1>
+          <p className="admin-migration__subtitle">{t("admin.migration.subtitle")}</p>
         </div>
+        <div className="admin-migration__hero-actions">
+          <Button variant="secondary" onClick={() => void loadStatus()} disabled={loading || submitting}>
+            {t("action.refresh")}
+          </Button>
+        </div>
+      </header>
 
-        {loading ? (
-          <LoadingSkeleton lines={4} />
-        ) : (
-          <>
+      <section className="admin-migration__summary">
+        {summaryItems.map((item) => (
+          <article key={item.label} className="admin-migration__summary-card">
+            <span className="admin-migration__summary-label">{item.label}</span>
+            <strong className="admin-migration__summary-value">{item.value}</strong>
+          </article>
+        ))}
+      </section>
+
+      <div className="admin-migration__layout">
+        <section className="admin-migration__stack">
+          <article className="admin-migration__panel">
+            <div className="admin-migration__panel-header">
+              <div>
+                <p className="admin-migration__panel-eyebrow">{t("admin.migration.title")}</p>
+                <h2 className="admin-migration__panel-title">{t("status.readOnly")}</h2>
+              </div>
+            </div>
+            <p className="admin-migration__panel-copy">{t("admin.migration.modeDescription")}</p>
+
+            {loading ? (
+              <LoadingSkeleton lines={4} />
+            ) : (
+              <>
+                <label className="admin-migration__checkbox">
+                  <input
+                    type="checkbox"
+                    checked={readOnly}
+                    disabled={submitting}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                      setReadOnly(event.target.checked);
+                      setSaved(false);
+                    }}
+                    aria-label={t("status.readOnly")}
+                  />
+                  <span>{t("status.readOnly")}</span>
+                </label>
+                {submitErrorKey ? <p className="admin-migration__alert">{t(submitErrorKey)}</p> : null}
+                {saved ? <p className="admin-migration__success">{t("msg.changesSaved")}</p> : null}
+                <div className="admin-migration__actions">
+                  <Button variant="primary" onClick={handleSubmit} disabled={!isDirty || submitting} loading={submitting}>
+                    {t("action.save")}
+                  </Button>
+                </div>
+              </>
+            )}
+          </article>
+
+          <article className="admin-migration__panel">
+            <div className="admin-migration__panel-header">
+              <div>
+                <p className="admin-migration__panel-eyebrow">{t("admin.migration.title")}</p>
+                <h2 className="admin-migration__panel-title">{t("modal.migrationStart.title")}</h2>
+              </div>
+            </div>
+            <p className="admin-migration__panel-copy">{t("admin.migration.formDescription")}</p>
+
+            <div className="admin-migration__column">
+              <TextField
+                label={t("field.targetVolumeId")}
+                value={targetVolumeId}
+                onChange={(event) => setTargetVolumeId(event.target.value)}
+                placeholder="volume-id"
+              />
+              <label className="admin-migration__checkbox">
+                <input
+                  type="checkbox"
+                  checked={verifySha256}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setVerifySha256(event.target.checked)}
+                />
+                <span>{t("field.verifySha256")}</span>
+              </label>
+            </div>
+
             <label className="admin-migration__checkbox">
               <input
                 type="checkbox"
-                checked={readOnly}
-                disabled={submitting}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  setReadOnly(event.target.checked);
-                  setSaved(false);
-                }}
-                aria-label={t("status.readOnly")}
+                checked={deleteSourceAfter}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setDeleteSourceAfter(event.target.checked)}
               />
-              <span>{t("status.readOnly")}</span>
+              <span>{t("field.deleteSourceAfter")}</span>
             </label>
-            {submitErrorKey ? <p className="admin-migration__alert">{t(submitErrorKey)}</p> : null}
-            {saved ? <p className="admin-migration__success">{t("msg.changesSaved")}</p> : null}
+
+            {migrationErrorKey ? <ErrorState title={t(migrationErrorKey)} /> : null}
+
             <div className="admin-migration__actions">
-              <Button variant="primary" onClick={handleSubmit} disabled={!isDirty || submitting} loading={submitting}>
-                {t("action.save")}
+              <Button
+                variant="primary"
+                onClick={handleStartMigration}
+                disabled={!targetVolumeId || migrationSubmitting}
+                loading={migrationSubmitting}
+              >
+                {t("action.startMigration")}
               </Button>
             </div>
-          </>
-        )}
-      </section>
+          </article>
+        </section>
 
-      <section className="admin-migration__section">
-        <div>
-          <h2 className="admin-migration__section-title">{t("modal.migrationStart.title")}</h2>
-        </div>
+        <section className="admin-migration__panel admin-migration__panel--jobs">
+          <div className="admin-migration__panel-header">
+            <div>
+              <p className="admin-migration__panel-eyebrow">{t("admin.jobs.title")}</p>
+              <h2 className="admin-migration__panel-title">{t("admin.migration.jobsTitle")}</h2>
+            </div>
+          </div>
+          <p className="admin-migration__panel-copy">{t("admin.migration.jobsDescription")}</p>
 
-        <div className="admin-migration__column">
-          <TextField
-            label={t("field.targetVolumeId")}
-            value={targetVolumeId}
-            onChange={(event) => setTargetVolumeId(event.target.value)}
-            placeholder="volume-id"
-          />
-          <label className="admin-migration__checkbox">
-            <input
-              type="checkbox"
-              checked={verifySha256}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setVerifySha256(event.target.checked)}
+          {migrationJobLoading ? <LoadingSkeleton lines={3} /> : null}
+          {migrationJobErrorKey ? <ErrorState title={t(migrationJobErrorKey)} /> : null}
+
+          {migrationJob ? (
+            <JobDetailsCard
+              job={migrationJob}
+              titleKey="admin.jobs.title"
+              onRefresh={() => void fetchMigrationJob(migrationJob.id)}
+              loading={migrationJobLoading}
+              errorKey={migrationJobErrorKey}
             />
-            <span>{t("field.verifySha256")}</span>
-          </label>
-        </div>
-
-        <label className="admin-migration__checkbox">
-          <input
-            type="checkbox"
-            checked={deleteSourceAfter}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setDeleteSourceAfter(event.target.checked)}
-          />
-          <span>{t("field.deleteSourceAfter")}</span>
-        </label>
-
-        {migrationErrorKey ? <ErrorState title={t(migrationErrorKey)} /> : null}
-
-        <div className="admin-migration__actions">
-          <Button
-            variant="primary"
-            onClick={handleStartMigration}
-            disabled={!targetVolumeId || migrationSubmitting}
-            loading={migrationSubmitting}
-          >
-            {t("action.startMigration")}
-          </Button>
-        </div>
-      </section>
-
-      <section className="admin-migration__section">
-        <div>
-          <h2 className="admin-migration__section-title">{t("admin.jobs.title")}</h2>
-        </div>
-
-        {migrationJobLoading ? <LoadingSkeleton lines={3} /> : null}
-        {migrationJobErrorKey ? <ErrorState title={t(migrationJobErrorKey)} /> : null}
-
-        {migrationJob ? (
-          <JobDetailsCard
-            job={migrationJob}
-            titleKey="admin.jobs.title"
-            onRefresh={() => void fetchMigrationJob(migrationJob.id)}
-            loading={migrationJobLoading}
-            errorKey={migrationJobErrorKey}
-          />
-        ) : (
-          <EmptyState title={t("msg.noJobs")} />
-        )}
-      </section>
+          ) : (
+            <EmptyState title={t("msg.noJobs")} />
+          )}
+        </section>
+      </div>
     </section>
   );
 }

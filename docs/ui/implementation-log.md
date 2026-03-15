@@ -1,5 +1,10 @@
 # UI/UX Implementation Log
 
+## 2026-03-13: Legacy left nav removal
+- `AppShell` no longer keeps a duplicated left navigation rail.
+- Imported Stitch `code.html` layouts are now the source visual contract for the user shell, with topbar-first navigation and contextual right inspector.
+- The previous left sidebar pattern is kept only as historical documentation residue and is not an active UI target.
+
 ## Phase 0: Baseline & SSOT 정합
 
 ### T0.1 - T0.6: 기준선 정리 및 구현 준비

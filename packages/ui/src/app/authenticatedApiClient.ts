@@ -1,4 +1,5 @@
 import { createApiClient } from "../api/client";
+import { getLocale } from "../i18n/t";
 import {
   clearAuthTokens,
   getAccessToken,
@@ -6,22 +7,26 @@ import {
   setAccessToken,
   setRefreshToken,
 } from "./authTokens";
+import { getAppBasePath, withBasePath } from "./basePath";
 
 let sharedClient: ReturnType<typeof createApiClient> | null = null;
 
 export function getAuthenticatedApiClient() {
   if (!sharedClient) {
+    const basePath = getAppBasePath();
     sharedClient = createApiClient({
-      baseUrl: "",
+      baseUrl: basePath,
+      getLocale,
       getToken: getAccessToken,
       setToken: setAccessToken,
       getRefreshToken: getRefreshToken,
       setRefreshToken: setRefreshToken,
       onAuthFailure: () => {
         clearAuthTokens();
-        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        const loginPath = withBasePath("/login");
+        if (typeof window !== "undefined" && window.location.pathname !== loginPath) {
           const next = encodeURIComponent(window.location.pathname + window.location.search);
-          window.location.replace(`/login?next=${next}`);
+          window.location.replace(`${loginPath}?next=${next}`);
         }
       },
     });
