@@ -1,0 +1,12 @@
+{
+  "branch": "codex/Refactoring_Eval",
+  "commit": "75bb570",
+  "iterations": 10,
+  "endpoint": "/setup/status",
+  "avg_ms": 26.72,
+  "min_ms": 2.71,
+  "p50_ms": 2.98,
+  "p95_ms": 234.27,
+  "max_ms": 234.27,
+  "total_ms": 267.15
+}

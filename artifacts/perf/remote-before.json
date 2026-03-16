@@ -1,0 +1,11 @@
+{
+  "branch": "current-remote-before-pull",
+  "iterations": 10,
+  "endpoint": "/setup/status",
+  "avg_ms": 146.99,
+  "min_ms": 133.24,
+  "p50_ms": 136.32,
+  "p95_ms": 236.9,
+  "max_ms": 236.9,
+  "total_ms": 1469.95
+}
