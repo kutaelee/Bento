@@ -4,7 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>Bento Mobile Native App</Text>
+      <Text style={styles.title}>Welcome to Bento Mobile</Text>
+      <Text style={styles.subtitle}>This is the start of something new.</Text>
       <StatusBar style="auto" />
     </View>
   );
