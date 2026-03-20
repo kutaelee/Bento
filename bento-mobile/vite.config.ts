@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  base: process.env.BENTO_MOBILE_BASE || '/demo/bento-mobile/',
   plugins: [react()],
   server: {
     port: 13100,

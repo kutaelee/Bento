@@ -1,0 +1,26 @@
+/* bento-mobile/src/components/ListItem.css */
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.95em;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item-label {
+  font-weight: bold;
+  color: #444;
+}
+
+.list-item-value {
+  color: #666;
+}
+
+.list-item-status-success { color: #28a745; }
+.list-item-status-warning { color: #ffc107; }
+.list-item-status-error   { color: #dc3545; }
+.list-item-status-info    { color: #17a2b8; }

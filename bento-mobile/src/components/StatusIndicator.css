@@ -1,0 +1,38 @@
+/* bento-mobile/src/components/StatusIndicator.css */
+.status-indicator {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-weight: bold;
+  color: #fff;
+  text-transform: capitalize;
+  margin-left: 8px;
+}
+
+.status-indicator-active,
+.status-indicator-operational,
+.status-indicator-success {
+  background-color: #28a745; /* Green */
+}
+
+.status-indicator-inactive {
+  background-color: #6c757d; /* Gray */
+}
+
+.status-indicator-pending,
+.status-indicator-running {
+  background-color: #ffc107; /* Yellow */
+  color: #333; /* Dark text for yellow */
+}
+
+.status-indicator-error,
+.status-indicator-failed {
+  background-color: #dc3545; /* Red */
+}
+
+.status-indicator-warning,
+.status-indicator-degraded {
+  background-color: #ffc107; /* Yellow, same as pending for now */
+  color: #333;
+}

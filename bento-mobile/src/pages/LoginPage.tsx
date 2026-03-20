@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
           New user? <Link to="/setup">Set up your account</Link>
         </p>
         <p style={{ textAlign: 'center' }}>
-          Received an invite? <Link to="/invite">Accept invite</Link>
+          Received an invite? <Link to="/invite/accept">Accept invite</Link>
         </p>
       </form>
     </div>

@@ -2,6 +2,8 @@
 
 Self-hosted NAS web application for 1–5 users (personal/family). Upload, browse, download, and share files from any device with automatic performance tuning that keeps your PC responsive.
 
+This repository also contains a dedicated mobile application, `bento-mobile/`, for a streamlined experience.
+
 ---
 
 ## Key Features
@@ -482,6 +484,7 @@ Development is organized into **Pieces (P)** and **Tasks (T)**, tracked in the E
 | Features | P7 (Trash/GC) · P8 (Share Links) · P9 (ACL) | Backend |
 | Advanced | P10 (Search) · P11 (Media/QoS) · P12 (Migration/Scan) | Backend |
 | UI | P13 (Workspace/Evidence gate) · P14 (ui-kit primitives) · P15 (App Shell/Auth UI) · P16 (File Explorer) · P17 (File Ops/Upload/Share/Admin UI) | Frontend |
+| Mobile App | Initial slice for login, invite acceptance, and app shell. See `bento-mobile/`. | Frontend |
 | Hardening | P18 (Typed API types, error handling, module boundaries, perf) | Refactoring |
 | Enhancement | P19 (Command palette, bulk ops, audit UI) | Optional |
 

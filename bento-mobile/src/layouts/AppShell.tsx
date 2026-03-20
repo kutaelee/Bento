@@ -7,12 +7,19 @@ interface AppShellProps {
 }
 
 const AppShell: React.FC<AppShellProps> = ({ children }) => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <header style={{ padding: '16px', backgroundColor: '#333', color: 'white', textAlign: 'center', fontSize: '1.2em' }}>
-        Bento Mobile
+        <div style={{ fontWeight: 700 }}>Bento Mobile</div>
+        {!isAuthenticated && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '10px', fontSize: '0.85rem' }}>
+            <Link to="/login" style={{ color: '#fff', textDecoration: 'none' }}>Login</Link>
+            <Link to="/setup" style={{ color: '#fff', textDecoration: 'none' }}>Setup</Link>
+            <Link to="/invite/accept" style={{ color: '#fff', textDecoration: 'none' }}>Invite</Link>
+          </div>
+        )}
       </header>
 
       <main style={{ flexGrow: 1, padding: '16px', overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>

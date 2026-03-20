@@ -1,0 +1,13 @@
+/* bento-mobile/src/components/layout/AppShell.css */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Full viewport height */
+  overflow: hidden; /* Prevent body scroll, content will scroll if needed */
+}
+
+.app-content {
+  flex-grow: 1;
+  overflow-y: auto; /* Enable scrolling for content area */
+  padding-bottom: 60px; /* Make space for the fixed bottom nav bar */
+}

@@ -1,0 +1,33 @@
+/* bento-mobile/src/pages/Page.css */
+.page {
+  padding: 15px;
+  background-color: #fff;
+  margin: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.page h2 {
+  color: #333;
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.page p {
+  color: #666;
+  line-height: 1.5;
+}
+
+.page ul {
+  list-style: none;
+  padding: 0;
+}
+
+.page li {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.page li:last-child {
+  border-bottom: none;
+}
