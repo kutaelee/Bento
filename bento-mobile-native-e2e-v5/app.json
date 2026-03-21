@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "bento-mobile-native-e2e-v5",
+    "slug": "bento-mobile-native-e2e-v5",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {},
+    "web": {},
+    "entryPoint": "index.ts"
+  }
+}
