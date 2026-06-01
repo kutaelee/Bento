@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a reproducible Bento problem
+title: "bug: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Uploads or downloads
+        - ACL or sharing
+        - Storage scan, trash, or migration
+        - Auth or invites
+        - UI
+        - Performance or background jobs
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction Steps
+      description: Include commands, routes, API calls, or UI steps. Do not include secrets or private files.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit, Branch, or Version
+      placeholder: main, v0.1.0, or commit SHA
+  - type: textarea
+    id: validation
+    attributes:
+      label: Evidence or Logs
+      description: Paste minimal logs or command output. Redact tokens, host paths, and private filenames when needed.

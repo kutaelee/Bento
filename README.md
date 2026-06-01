@@ -1,6 +1,39 @@
 # Bento
 
-Self-hosted NAS web application for 1–5 users (personal/family). Upload, browse, download, and share files from any device with automatic performance tuning that keeps your PC responsive.
+[![CI](https://github.com/kutaelee/Bento/actions/workflows/ci.yml/badge.svg)](https://github.com/kutaelee/Bento/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+Bento is a self-hosted NAS web application for 1-5 people who want private file storage without giving up a responsive everyday PC. It combines upload, browse, download, sharing, ACLs, search, media previews, and storage maintenance into a small-home or small-team server.
+
+Bento is also built as an open-source maintenance project: the repository is organized around OpenAPI as the source of truth, small reviewable PRs, CLI evidence bundles, and repeatable release checks. The goal is to use Codex to reduce maintainer load while improving a tool that can help people run safer personal storage.
+
+Project status: public early-stage OSS. Core contracts, UI routes, evidence gates, and maintainer workflow are in place; adoption metrics are still growing.
+
+---
+
+## Why Bento Exists
+
+Many self-hosted file tools work well after setup, but the hard parts for non-enterprise users are usually maintenance: safe upgrades, stuck uploads, access control mistakes, storage scans, background jobs, and keeping the UI responsive on a machine that is also used for daily work.
+
+Bento focuses on those operational edges:
+
+- **Private by default** - invite-only onboarding, deny-by-default ACLs, hashed share tokens, and expiring share links.
+- **Responsive under pressure** - interactive requests are prioritized while thumbnails, scans, migration, and cleanup jobs are throttled.
+- **Repairable storage** - storage volume validation, orphan detection, trash retention, and startup upload-session reconciliation.
+- **Contract-first development** - OpenAPI, state machines, DB expectations, UI routes, and copy keys are kept as explicit source-of-truth artifacts.
+- **Evidence-based maintenance** - changes are expected to ship with command-line evidence, not screenshots or unchecked assumptions.
+
+## Codex-Assisted Maintenance
+
+Bento was structured so Codex can help maintain the project in ways that benefit users and contributors, not just generate code. The intended Codex workflows are:
+
+- PR review against OpenAPI, security rules, and UI route/copy source-of-truth files.
+- Issue triage for uploads, sharing, ACLs, storage scan, and performance regressions.
+- Release checklist automation, changelog drafts, and upgrade-risk summaries.
+- Security review for path traversal, token handling, permission inheritance, and destructive storage operations.
+- Test and evidence generation for small, reversible PRs.
+
+See [docs/MAINTAINER_AUTOMATION.md](docs/MAINTAINER_AUTOMATION.md) for the maintainer automation plan.
 
 ---
 
@@ -142,8 +175,8 @@ UI is implemented by absorbing Stitch design tokens into `packages/ui-kit/` (tok
 ### 1. Clone & install
 
 ```bash
-git clone <repo-url> nimbus-drive
-cd nimbus-drive
+git clone https://github.com/kutaelee/Bento.git
+cd Bento
 pnpm install
 ```
 
@@ -160,7 +193,6 @@ This starts PostgreSQL 15 on **host port 15432** with:
 ### 3. Run the dev server
 
 ```bash
-# TODO: confirm the exact dev command — check packages/ui/package.json or src/ entry point
 node scripts/dev_server.mjs
 ```
 
@@ -519,7 +551,7 @@ pnpm -C packages/ui-kit storybook:build
 
 ## License
 
-> **TODO: Add LICENSE** — No license file currently exists in the repository. Add a `LICENSE` file before public release.
+Bento is available under the [MIT License](LICENSE).
 
 ---
 

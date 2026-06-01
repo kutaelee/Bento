@@ -1,10 +1,39 @@
-요청하신 Bento 리포지토리의 README 한국어 번역입니다. 기술적인 뉘앙스와 마크다운 서식을 원본에 맞게 최대한 살려 번역했습니다.
+# Bento
+
+[![CI](https://github.com/kutaelee/Bento/actions/workflows/ci.yml/badge.svg)](https://github.com/kutaelee/Bento/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+Bento는 1~5인 개인/가족/소규모 팀이 자신의 PC나 작은 서버에서 안전하게 파일을 보관하고 공유하기 위한 구축형(Self-hosted) NAS 웹 애플리케이션입니다. 파일 업로드, 탐색, 다운로드, 공유 링크, ACL, 검색, 미디어 미리보기, 스토리지 유지보수를 하나의 작은 서버 경험으로 묶습니다.
+
+Bento는 Codex를 활용한 오픈소스 유지관리에도 맞춰 설계했습니다. OpenAPI를 단일 진실 공급원으로 두고, 작은 PR, CLI 증명(evidence), 반복 가능한 릴리스 체크를 통해 사람이 최종 책임을 지면서도 Codex가 리뷰·이슈 분류·보안 점검·릴리스 준비를 돕게 하는 것이 목표입니다.
+
+프로젝트 상태: 공개 초기 단계 OSS입니다. 핵심 계약, UI 라우트, evidence gate, maintainer workflow는 정리되어 있으며 사용 지표는 앞으로 성장시킬 예정입니다.
 
 ---
 
-# Bento
+## Bento가 해결하려는 문제
 
-1~5인(개인/가족)을 위한 구축형(Self-hosted) NAS 웹 애플리케이션입니다. PC의 응답성을 유지해 주는 자동 성능 조정 기능을 통해 모든 기기에서 파일을 업로드, 탐색, 다운로드 및 공유할 수 있습니다.
+많은 self-hosted 파일 도구는 설치 후에는 잘 동작하지만, 실제 개인 사용자에게 어려운 부분은 유지보수입니다. 안전한 업그레이드, 멈춘 업로드 복구, 접근 권한 실수, 스토리지 스캔, 백그라운드 작업, 일상 작업용 PC의 응답성 유지가 반복적으로 문제가 됩니다.
+
+Bento는 이런 운영 경계에 집중합니다.
+
+* **기본 비공개 정책** — 초대 전용 온보딩, 기본 거부 ACL, 해시된 공유 토큰, 만료되는 공유 링크
+* **부하 중에도 응답성 유지** — UI 요청을 우선하고 썸네일, 스캔, 마이그레이션, 정리 작업을 자동 스로틀링
+* **복구 가능한 스토리지** — 볼륨 검증, 고아 파일 탐지, 휴지통 보존, 시작 시 업로드 세션 조정
+* **계약 우선 개발** — OpenAPI, 상태 머신, DB 기대값, UI 라우트, copy key를 명시적인 SSOT로 관리
+* **증거 기반 유지관리** — 스크린샷이나 추측이 아니라 CLI로 재현 가능한 evidence를 기준으로 변경 검증
+
+## Codex 기반 유지관리
+
+Bento는 Codex가 단순 코드 생성보다 사용자와 기여자에게 도움이 되는 유지관리 업무를 돕도록 구조화했습니다.
+
+* OpenAPI, 보안 규칙, UI route/copy SSOT 기준 PR 리뷰
+* 업로드, 공유, ACL, 스토리지 스캔, 성능 회귀 이슈 분류
+* 릴리스 체크리스트 자동화, changelog 초안, 업그레이드 위험 요약
+* path traversal, 토큰 처리, 권한 상속, 파괴적 스토리지 작업 보안 점검
+* 작고 되돌리기 쉬운 PR을 위한 테스트 및 evidence 생성
+
+자세한 계획은 [docs/MAINTAINER_AUTOMATION.md](docs/MAINTAINER_AUTOMATION.md)를 참고하세요.
 
 ---
 
@@ -147,8 +176,8 @@ UI는 외부 디자인(Stitch) 토큰을 `packages/ui-kit/`(토큰 + 재사용 �
 ### 1. 클론 및 설치
 
 ```bash
-git clone <repo-url> nimbus-drive
-cd nimbus-drive
+git clone https://github.com/kutaelee/Bento.git
+cd Bento
 pnpm install
 
 ```
@@ -168,7 +197,6 @@ docker compose up -d
 ### 3. 개발 서버 실행
 
 ```bash
-# TODO: 정확한 개발 환경 실행 명령어를 확인하세요 (packages/ui/package.json 또는 src/ 진입점 확인)
 node scripts/dev_server.mjs
 
 ```
@@ -536,13 +564,13 @@ pnpm -C packages/ui-kit storybook:build
 
 ```
 
-> TODO: 각 패키지별 정확한 린트/타입 체크 도구 설정을 확인하세요.
+위 명령은 현재 패키지 스크립트 기준의 기본 검증 경로입니다. 변경 범위가 넓으면 `scripts/run_evidence.sh` 또는 UI evidence 스크립트를 추가로 실행하세요.
 
 ---
 
 ## 라이선스
 
-> **TODO: 라이선스 추가** — 현재 리포지토리에 라이선스 파일이 없습니다. 공개 릴리스 전에 `LICENSE` 파일을 추가하세요.
+Bento는 [MIT License](LICENSE)로 배포됩니다.
 
 ---
 

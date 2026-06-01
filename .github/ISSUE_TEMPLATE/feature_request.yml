@@ -1,0 +1,47 @@
+name: Feature request
+description: Propose a focused improvement
+title: "feat: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or maintainer problem should Bento solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the smallest useful change.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Uploads or downloads
+        - ACL or sharing
+        - Storage scan, trash, or migration
+        - Auth or invites
+        - UI
+        - Performance or background jobs
+        - Documentation
+        - Maintainer automation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Acceptance Criteria
+      description: What evidence would prove this is done?
+      value: |
+        - 
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks
+      description: Note security, data loss, compatibility, or migration concerns.
